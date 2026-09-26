@@ -42,6 +42,17 @@ in another language cannot silently diverge:
   broken on purpose (wrong fee, extra field) to confirm the tests fail, then the spike is
   deleted so the committed baseline stays red.
 
+## Vertical (service-level) testing, then end-to-end
+
+- Each service is tested alone, top to bottom: HTTP in, its own state, the calls it makes.
+- Services with no dependencies (Customer, VeterinarianServices) are driven directly; the
+  test plays the callers' role with service-role tokens and made-up visit/payment IDs.
+- Services with dependencies (Reservation, Checkout) get contract-validated stubs, and the
+  tests assert what the service sent to them.
+- Both sides are held to the same contract, which narrows the integration gap; the real
+  end-to-end proof is the workflow suite (TEST-02) with all services running.
+- This is what makes "delete one service and rebuild it in Python" testable in isolation.
+
 ## Moments worth showing live
 
 - The agent tries to edit a feature file and gets the GUARD-01 message.
