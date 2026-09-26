@@ -12,7 +12,7 @@ preserved at tag `1.0` and are not part of the new suite (D-24).
 ## OpenTelemetry conformance
 
 Services follow OpenTelemetry specifications (PROJECT-PLAN A-08, BACKLOG OTEL-01): the
-official SDK per language, OTLP export, W3C Trace Context, standard resource attributes,
+official SDK per language, OTLP/HTTP protobuf export only (A-10), W3C Trace Context, standard resource attributes,
 and semantic conventions for HTTP spans and errors. The `petclinic.*` names below are
 only for business attributes with no standard equivalent. The semantic-conventions
 version will be pinned in OTEL-01. Auth tokens and passwords are forbidden in telemetry.

@@ -180,10 +180,22 @@ Baseline (`npm test`):
 
 ### ARCH-04 — Cross-process telemetry capture
 
-Status: planned; priority 4. Decision A-03.
+Status: done. Decisions A-03, A-10. Phase: spec.
 
-- Test OTLP collector that receives traces from any language and exposes them to tests.
-- OBS assertions read from the collector rather than an in-process exporter.
+- OTLP/HTTP test collector in `spec/harness/collector/` (port 4318): protobuf only, rejects
+  other formats with 415 and records them; `GET /test/spans`, `POST /test/reset`.
+- Vendored OTLP .proto files (opentelemetry-proto, latest release v1.10.0) decoded with protobufjs.
+- `spec/harness/traces.js` (wait for spans, find span, parent/child across services, trace tree)
+  and `spec/harness/show-trace.js` for the demo.
+- Runtime contract: OTLP protobuf env vars, traces only, `OTEL_BSP_SCHEDULE_DELAY=100`, and
+  RT-008 [OBS-001]: each service exports protobuf traces under its `service.name`.
+- Collector self-check tests in `spec/tests/harness/`.
+- Dependency: protobufjs ^8.8.0 (dev, spec project).
+
+Baseline (`npm test`): harness self-checks pass (collector accepts protobuf, rejects JSON
+with 415); schema contracts pass; runtime contract: fake payment and collector pass, the
+four services (including RT-008) and the frontend fail as not implemented; 150/150
+service scenarios fail as not implemented.
 
 ### OTEL-01 — OpenTelemetry specification conformance
 

@@ -1,6 +1,6 @@
 // Cucumber world and lifecycle for service features. Protected scaffolding.
 // Service features (@service:<name>) run the real service under test, stubs for the
-// services it calls (D-28), and the real fake payment provider.
+// services it calls (D-28), the real fake payment provider, and the OTLP test collector.
 import {
   World, setWorldConstructor, setDefaultTimeout, Before, After, AfterAll, Status,
 } from "@cucumber/cucumber";
@@ -55,6 +55,9 @@ Before(async function ({ pickle }) {
   if (!PROJECTS[name]) throw new Error(`Unknown service tag @service:${name}`);
   this.service = name;
   assertImplemented(name); // fails the scenario with "<Service> not implemented: ..."
+
+  await ensureRunning("collector");
+  await resetProject("collector");
 
   for (const dep of PROJECTS[name].dependsOn) {
     if (dep === "payment") {

@@ -14,6 +14,7 @@ humans change it deliberately. Verified by `spec/tests/runtime/runtime-contract.
 | RT-005 | `/test/*` returns 404 when test endpoints are disabled | Services, fake payment |
 | RT-006 | CORS allowed only from `FRONTEND_ORIGIN` | Services |
 | RT-007 | Stops within 5 seconds of SIGTERM | All |
+| RT-008 | Exports traces as OTLP/HTTP protobuf with the correct `service.name` (also verifies OBS-001) | Services |
 
 ## Scripts
 
@@ -36,7 +37,7 @@ Run from the project folder: `./setup`, then `./start`.
 | VeterinarianServices | `services/veterinarian-services/` | 4003 |
 | Checkout | `services/checkout/` | 4004 |
 | Fake payment provider | `spec/fakes/payment/` | 4010 |
-| OTLP test collector | `spec/harness/` | 4318 |
+| OTLP test collector | `spec/harness/collector/` | 4318 |
 
 Projects must listen on `PORT`. If `PORT` is unset they default to their port above.
 Before starting or rebuilding a project on its static port, run
@@ -59,6 +60,10 @@ Before starting or rebuilding a project on its static port, run
 | `PETCLINIC_TEST_ENDPOINTS` | Services, fake payment | `enabled` turns on test-only endpoints; anything else turns them off |
 | `OTEL_SERVICE_NAME` | Services | Standard OpenTelemetry variable; value per OBS-001 (e.g. `petclinic-checkout`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Services | Standard OpenTelemetry variable; `http://localhost:4318` in tests |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Services | Always `http/protobuf` (A-10) |
+| `OTEL_TRACES_EXPORTER` | Services | `otlp` |
+| `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER` | Services | `none` (traces only) |
+| `OTEL_BSP_SCHEDULE_DELAY` | Services | Batch export delay in ms; `100` in tests so spans arrive quickly |
 
 A service may read only the dependency URLs its column allows (D-37: no new
 cross-service dependencies). Missing required variables fail startup with a clear message.
@@ -84,6 +89,14 @@ ports. Every service answers CORS requests from `FRONTEND_ORIGIN` only:
 - Preflight `OPTIONS` returns 204 and allows methods `GET, POST, PUT, PATCH, DELETE`
   and headers `Authorization, Content-Type, Idempotency-Key`.
 - Requests from any other origin get no CORS allow headers.
+
+## Telemetry export
+
+Services send traces with the official OpenTelemetry SDK for their language over
+OTLP/HTTP **protobuf** to `OTEL_EXPORTER_OTLP_ENDPOINT` (`/v1/traces`). JSON and gRPC
+are not used. The test collector rejects any other format with 415 and records it,
+which fails RT-008. Every handled HTTP request, including `GET /health`, produces a
+server span. Traces only; metrics and logs are off.
 
 ## Health
 

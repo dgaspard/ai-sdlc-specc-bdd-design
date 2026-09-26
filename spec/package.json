@@ -8,7 +8,9 @@
     "test": "node run-all.js",
     "test:schema": "node --test --test-concurrency=1 \"tests/contract/**/*.test.js\"",
     "test:runtime": "node --test --test-concurrency=1 \"tests/runtime/**/*.test.js\"",
-    "test:bdd": "cucumber-js"
+    "test:bdd": "cucumber-js",
+    "test:harness": "node --test --test-concurrency=1 \"tests/harness/**/*.test.js\"",
+    "trace": "node harness/show-trace.js"
   },
   "engines": {
     "node": "22 || 24 || >=26"
@@ -17,7 +19,8 @@
     "@cucumber/cucumber": "13.2.1",
     "@opentelemetry/sdk-trace-base": "2.11.0",
     "@playwright/test": "1.55.1",
-    "ajv": "8.20.0"
+    "ajv": "8.20.0",
+    "protobufjs": "^8.8.0"
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.1",

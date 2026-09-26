@@ -45,6 +45,10 @@ export const PROJECTS = {
     title: "Fake payment provider", kind: "fake", folder: "spec/fakes/payment", port: 4010,
     otelName: "petclinic-payment-fake", dependsOn: [], contract: "payment-provider.openapi.json",
   },
+  collector: {
+    title: "OTLP test collector", kind: "fake", folder: "spec/harness/collector", port: 4318,
+    dependsOn: [],
+  },
 };
 
 const URL_VARS = {
@@ -77,6 +81,11 @@ export function projectEnv(name, { clinicNow = DEFAULT_CLINIC_NOW, testEndpoints
       SEED_DATA_DIR,
       OTEL_SERVICE_NAME: p.otelName,
       OTEL_EXPORTER_OTLP_ENDPOINT: OTLP_ENDPOINT,
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf",
+      OTEL_TRACES_EXPORTER: "otlp",
+      OTEL_METRICS_EXPORTER: "none",
+      OTEL_LOGS_EXPORTER: "none",
+      OTEL_BSP_SCHEDULE_DELAY: "100",
     });
   }
   return env;

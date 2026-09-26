@@ -1,13 +1,14 @@
 // Verifies every runnable project follows spec/contracts/runtime-contract.md.
-// Rule IDs RT-001..RT-007 are defined in that contract. Protected test.
+// Rule IDs RT-001..RT-008 are defined in that contract. Protected test.
 import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { PROJECTS, FRONTEND_ORIGIN } from "../../harness/config.js";
 import {
-  assertImplemented, projectDir, startProject, stopProject, stopAll,
+  assertImplemented, projectDir, startProject, stopProject, stopAll, ensureRunning, resetProject,
 } from "../../harness/processes.js";
+import { fetchSpans, waitForSpans } from "../../harness/traces.js";
 
 after(stopAll);
 
@@ -78,6 +79,20 @@ for (const [name, p] of Object.entries(PROJECTS)) {
 
         const other = await fetch(`http://localhost:${p.port}/health`, { headers: { Origin: "http://evil.example" } });
         assert.equal(other.headers.get("access-control-allow-origin"), null);
+      });
+    }
+
+    if (p.kind === "service") {
+      it(`[RT-008] [OBS-001] ${p.title} exports traces as OTLP/HTTP protobuf named ${p.otelName}`, async () => {
+        assertImplemented(name);
+        await ensureRunning("collector");
+        await resetProject("collector");
+        await startProject(name);
+        await fetch(`http://localhost:${p.port}/health`);
+        const spans = await waitForSpans({ service: p.otelName });
+        assert.ok(spans.length > 0);
+        const { rejected } = await fetchSpans();
+        assert.deepEqual(rejected, [], "collector rejected exports that were not OTLP/HTTP protobuf");
       });
     }
 
