@@ -229,19 +229,20 @@ TEST-01 once SPEC-04 defines the endpoints and marks internal ones.
 
 ### GUARD-01 — Protect specs and tests from agent modification
 
-Status: planned; priority 5. Decision A-07. Phase: spec.
+Status: done (GitHub ruleset waits for the remote). Decision A-07. Phase: spec.
 
-Protected paths: `spec/**`, `docs/specs/**`, `.github/**`, `.claude/**`, `AGENTS.md`.
-Humans edit these deliberately; agents read them. Every backlog task states its phase:
-**spec** (human-directed; agent may draft protected files only when the human asks) or
-**build** (agent must not touch protected paths). Enforcement must not rely on AGENTS.md alone.
+Protected paths (`spec/guard/protected-paths.json`): `spec/`, `docs/specs/`, `.claude/`,
+`.github/`, `AGENTS.md`. Humans edit them; agents read them.
 
-- Commit `.claude/settings.json` deny rules (Edit/Write) for every protected path, plus a
-  PreToolUse hook that blocks shell commands writing to them.
-- Add `CODEOWNERS` for protected paths.
-- Add a required `guard` workflow: `protected.sha256` integrity check plus a frozen
-  test-ID inventory that catches deleted or skipped tests.
-- After the GitHub remote exists: branch ruleset requiring PR, `guard`, and code-owner review.
+- Build agent: `.claude/settings.json` deny rules plus `.claude/hooks/protect-paths.mjs`
+  (edit tools and shell commands; blocks `guard:freeze`). The reason is shown to the user.
+- Fingerprints: `spec/protected.sha256`, checked by `npm --prefix spec run guard:check`
+  (first suite in `npm test`), refrozen only by a human with `guard:freeze`.
+- Skip scan: rejects `.skip`/`.only`/`.todo` and `@skip`/`@wip`/`@ignore`/`@only` tags.
+- GitHub: `.github/CODEOWNERS` and `.github/workflows/guard.yml` (guard job required; full
+  suite informational). After the remote exists: branch ruleset requiring PR, the guard
+  check, and code-owner review. Confirm the CODEOWNERS username.
+- Self-checks: `spec/tests/harness/guard.test.js` and `protect-hook.test.js`.
 
 ### SPEC-04 — Per-service API contracts
 

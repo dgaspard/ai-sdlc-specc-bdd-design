@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(./spec/**)",
+      "Edit(./docs/specs/**)",
+      "Edit(./.claude/**)",
+      "Edit(./.github/**)",
+      "Edit(./AGENTS.md)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-paths.mjs\"" }
+        ]
+      }
+    ]
+  }
+}

@@ -21,8 +21,21 @@ create, modify, or delete anything under:
 - `docs/specs/` (decisions, domain model, schema decisions)
 - `.github/`, `.claude/`, `AGENTS.md`
 
-Enforcement is GUARD-01 (Claude Code deny rules, CODEOWNERS, required guard check),
-not this file alone. Backlog tasks state which phase they run in.
+Enforcement is GUARD-01, not this file alone:
+
+- `.claude/settings.json` deny rules and the `.claude/hooks/protect-paths.mjs` hook block the
+  build agent (Claude Code) from editing protected paths or writing to them from the shell.
+  The block reason is shown to the user and returned to the agent.
+- `npm --prefix spec run guard:check` (first step of `npm test`, and the required GitHub
+  check) fails if any protected file changed since the last human freeze, or if a test is
+  skipped or focused.
+- Only a human runs `npm --prefix spec run guard:freeze`, after reviewing a spec change.
+- In the specification phase, an assistant may draft protected files only when the human
+  asks for that specific change; the human reviews the diff and freezes it.
+- If the specification looks wrong during the build phase, stop and explain the problem to
+  the user. Do not work around the guard.
+
+Backlog tasks state which phase they run in.
 
 ## Requirements
 
