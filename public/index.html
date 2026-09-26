@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetClinic</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">Neighborhood veterinary care</p>
+        <h1>PetClinic</h1>
+      </div>
+      <span class="status">Accepting appointments</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <h2>Schedule a visit</h2>
+        <p>Select a patient and choose an appointment date.</p>
+      </section>
+
+      <section id="pet-list" class="pet-grid" aria-label="Patients"></section>
+
+      <section class="appointment-panel" aria-labelledby="appointment-title">
+        <div>
+          <p class="eyebrow">New appointment</p>
+          <h2 id="appointment-title">Book a visit</h2>
+        </div>
+        <form id="visit-form">
+          <label>
+            Patient
+            <select id="pet" name="petId" required></select>
+          </label>
+          <label>
+            Visit date
+            <input id="visit-date" name="date" type="date" required />
+          </label>
+          <label>
+            Reason for visit
+            <input id="description" name="description" required />
+          </label>
+          <button type="submit">Schedule visit</button>
+        </form>
+        <div id="message" role="status" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

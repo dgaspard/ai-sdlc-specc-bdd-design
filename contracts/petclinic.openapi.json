@@ -1,0 +1,56 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PetClinic API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/pets/{petId}/visits/{visitId}": {
+      "delete": {
+        "operationId": "cancelVisit",
+        "summary": "Cancel a scheduled veterinary visit",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The visit was cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CancelledVisit" }
+              }
+            }
+          },
+          "404": {
+            "description": "The pet or visit was not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CancelledVisit": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["petId", "visitId", "status"],
+        "properties": {
+          "petId": { "type": "integer" },
+          "visitId": { "type": "integer" },
+          "status": { "const": "cancelled" }
+        }
+      }
+    }
+  }
+}
