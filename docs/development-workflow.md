@@ -21,7 +21,7 @@ internal modules while preserving the published representation and behavior.
 When a domain contract changes, update the domain specification, machine-readable
 schema, examples, consumer/provider contract tests, and implementation deliberately.
 When only implementation changes, preserve those tests. The current schemas are in
-`contracts/domain.openapi.json`, with decisions recorded in
+`spec/contracts/domain.openapi.json`, with decisions recorded in
 `docs/specs/schema-decisions.md`.
 
 ## Start each task
@@ -87,20 +87,19 @@ Each service owns its feature files. Start with one capability file per service
 and split by business capability as needed; do not force an entire service into
 one large file. Cross-service workflows have their own files.
 
-Planned layout (not an instruction to move the current baseline feature):
+Repository layout (ARCH-01, PROJECT-PLAN A-01):
 
 ```text
-features/
-  customer/
-    booking-eligibility.feature
-  reservation/
-    reserve-appointment.feature
-    cancel-reservation.feature
-  checkout/
-    process-payment.feature
-    retry-checkout.feature
-  workflows/
-    book-and-pay-for-appointment.feature
+services/customer/  services/reservation/  services/veterinarian-services/  services/checkout/
+frontend/
+spec/
+  features/<service>/  features/workflows/
+  contracts/           domain and per-service OpenAPI
+  seed-data/           veterinarians.json, later users.json
+  tests/               steps, contract, observability, performance, guard
+  harness/             starts services, resets state
+  fakes/payment/       fake payment provider
+docs/                  plan, decisions, domain model (docs/specs is protected)
 ```
 
 Service scenarios cover detailed rules owned by that service. Workflow scenarios
@@ -122,8 +121,8 @@ Use the following sources rather than duplicating changing facts across document
 | `AGENTS.md` | Agent guardrails and entry points |
 | This document | Development sequence and feature organization |
 | `BACKLOG.md` and linked specs | Scope, decisions, prerequisites, stage, next action |
-| `features/` | Business requirements |
-| `contracts/` | Published API expectations |
+| `spec/features/` | Business requirements |
+| `spec/contracts/` | Published API expectations |
 | `docs/observability.md` | Telemetry rule registry and rule-to-test coverage |
 | Executable tests | Evidence that the stated expectations hold or fail |
 

@@ -2,26 +2,11 @@
   "name": "ai-sdlc-petclinic",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "description": "Specification-first PetClinic demo: an AI agent builds four services from protected BDD, API, schema, and observability tests.",
   "scripts": {
-    "test": "cucumber-js",
-    "test:bdd": "cucumber-js"
+    "test": "npm --prefix spec test"
   },
   "engines": {
     "node": "22 || 24 || >=26"
-  },
-  "dependencies": {
-    "@opentelemetry/api": "1.9.1",
-    "express": "5.1.0"
-  },
-  "devDependencies": {
-    "@cucumber/cucumber": "13.2.1",
-    "@opentelemetry/sdk-trace-base": "2.11.0",
-    "@playwright/test": "1.55.1",
-    "ajv": "8.20.0"
-  },
-  "allowScripts": {
-    "fsevents@2.3.2": true
   }
 }

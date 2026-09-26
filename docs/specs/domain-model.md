@@ -113,7 +113,7 @@ a separate Office service. The veterinarian owns the clinical record as a domain
 responsibility. Reservation owns the Visit records and exposes their read/write
 interfaces; Customer and Pet histories are read projections of those records.
 
-Synthetic seed data is in [veterinarians.json](seed-data/veterinarians.json): Avery
+Synthetic seed data is in [veterinarians.json](../../spec/seed-data/veterinarians.json): Avery
 Taylor in office-1 and Morgan Reed in office-2. The file is specification seed data;
 the current application does not load it yet.
 
@@ -358,9 +358,9 @@ direct access to another service's in-memory store. No database change is needed
 
 ## Service behavior specifications
 
-Service feature files live in `features/<service>/` (D-35) and follow D-28: each
+Service feature files live in `spec/features/<service>/` (D-35) and follow D-28: each
 asserts only its own service's state plus the requests it sends to other services.
-Workflow features spanning services will live in `features/workflows/` after the
+Workflow features spanning services will live in `spec/features/workflows/` after the
 service contract tests exist. Earlier drafts are archived in
 `docs/specs/archive/draft-features-v1/`.
 
@@ -391,4 +391,4 @@ and copied billing addresses, required estimated birth date with Unknown breed
 allowed, nonblank clinical notes, and finalized bill required when Checkout exists.
 
 The initial machine-readable contract is
-[contracts/domain.openapi.json](../../contracts/domain.openapi.json).
+[spec/contracts/domain.openapi.json](../../spec/contracts/domain.openapi.json).

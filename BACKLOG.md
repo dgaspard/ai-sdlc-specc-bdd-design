@@ -135,7 +135,12 @@ cancellation test is OBS-011; its assertions and intentional failure remain inta
 
 ### ARCH-01 — Repository layout with separate projects
 
-Status: planned; priority 1. Decision A-01.
+Status: done. Decision A-01. Phase: spec (human-directed).
+
+Result: `spec/` holds features, contracts, seed data, cucumber config, and test tooling
+(its own Node project); `services/<name>/` and `frontend/` contain README files only.
+Root `npm test` runs the spec project. `npm --prefix spec ci` verified locally
+(168 packages, 0 vulnerabilities).
 
 - Create `services/<name>/` for each of the four services, `frontend/`, and `spec/`.
 - Move `features/` and `contracts/` under `spec/` and update Cucumber and doc paths.
@@ -145,7 +150,26 @@ Status: planned; priority 1. Decision A-01.
 
 ### ARCH-02 — Language-neutral runtime contract
 
-Status: planned; priority 2. Decision A-02.
+Status: next; priority 2. Decision A-02. Phase: spec.
+
+Agreed values:
+
+| Project | Port |
+| --- | --- |
+| frontend | 3000 |
+| Customer | 4001 |
+| Reservation | 4002 |
+| VeterinarianServices | 4003 |
+| Checkout | 4004 |
+| Fake payment provider | 4010 |
+| OTLP test collector | 4318 |
+
+- Clinic clock: static `CLINIC_NOW` environment variable read at startup (ISO timestamp).
+  Scenarios needing a different clock restart the affected services. Time rules in scope:
+  no past appointments, hidden past slots, no acceptance after start, cancel only before
+  start, visit only at/after start. No other ordering rules are in scope.
+- Add a port-freeing script (for example `scripts/free-port.sh <port>`) used by the
+  harness and the demo before starting or rebuilding a service on its static port.
 
 - Specify the `start` convention, environment variables (port, dependency URLs,
   clinic clock, OTLP endpoint), health endpoint, and test-only reset endpoint.
@@ -196,11 +220,17 @@ Status: planned; before SPEC-04 so API contracts include it. Decision A-09.
   customer's data (a deliberate SPEC update, per D-28).
 - Tokens and passwords are never exported in telemetry (extends OBS-005).
 
-### GUARD-01 — Protect tests from agent modification
+### GUARD-01 — Protect specs and tests from agent modification
 
-Status: planned; priority 5. Decision A-07.
+Status: planned; priority 5. Decision A-07. Phase: spec.
 
-- Commit `.claude/settings.json` deny rules for `spec/**` and `.github/**`.
+Protected paths: `spec/**`, `docs/specs/**`, `.github/**`, `.claude/**`, `AGENTS.md`.
+Humans edit these deliberately; agents read them. Every backlog task states its phase:
+**spec** (human-directed; agent may draft protected files only when the human asks) or
+**build** (agent must not touch protected paths). Enforcement must not rely on AGENTS.md alone.
+
+- Commit `.claude/settings.json` deny rules (Edit/Write) for every protected path, plus a
+  PreToolUse hook that blocks shell commands writing to them.
 - Add `CODEOWNERS` for protected paths.
 - Add a required `guard` workflow: `protected.sha256` integrity check plus a frozen
   test-ID inventory that catches deleted or skipped tests.
@@ -259,7 +289,7 @@ Status: planned; depends on ARCH-01..04, OTEL-01, AUTH-01, GUARD-01, and SPEC-04
 
 Status: retired by D-24. The legacy app was removed; its cancellation exercise is
 preserved at tag `1.0`. Reservation cancellation is specified in
-`features/reservation/cancel-reservation.feature` and is built under IMPL-02.
+`spec/features/reservation/cancel-reservation.feature` and is built under IMPL-02.
 
 ### IMPL-02 — Build the four-service checkout workflow
 

@@ -140,7 +140,7 @@ the domain model; these rows retain the question IDs for traceability.
 
 - Done: record approval of Q-01–Q-05 and reconcile the domain field table.
 - Review remaining recommended shared conventions with the complete schema set.
-- Done: produce JSON Schema/OpenAPI components with distinct create/update/read shapes in `contracts/domain.openapi.json`.
+- Done: produce JSON Schema/OpenAPI components with distinct create/update/read shapes in `spec/contracts/domain.openapi.json`.
 - Done: include valid and invalid examples for requiredness, nullability, money, IDs, and dates.
 - Validate structural schemas and add separate assertions for cross-record rules.
 - Keep legacy baseline contracts separate until intentional migration is designed.

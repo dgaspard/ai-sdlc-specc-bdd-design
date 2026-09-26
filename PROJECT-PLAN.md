@@ -45,7 +45,7 @@ No new feature beyond the core demonstration is required to prove the hypothesis
 ## Current position
 
 Specifications and schemas are complete (tag `spec-schema-complete`): decisions
-D-01–D-37, the domain model, `contracts/domain.openapi.json`, OBS-001–OBS-040, and
+D-01–D-37, the domain model, `spec/contracts/domain.openapi.json`, OBS-001–OBS-040, and
 149 service scenarios. Legacy code and tests were removed (still at tag `1.0`). Next:
 derive per-service API contracts, then write protected service and schema contract
 tests that fail on creation, then workflow features. No application code exists.
@@ -85,12 +85,12 @@ inspect its requests and invocation counts.
 | ID | Decision |
 | --- | --- |
 | A-01 | One repository with separate projects: `services/customer/`, `services/reservation/`, `services/veterinarian-services/`, `services/checkout/`, `frontend/`, and `spec/` (features, contracts, tests, harness, payment fake, telemetry collector). Each service has its own dependency file and builds, starts, and is deleted independently. |
-| A-02 | Language-neutral runtime contract: every service starts with `services/<name>/start`, reads configuration only from environment variables (port, dependency URLs, clinic clock, telemetry endpoint), exposes a health endpoint and a test-only reset endpoint, and honors a controllable clinic clock. |
+| A-02 | Language-neutral runtime contract: every service starts with `services/<name>/start`, reads configuration only from environment variables (port, dependency URLs, `CLINIC_NOW`, telemetry endpoint), and exposes a health endpoint and a test-only reset endpoint. Static ports: frontend 3000, Customer 4001, Reservation 4002, VeterinarianServices 4003, Checkout 4004, payment fake 4010, OTLP collector 4318. A port-freeing script clears a port before a service starts or is rebuilt. |
 | A-03 | Tests are black-box: they reach services only over HTTP, validate responses against the published schemas, and never import application code. Telemetry is exported over OTLP to a test collector so OBS rules work in any language. |
 | A-04 | The frontend is its own plain HTML/JS project. It calls services only through their published APIs and uses accessible labels for Playwright. |
 | A-05 | Final demo: all services built in JavaScript; Checkout rebuilt live in Python against unchanged tests; Playwright and performance rerun. A whole-backend Python rebuild is a recorded stretch. |
 | A-06 | Minimum performance test: key endpoints stay under a p95 latency budget (proposed 200 ms) at a small concurrent load (proposed 10 users for 30 s) with zero errors. Same thresholds for every language. |
-| A-07 | Test protection: `.claude/settings.json` deny rules, `CODEOWNERS`, and a required `guard` workflow that checks a `protected.sha256` manifest and a frozen test inventory. |
+| A-07 | Protection of `spec/**`, `docs/specs/**`, `.github/**`, `.claude/**`, `AGENTS.md` (humans edit, agents read; build-phase tasks never touch them): `.claude/settings.json` deny rules, `CODEOWNERS`, and a required `guard` workflow that checks a `protected.sha256` manifest and a frozen test inventory. |
 | A-08 | Observability follows OpenTelemetry specifications. Each service uses the official OpenTelemetry SDK for its language (allowed dependency), exports over OTLP, propagates W3C Trace Context, sets standard resource attributes (`service.name`, `service.version`), and uses OpenTelemetry semantic conventions for HTTP spans and errors. Only business-specific attributes use the `petclinic.*` namespace. |
 | A-09 | Simple local authentication, no cloud dependency. Users are defined in `spec/seed-data/users.json` with plain-text demo passwords (clearly non-production). The Customer service exposes login and returns a signed token (HMAC, shared demo secret in an environment variable). Every service verifies the token locally, so no service calls another to authenticate. Roles: `veterinarian` sees all data; `customer` sees only their own customer, pets, reservations, visits, and bills. |
 
@@ -244,8 +244,7 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 
 ## Immediate next action
 
-Specifications are complete (tag `spec-schema-complete`). Next, in order: ARCH-01
-(repository layout), ARCH-02 (runtime contract), ARCH-03 (black-box harness),
+Specifications are complete (tag `spec-schema-complete`) and ARCH-01 is done. Next, in order: ARCH-02 (runtime contract), ARCH-03 (black-box harness),
 ARCH-04 (telemetry collector), OTEL-01 (OpenTelemetry conformance), AUTH-01
 (simple authentication), GUARD-01 (test protection), then SPEC-04 (per-service
 API contracts). Still needed from the presenter: talk date, session length, and the

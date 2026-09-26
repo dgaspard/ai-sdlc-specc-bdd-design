@@ -32,13 +32,11 @@ Each runs as a separate local HTTP process with in-memory storage.
 ## Where things live
 
 ```text
-docs/specs/business-decisions.md   SPEC-01 decision record (D-01..)
-docs/specs/domain-model.md         SPEC-02 domain model
-docs/specs/schema-decisions.md     Schema rules and approvals
-contracts/domain.openapi.json      Machine-readable domain schemas and examples
+services/<name>/                   One project per service (any language); README only for now
+frontend/                          Plain HTML/JS frontend; README only for now
+spec/                              Protected: features, contracts, seed data, tests, harness, fakes
+docs/specs/                        Protected: decisions, domain model, schema decisions
 docs/observability.md              Telemetry rules OBS-001..OBS-040 and coverage
-features/<service>/                Service behavior (Gherkin)
-features/workflows/                Cross-service journeys (next phase)
 PROJECT-PLAN.md                    Milestones, experiment protocol, demo gate
 BACKLOG.md                         Task status and open items
 docs/development-workflow.md       Working sequence and handoff rules

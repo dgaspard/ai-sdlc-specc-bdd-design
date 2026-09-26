@@ -39,7 +39,7 @@ the current implementation, feature files, or existing published contract.
 | D-32 | Checkout owns all payments, including the $20 booking fee and cash recording for it. On acceptance, Reservation asks Checkout to collect the booking fee and accepts only if it is paid. |
 | D-33 | Requests that break calendar rules (weekend, lunch, non-slot hour, past start) or would double-book the pet are rejected with a validation error and are not saved. Only outstanding-balance denials are saved as Denied (D-20). |
 | D-34 | An applied promotion is final: it cannot be changed or removed. A $0 promotion still uses the visit's one promotion. |
-| D-35 | Service feature files live in `features/<service>/`; workflow files in `features/workflows/`. |
+| D-35 | Service feature files live in `spec/features/<service>/`; workflow files in `spec/features/workflows/` (moved under `spec/` by ARCH-01). |
 | D-36 | The veterinarian who performed the visit finalizes the bill. Completion is automatic: whenever a payment, cash recording, or promotion brings the remaining balance to $0, Checkout completes the reservation as CompletedSettled without further action. |
 | D-37 | No new cross-service dependencies. Reservation does not validate requested service IDs against VeterinarianServices; it checks only that the list is nonempty and has no duplicates. Performed services are priced (and unknown IDs rejected) by Checkout at bill finalization. |
 | D-24 | The new four-service application replaces the legacy app. Legacy tests and behavior remain preserved at tag `1.0` as history but are not part of the new suite and need no migration. |
