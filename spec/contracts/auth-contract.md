@@ -19,8 +19,8 @@ and a shared secret are deliberate demo shortcuts, never a production pattern. S
 | Result | Response |
 | --- | --- |
 | Valid credentials | 200 `{ token, user }`; `user` never includes the password |
-| Unknown username or wrong password | 401, identical body for both |
-| Malformed request | 400 |
+| Unknown username or wrong password | 401 problem details (`unauthenticated`), identical for both |
+| Malformed request | 400 problem details (`validation_error`) |
 
 ## Tokens
 

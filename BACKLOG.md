@@ -246,11 +246,20 @@ Protected paths (`spec/guard/protected-paths.json`): `spec/`, `docs/specs/`, `.c
 
 ### SPEC-04 — Per-service API contracts
 
-Status: planned; after ARCH-01..04, OTEL-01, AUTH-01, and GUARD-01.
+Status: done. Phase: spec. Index: [`spec/contracts/README.md`](spec/contracts/README.md).
 
-- Derive each service's OpenAPI contract from its feature files and `domain.openapi.json`:
-  endpoints, requests, responses, error codes, idempotency headers, test-only endpoints.
-- Include the fake payment provider contract.
+Decisions: plain REST paths, no version prefix or pagination; RFC 9457 problem details
+with a stable `code`; 400 malformed, 401/403/404 per auth contract, 409 state conflicts,
+422 business-rule rejections, 502 dependency failures; balance denial is 201 with the
+saved Denied reservation; `/internal/` operations are service-only; the acting user comes
+from the token, never the body; one OpenAPI file per service reusing domain schemas by
+`$ref`; `Idempotency-Key` required on booking-fee, accept, card, and cash payment operations.
+
+Result: `customer` (12 operations, includes login), `reservation` (12), `veterinarian-services`
+(3, read-only), `checkout` (8) contracts plus `common.openapi.json`. Customer serves
+`CustomerProfile`/`PetProfile` without embedded reservations or visits (D-37). Every feature
+file maps to at least one operation (`x-features`). Structural tests in
+`spec/tests/contract/api-contracts.test.js` pass (131 schema checks in total).
 
 ### FE-01 — Frontend project
 

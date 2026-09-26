@@ -22,18 +22,39 @@ export function contractPath(file) {
   return path.join(CONTRACTS_DIR, file);
 }
 
-export function loadContract(file) {
+const idOf = (file) => `https://petclinic.local/contracts/${file}`;
+
+function addOne(file) {
   if (loaded.has(file)) return loaded.get(file);
   const p = contractPath(file);
   if (!fs.existsSync(p)) {
     throw new ContractMissingError(`Contract spec/contracts/${file} does not exist yet (SPEC-04)`);
   }
   const doc = JSON.parse(fs.readFileSync(p, "utf8"));
-  const id = `https://petclinic.local/contracts/${file}`;
+  const id = idOf(file);
   ajv.addSchema({ ...doc, $id: id });
   const entry = { id, doc };
   loaded.set(file, entry);
   return entry;
+}
+
+/** Loads a contract, plus every other contract so cross-file $refs resolve. */
+export function loadContract(file) {
+  const entry = addOne(file);
+  for (const f of fs.readdirSync(CONTRACTS_DIR).filter((n) => n.endsWith(".openapi.json"))) addOne(f);
+  return entry;
+}
+
+/** Follows a $ref (same-file "#/..." or "other.openapi.json#/...") to { file, path, value }. */
+export function resolveRef(file, ref) {
+  const [target, frag = ""] = ref.split("#");
+  const f = target || file;
+  const { doc } = loadContract(f);
+  const parts = frag.split("/").filter(Boolean).map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
+  let value = doc;
+  for (const k of parts) value = value?.[k];
+  if (value === undefined) throw new Error(`Unresolvable $ref ${ref} from ${file}`);
+  return { file: f, path: parts, value };
 }
 
 const pointer = (...parts) => parts.map((s) => String(s).replace(/~/g, "~0").replace(/\//g, "~1")).join("/");
@@ -69,22 +90,27 @@ export function matchPath(doc, actualPath) {
   return null;
 }
 
+const JSON_TYPES = ["application/json", "application/problem+json"];
+
 /** Returns the JSON response schema pointer for an operation, or throws if undocumented. */
 export function responseTarget(file, method, actualPath, status) {
-  const { id, doc } = loadContract(file);
+  const { doc } = loadContract(file);
   const template = matchPath(doc, actualPath);
   if (!template) throw new Error(`${file}: no path matches ${actualPath}`);
   const op = doc.paths[template][method.toLowerCase()];
   if (!op) throw new Error(`${file}: ${method.toUpperCase()} ${template} is not defined`);
   const code = String(status);
-  const resp = op.responses?.[code] ?? op.responses?.default;
-  if (!resp) throw new Error(`${file}: ${method.toUpperCase()} ${template} does not define status ${code}`);
-  const key = op.responses?.[code] ? code : "default";
-  const hasJson = !!resp.content?.["application/json"]?.schema;
+  const key = op.responses?.[code] ? code : (op.responses?.default ? "default" : null);
+  if (!key) throw new Error(`${file}: ${method.toUpperCase()} ${template} does not define status ${code}`);
+  let loc = { file, path: ["paths", template, method.toLowerCase(), "responses", key], value: op.responses[key] };
+  while (loc.value?.$ref) loc = resolveRef(loc.file, loc.value.$ref);
+  const type = JSON_TYPES.find((ct) => loc.value.content?.[ct]?.schema)
+    ?? Object.keys(loc.value.content ?? {}).find((ct) => ct.endsWith("+json") && loc.value.content[ct].schema);
   return {
     template,
-    hasJson,
-    ref: hasJson ? `${id}#/${pointer("paths", template, method.toLowerCase(), "responses", key, "content", "application/json", "schema")}` : null,
+    hasJson: !!type,
+    contentType: type ?? null,
+    ref: type ? `${idOf(loc.file)}#/${pointer(...loc.path, "content", type, "schema")}` : null,
   };
 }
 
@@ -96,4 +122,15 @@ export function validateResponse(file, method, actualPath, status, body) {
     return { valid: empty, errors: empty ? [] : ["response body present but none documented"] };
   }
   return check(ajv.getSchema(t.ref), body);
+}
+
+/** Validates a request body against the operation's documented requestBody schema. */
+export function validateRequest(file, method, actualPath, body) {
+  const { doc } = loadContract(file);
+  const template = matchPath(doc, actualPath);
+  if (!template) throw new Error(`${file}: no path matches ${actualPath}`);
+  const m = method.toLowerCase();
+  const rb = doc.paths[template][m]?.requestBody;
+  if (!rb) throw new Error(`${file}: ${method.toUpperCase()} ${template} has no request body`);
+  return check(ajv.getSchema(`${idOf(file)}#/${pointer("paths", template, m, "requestBody", "content", "application/json", "schema")}`), body);
 }

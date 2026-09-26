@@ -1,0 +1,178 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "VeterinarianServices service",
+    "version": "1.0.0",
+    "description": "Read-only service catalog and fees in USD, seeded from services.json. Calls no other service."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4003"
+    }
+  ],
+  "x-service": "veterinarian-services",
+  "paths": {
+    "/services": {
+      "get": {
+        "operationId": "listServices",
+        "summary": "List the veterinary service catalog",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "x-features": [
+          "spec/features/veterinarian-services/service-catalog.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "domain.openapi.json#/components/schemas/VeterinarianServiceRead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/services/{serviceId}": {
+      "get": {
+        "operationId": "getService",
+        "summary": "Get one service and its fee",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "x-features": [
+          "spec/features/veterinarian-services/service-catalog.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "description": "Service id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/VeterinarianServiceRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/fees": {
+      "get": {
+        "operationId": "lookupFees",
+        "summary": "Fees for several services at once",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "description": "422 unknown_service lists every unknown id in unknownServiceIds.",
+        "x-features": [
+          "spec/features/veterinarian-services/service-catalog.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "serviceIds",
+            "in": "query",
+            "required": true,
+            "description": "Comma-separated service ids",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeLookup"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "FeeLookup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fees"
+        ],
+        "properties": {
+          "fees": {
+            "type": "array",
+            "items": {
+              "$ref": "domain.openapi.json#/components/schemas/VeterinarianServiceRead"
+            }
+          }
+        }
+      }
+    }
+  }
+}

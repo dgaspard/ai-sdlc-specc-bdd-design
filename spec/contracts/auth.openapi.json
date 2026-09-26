@@ -9,85 +9,315 @@
     "/auth/login": {
       "post": {
         "security": [],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Logged in", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } } } },
-          "400": { "description": "Malformed request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "401": { "description": "Unknown username or wrong password (identical response)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+          "200": {
+            "description": "Logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "Unknown username or wrong password; identical problem for both (code unauthenticated)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/Problem"
+                }
+              }
+            }
+          }
         }
       }
     }
   },
   "components": {
     "securitySchemes": {
-      "bearer": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     },
     "schemas": {
-      "Uuid": { "type": "string", "format": "uuid" },
-      "Role": { "enum": ["veterinarian", "customer", "service"] },
+      "Uuid": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "Role": {
+        "enum": [
+          "veterinarian",
+          "customer",
+          "service"
+        ]
+      },
       "LoginRequest": {
-        "type": "object", "additionalProperties": false, "required": ["username", "password"],
-        "properties": { "username": { "type": "string", "minLength": 1 }, "password": { "type": "string", "minLength": 1 } }
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       },
       "User": {
-        "type": "object", "additionalProperties": false,
-        "required": ["id", "username", "role", "displayName"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "username",
+          "role",
+          "displayName"
+        ],
         "properties": {
-          "id": { "$ref": "#/components/schemas/Uuid" },
-          "username": { "type": "string", "minLength": 1 },
-          "role": { "enum": ["veterinarian", "customer"] },
-          "displayName": { "type": "string", "minLength": 1 },
-          "customerId": { "$ref": "#/components/schemas/Uuid" },
-          "veterinarianId": { "$ref": "#/components/schemas/Uuid" }
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "veterinarian",
+              "customer"
+            ]
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "customerId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "veterinarianId": {
+            "$ref": "#/components/schemas/Uuid"
+          }
         },
         "allOf": [
-          { "if": { "properties": { "role": { "const": "customer" } } }, "then": { "required": ["customerId"], "not": { "required": ["veterinarianId"] } } },
-          { "if": { "properties": { "role": { "const": "veterinarian" } } }, "then": { "required": ["veterinarianId"], "not": { "required": ["customerId"] } } }
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "customer"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "customerId"
+              ],
+              "not": {
+                "required": [
+                  "veterinarianId"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "veterinarian"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "veterinarianId"
+              ],
+              "not": {
+                "required": [
+                  "customerId"
+                ]
+              }
+            }
+          }
         ]
       },
       "LoginResponse": {
-        "type": "object", "additionalProperties": false, "required": ["token", "user"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "user"
+        ],
         "properties": {
-          "token": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$" },
-          "user": { "$ref": "#/components/schemas/User" }
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
         },
         "description": "user never includes the password."
       },
       "TokenHeader": {
-        "type": "object", "required": ["alg", "typ"],
-        "properties": { "alg": { "const": "HS256" }, "typ": { "const": "JWT" } }
+        "type": "object",
+        "required": [
+          "alg",
+          "typ"
+        ],
+        "properties": {
+          "alg": {
+            "const": "HS256"
+          },
+          "typ": {
+            "const": "JWT"
+          }
+        }
       },
       "TokenClaims": {
         "type": "object",
-        "required": ["sub", "role", "iat", "exp"],
+        "required": [
+          "sub",
+          "role",
+          "iat",
+          "exp"
+        ],
         "properties": {
-          "sub": { "type": "string", "minLength": 1, "description": "User id, or the calling service's name for role service" },
-          "role": { "$ref": "#/components/schemas/Role" },
-          "customerId": { "$ref": "#/components/schemas/Uuid" },
-          "veterinarianId": { "$ref": "#/components/schemas/Uuid" },
-          "iat": { "type": "integer", "description": "Seconds since epoch, from the clinic clock" },
-          "exp": { "type": "integer", "description": "iat + 28800 for users; iat + 300 for services" }
+          "sub": {
+            "type": "string",
+            "minLength": 1,
+            "description": "User id, or the calling service's name for role service"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "customerId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "veterinarianId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "iat": {
+            "type": "integer",
+            "description": "Seconds since epoch, from the clinic clock"
+          },
+          "exp": {
+            "type": "integer",
+            "description": "iat + 28800 for users; iat + 300 for services"
+          }
         },
         "allOf": [
-          { "if": { "properties": { "role": { "const": "customer" } } }, "then": { "required": ["customerId"] } },
-          { "if": { "properties": { "role": { "const": "veterinarian" } } }, "then": { "required": ["veterinarianId"] } },
-          { "if": { "properties": { "role": { "const": "service" } } }, "then": { "properties": { "sub": { "enum": ["customer", "reservation", "veterinarian-services", "checkout"] } } } }
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "customer"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "customerId"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "veterinarian"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "veterinarianId"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "service"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "sub": {
+                  "enum": [
+                    "customer",
+                    "reservation",
+                    "veterinarian-services",
+                    "checkout"
+                  ]
+                }
+              }
+            }
+          }
         ]
       },
       "SeedUser": {
-        "type": "object", "additionalProperties": false,
-        "required": ["id", "username", "password", "role", "displayName"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "username",
+          "password",
+          "role",
+          "displayName"
+        ],
         "properties": {
-          "id": { "$ref": "#/components/schemas/Uuid" },
-          "username": { "type": "string", "minLength": 1 },
-          "password": { "type": "string", "minLength": 1, "description": "Plain-text demo password" },
-          "role": { "enum": ["veterinarian", "customer"] },
-          "displayName": { "type": "string", "minLength": 1 },
-          "customerId": { "$ref": "#/components/schemas/Uuid" },
-          "veterinarianId": { "$ref": "#/components/schemas/Uuid" }
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Plain-text demo password"
+          },
+          "role": {
+            "enum": [
+              "veterinarian",
+              "customer"
+            ]
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "customerId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "veterinarianId": {
+            "$ref": "#/components/schemas/Uuid"
+          }
         }
-      },
-      "Error": { "type": "object", "required": ["error"], "properties": { "error": { "type": "string" } } }
+      }
     }
   }
 }

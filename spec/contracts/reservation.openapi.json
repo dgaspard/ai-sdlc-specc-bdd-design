@@ -1,0 +1,863 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Reservation service",
+    "version": "1.0.0",
+    "description": "Calendar, reservation lifecycle, and clinical visit records. Calls Customer (ownership, eligibility) and Checkout (booking fee)."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4002"
+    }
+  ],
+  "x-service": "reservation",
+  "paths": {
+    "/veterinarians": {
+      "get": {
+        "operationId": "listVeterinarians",
+        "summary": "List the clinic's veterinarians",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "domain.openapi.json#/components/schemas/VeterinarianRead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/availability": {
+      "get": {
+        "operationId": "getAvailability",
+        "summary": "Open appointment slots for a date",
+        "x-roles": [
+          "veterinarian",
+          "customer"
+        ],
+        "x-features": [
+          "spec/features/reservation/calendar-availability.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Clinic date (America/Chicago)",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "veterinarianId",
+            "in": "query",
+            "required": false,
+            "description": "Limit to one veterinarian",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Availability"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/reservations": {
+      "post": {
+        "operationId": "requestReservation",
+        "summary": "Request an appointment",
+        "x-roles": [
+          "customer",
+          "veterinarian"
+        ],
+        "description": "422 invalid_slot (weekend, lunch, non-slot hour, not one hour), past_start, pet_conflict (pet already Accepted at that time); nothing is saved. 404 not_found when the customer does not own the pet. A customer may only request for their own customerId.",
+        "x-features": [
+          "spec/features/reservation/request-reservation.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "domain.openapi.json#/components/schemas/ReservationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved as Requested, or as Denied with denialReason when the customer owes money",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listReservations",
+        "summary": "List reservations (customers see only their own)",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by customer",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "petId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by pet",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "veterinarianId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by veterinarian",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "description": "Filter by state",
+            "schema": {
+              "$ref": "domain.openapi.json#/components/schemas/ReservationState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}": {
+      "get": {
+        "operationId": "getReservation",
+        "summary": "Get a reservation",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/accept": {
+      "post": {
+        "operationId": "acceptReservation",
+        "summary": "Assigned veterinarian accepts after the booking fee is paid",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "description": "403 not_assigned_veterinarian. 409 invalid_state. 422 past_start or booking_payment_declined (reservation stays Requested). Collects the fee through Checkout POST /internal/booking-fees with the same Idempotency-Key.",
+        "x-features": [
+          "spec/features/reservation/accept-deny-reservation.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "common.openapi.json#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted, or automatically Denied when the slot or the pet is already booked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          },
+          "502": {
+            "$ref": "common.openapi.json#/components/responses/BadGateway"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/deny": {
+      "post": {
+        "operationId": "denyReservation",
+        "summary": "Assigned veterinarian denies a request",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "x-features": [
+          "spec/features/reservation/accept-deny-reservation.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/cancel": {
+      "post": {
+        "operationId": "cancelReservation",
+        "summary": "Customer or assigned veterinarian cancels before the start",
+        "x-roles": [
+          "customer",
+          "veterinarian"
+        ],
+        "description": "422 already_started. 409 invalid_state. 403 not_assigned_veterinarian. Another customer gets 404. The booking fee is not refunded.",
+        "x-features": [
+          "spec/features/reservation/cancel-reservation.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/visit": {
+      "post": {
+        "operationId": "recordVisit",
+        "summary": "Assigned veterinarian records the visit at or after the start",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "description": "409 invalid_state (not Accepted, or before scheduledStart) or already_recorded. startedAt is the clinic clock.",
+        "x-features": [
+          "spec/features/reservation/record-visit.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VisitRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/VisitRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/visits": {
+      "get": {
+        "operationId": "listVisits",
+        "summary": "Visit history by pet or customer (customers see only their own)",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "x-features": [
+          "spec/features/reservation/record-visit.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by customer",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "petId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by pet",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "domain.openapi.json#/components/schemas/VisitRead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/visits/{visitId}": {
+      "get": {
+        "operationId": "getVisit",
+        "summary": "Get a visit",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "description": "Visit id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/VisitRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/internal/reservations/{reservationId}/complete": {
+      "post": {
+        "operationId": "completeReservation",
+        "summary": "Record how the visit ended financially",
+        "x-roles": [
+          "service"
+        ],
+        "description": "Accepted (with a visit) or CompletedOutstanding may complete; outstanding\u2192settled allowed. 409 already_completed for a repeat, invalid_state otherwise.",
+        "x-features": [
+          "spec/features/reservation/complete-reservation.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Slot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "veterinarianId",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "veterinarianId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "start": {
+            "$ref": "domain.openapi.json#/components/schemas/UtcTimestamp"
+          },
+          "end": {
+            "$ref": "domain.openapi.json#/components/schemas/UtcTimestamp"
+          }
+        }
+      },
+      "Availability": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "slots"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            }
+          }
+        },
+        "description": "Only open slots: weekday hours outside lunch, not before the clinic clock, not taken by an Accepted reservation."
+      },
+      "AcceptRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bookingFee"
+        ],
+        "properties": {
+          "bookingFee": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method",
+                  "mockMethodReference"
+                ],
+                "properties": {
+                  "method": {
+                    "const": "card"
+                  },
+                  "mockMethodReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "method"
+                ],
+                "properties": {
+                  "method": {
+                    "const": "cash"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "VisitRecordRequest": {
+        "description": "Reservation, customer, pet, and veterinarian come from the reservation and token.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "performedServices",
+          "clinicalNotes",
+          "diagnoses",
+          "medications"
+        ],
+        "properties": {
+          "performedServices": {
+            "$ref": "domain.openapi.json#/components/schemas/ServiceReference"
+          },
+          "clinicalNotes": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000,
+            "pattern": "\\S"
+          },
+          "diagnoses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          },
+          "medications": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          },
+          "followUpNotes": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "endedAt": {
+            "$ref": "domain.openapi.json#/components/schemas/UtcTimestamp"
+          }
+        }
+      },
+      "CompleteRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "financialOutcome"
+        ],
+        "properties": {
+          "financialOutcome": {
+            "enum": [
+              "settled",
+              "outstanding"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

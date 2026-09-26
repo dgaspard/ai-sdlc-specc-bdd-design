@@ -246,7 +246,8 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 
 ## Immediate next action
 
-Specifications are complete (tag `spec-schema-complete`) ARCH-01 and ARCH-02 are done. Next, in order: ARCH-03 (black-box harness),
+Specifications are complete (tag `spec-schema-complete`) ARCH-01 through ARCH-04, OTEL-01, AUTH-01, GUARD-01, and SPEC-04 are done. Next: TEST-01 (step definitions and
+per-endpoint tests, all red), then FE-01, PERF-01, and IMPL-02. Earlier order was: ARCH-03 (black-box harness),
 ARCH-04 (telemetry collector), OTEL-01 (OpenTelemetry conformance), AUTH-01
 (simple authentication), GUARD-01 (test protection), then SPEC-04 (per-service
 API contracts). Still needed from the presenter: talk date, session length, and the

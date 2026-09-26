@@ -1,0 +1,669 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Checkout service",
+    "version": "1.0.0",
+    "description": "Bills, promotions, and all payments. Calls VeterinarianServices (fees), Reservation (visits, completion), Customer (account changes), and the fake payment provider."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4004"
+    }
+  ],
+  "x-service": "checkout",
+  "paths": {
+    "/internal/booking-fees": {
+      "post": {
+        "operationId": "collectBookingFee",
+        "summary": "Collect the $20 booking fee for a reservation (card or cash)",
+        "x-roles": [
+          "service"
+        ],
+        "description": "Card calls the fake payment provider (purpose booking_fee); cash never does. An already-paid reservation returns the original paid result without a new authorization. 409 idempotency_conflict.",
+        "x-features": [
+          "spec/features/checkout/booking-fee.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "common.openapi.json#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingFeeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized, declined, or cash recorded; replays return the original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingFeeResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          },
+          "502": {
+            "$ref": "common.openapi.json#/components/responses/BadGateway"
+          }
+        }
+      }
+    },
+    "/visits/{visitId}/checkout": {
+      "post": {
+        "operationId": "finalizeBill",
+        "summary": "Veterinarian who performed the visit finalizes the bill",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "description": "Prices performed services via VeterinarianServices, snapshots billed lines, charges the customer's account and credits the booking payment once. 409 already_finalized. 422 unknown_service. 403 not_assigned_veterinarian.",
+        "x-features": [
+          "spec/features/checkout/finalize-bill.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "description": "Visit id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/CheckoutRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          },
+          "502": {
+            "$ref": "common.openapi.json#/components/responses/BadGateway"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getCheckoutForVisit",
+        "summary": "Get the checkout for a visit",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "description": "Visit id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/CheckoutRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/checkouts": {
+      "get": {
+        "operationId": "listCheckouts",
+        "summary": "List checkouts (customers see only their own)",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": false,
+            "description": "Filter by customer",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "domain.openapi.json#/components/schemas/CheckoutRead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/checkouts/{checkoutId}": {
+      "get": {
+        "operationId": "getCheckout",
+        "summary": "Get a checkout",
+        "x-roles": [
+          "veterinarian",
+          "customer",
+          "service"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkoutId",
+            "in": "path",
+            "required": true,
+            "description": "Checkout id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/CheckoutRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/checkouts/{checkoutId}/promotion": {
+      "post": {
+        "operationId": "applyPromotion",
+        "summary": "Veterinarian who performed the visit applies the visit's one promotion",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "description": "409 already_applied or nothing_owed. Promotions are final: no update or delete operation exists (405). Bringing the balance to $0 completes the reservation as settled with no payment authorization.",
+        "x-features": [
+          "spec/features/checkout/promotion.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkoutId",
+            "in": "path",
+            "required": true,
+            "description": "Checkout id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Applied; remaining balance never below $0",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/CheckoutRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/checkouts/{checkoutId}/payments": {
+      "post": {
+        "operationId": "payVisitBalance",
+        "summary": "Pay the full remaining balance by card",
+        "x-roles": [
+          "customer",
+          "veterinarian"
+        ],
+        "description": "409 already_settled or idempotency_conflict. 422 invalid_amount. 502 authorized_completion_failed when authorization succeeded but a later update failed (manual recovery; never reported as settled or declined).",
+        "x-features": [
+          "spec/features/checkout/visit-payment.feature",
+          "spec/features/checkout/payment-idempotency.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkoutId",
+            "in": "path",
+            "required": true,
+            "description": "Checkout id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "common.openapi.json#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized or declined (declines are results, not errors); replays return the original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          },
+          "502": {
+            "$ref": "common.openapi.json#/components/responses/BadGateway"
+          }
+        }
+      }
+    },
+    "/checkouts/{checkoutId}/cash-payments": {
+      "post": {
+        "operationId": "recordCashPayment",
+        "summary": "Veterinarian who performed the visit records a full cash payment",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "description": "Never calls the fake payment provider. Repeated key returns the original result and credits once.",
+        "x-features": [
+          "spec/features/checkout/visit-payment.feature",
+          "spec/features/checkout/payment-idempotency.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkoutId",
+            "in": "path",
+            "required": true,
+            "description": "Checkout id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "common.openapi.json#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "BookingFeeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reservationId",
+          "customerId",
+          "amount",
+          "currency",
+          "method"
+        ],
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "const": 2000
+          },
+          "currency": {
+            "const": "USD"
+          },
+          "method": {
+            "enum": [
+              "card",
+              "cash"
+            ]
+          },
+          "mockMethodReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "recordedByVeterinarianId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "method": {
+                  "const": "card"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "mockMethodReference"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "method": {
+                  "const": "cash"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "recordedByVeterinarianId"
+              ]
+            }
+          }
+        ]
+      },
+      "BookingFeeResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reservationId",
+          "paid",
+          "attempt",
+          "replayed"
+        ],
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paid": {
+            "type": "boolean"
+          },
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Present when paid"
+          },
+          "attempt": {
+            "$ref": "domain.openapi.json#/components/schemas/PaymentAttempt"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PromotionRequest": {
+        "description": "The applying veterinarian comes from the token.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "$ref": "domain.openapi.json#/components/schemas/UsdCents",
+            "default": 0
+          }
+        }
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "amount",
+          "mockMethodReference"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Must equal the remaining balance (422 invalid_amount otherwise)"
+          },
+          "mockMethodReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      },
+      "CashPaymentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Must equal the remaining balance"
+          }
+        }
+      },
+      "PaymentResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "checkout",
+          "attempt",
+          "replayed"
+        ],
+        "properties": {
+          "checkout": {
+            "$ref": "domain.openapi.json#/components/schemas/CheckoutRead"
+          },
+          "attempt": {
+            "$ref": "domain.openapi.json#/components/schemas/PaymentAttempt"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

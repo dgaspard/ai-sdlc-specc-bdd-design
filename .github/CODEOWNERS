@@ -1,7 +1,6 @@
 # GUARD-01: protected specifications and tests require the presenter's review.
-# Replace @dustingaspard with the correct GitHub username if it differs.
-/spec/        @dustingaspard
-/docs/specs/  @dustingaspard
-/.claude/     @dustingaspard
-/.github/     @dustingaspard
-/AGENTS.md    @dustingaspard
+/spec/        @dgaspard
+/docs/specs/  @dgaspard
+/.claude/     @dgaspard
+/.github/     @dgaspard
+/AGENTS.md    @dgaspard

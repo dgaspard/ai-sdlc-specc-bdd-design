@@ -322,6 +322,14 @@ If authorization succeeds but a subsequent state update fails, preserve the paym
 outcome for manual recovery. Do not claim full completion or initiate a fresh payment
 automatically. Detailed recovery responses remain part of the open API design.
 
+## API projections (SPEC-04)
+
+Customer serves `CustomerProfile` and `PetProfile`: the domain fields without embedded
+reservations, visits, or pet history. Those collections belong to Reservation
+(`GET /reservations?customerId=`, `GET /visits?customerId=` or `?petId=`), and clients
+compose the full `CustomerRead`/`PetRead` view. This keeps Customer free of any
+dependency on Reservation (D-37). Contracts: `spec/contracts/README.md`.
+
 ## Relationships and proposed API representation
 
 ```mermaid
