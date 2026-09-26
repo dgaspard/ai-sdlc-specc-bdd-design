@@ -212,18 +212,20 @@ tests move to TEST-01, after SPEC-04 defines endpoints.
 
 ### AUTH-01 — Simple local authentication and data access
 
-Status: planned; before SPEC-04 so API contracts include it. Decision A-09.
+Status: done (specification and failing tests). Decision A-09. Phase: spec.
 
-- Users in `spec/seed-data/users.json`: username, plain-text demo password, role, and
-  a link to a `customerId` or `veterinarianId` (the two seeded veterinarians).
-- Customer service login endpoint returns a signed token carrying user ID, role, and
-  linked ID. Shared demo secret comes from an environment variable.
-- Every service verifies the token locally and applies the rules:
-  veterinarian sees any data; customer sees only their own records.
-- Missing or invalid token is rejected. The exact status codes are set in SPEC-04.
-- Add service feature scenarios for login and for a customer being refused another
-  customer's data (a deliberate SPEC update, per D-28).
-- Tokens and passwords are never exported in telemetry (extends OBS-005).
+Result: [`spec/contracts/auth-contract.md`](spec/contracts/auth-contract.md) and
+`auth.openapi.json`: JWT HS256 with the shared demo secret, 8-hour user tokens on the clinic
+clock, identical 401 for unknown user or wrong password, `service` role tokens (5 minutes)
+for internal operations, 401/403/404 rules, open endpoints. Seed data: `customers.json`
+(Jordan Rivera with Milo and Luna, Sam Lee with Rex) and `users.json` (two veterinarians,
+two customers, password `petclinic-demo`). Veterinarians create new customers; only seeded
+users log in.
+
+Tests: seed-data schema and reference checks (pass); `spec/tests/auth/login.test.js`
+AUTH-001..AUTH-004 (fail: Customer not implemented); `login.feature` and access scenarios
+in `customer-profile.feature`. Token rejection and per-endpoint access rules are tested in
+TEST-01 once SPEC-04 defines the endpoints and marks internal ones.
 
 ### GUARD-01 — Protect specs and tests from agent modification
 

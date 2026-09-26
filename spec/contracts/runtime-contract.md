@@ -54,7 +54,7 @@ Before starting or rebuilding a project on its static port, run
 | `VETERINARIAN_SERVICES_URL` | Checkout, frontend | Base URL of VeterinarianServices |
 | `CHECKOUT_URL` | Reservation, frontend | Base URL of Checkout |
 | `PAYMENT_PROVIDER_URL` | Checkout | Base URL of the fake payment provider |
-| `AUTH_TOKEN_SECRET` | Services | Shared demo secret for signing and verifying login tokens (A-09). Demo only |
+| `AUTH_TOKEN_SECRET` | Services | Shared demo secret for signing and verifying user and service tokens (A-09, `auth-contract.md`). Demo only |
 | `SEED_DATA_DIR` | Services | Path to `spec/seed-data`; read-only |
 | `FRONTEND_ORIGIN` | Services | Browser origin allowed by CORS; default `http://localhost:3000` |
 | `PETCLINIC_TEST_ENDPOINTS` | Services, fake payment | `enabled` turns on test-only endpoints; anything else turns them off |
@@ -123,7 +123,8 @@ and never write to them:
 | --- | --- | --- |
 | `veterinarians.json` | The two veterinarians with fixed IDs | Customer, Reservation, Checkout |
 | `services.json` | The five catalog services with fixed IDs and fees in cents | VeterinarianServices |
-| `users.json` (AUTH-01) | Demo users, roles, linked customer/veterinarian IDs | Customer |
+| `customers.json` | Seed customers (Jordan Rivera, Sam Lee) and their pets | Customer |
+| `users.json` | Demo logins, roles, linked customer/veterinarian IDs (auth contract) | Customer |
 
 Seed IDs are fixed so tests and every service share them.
 

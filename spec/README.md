@@ -7,7 +7,7 @@ may read this folder but must not create, modify, or delete anything in it
 ```text
 features/<service>/  features/workflows/   Gherkin behavior
 contracts/                                 Runtime contract, domain and per-service OpenAPI contracts
-seed-data/                                 Veterinarians, service catalog, later users (A-09)
+seed-data/                                 Veterinarians, service catalog, customers and pets, demo users
 tests/                                     Step definitions and validators
 harness/                                   Starts services, resets state, sets the clock
 fakes/payment/                             Fake payment provider (port 4010)

@@ -1,7 +1,7 @@
 @service:customer
 Feature: Customer profile
   A customer (pet owner) keeps one profile with contact details and a chosen veterinarian.
-  Decisions: D-13, D-17, D-21, Q-02. Schema: CustomerCreate, CustomerRead.
+  Decisions: D-13, D-17, D-21, Q-02, A-09. Schema: CustomerCreate, CustomerRead.
 
   Background:
     Given the clinic veterinarians are Dr Avery Taylor and Dr Morgan Reed
@@ -59,3 +59,27 @@ Feature: Customer profile
   Scenario: Unknown customer
     When customer profile "10000000-0000-4000-8000-999999999999" is requested
     Then the customer is reported as not found
+
+  Scenario: A veterinarian can view any customer
+    Given "avery.taylor" is logged in
+    When customer profile "Sam Lee" is requested
+    Then the profile is returned
+
+  Scenario: A customer can view their own profile
+    Given "jordan.rivera" is logged in
+    When customer profile "Jordan Rivera" is requested
+    Then the profile is returned
+
+  Scenario: A customer cannot see another customer's profile
+    Given "jordan.rivera" is logged in
+    When customer profile "Sam Lee" is requested
+    Then the customer is reported as not found
+
+  Scenario: A request without a token is refused
+    When customer profile "Jordan Rivera" is requested without logging in
+    Then the request is refused as unauthenticated
+
+  Scenario: Only veterinarians create customer profiles
+    Given "jordan.rivera" is logged in
+    When a customer profile is created for "Casey Park" with Dr Avery Taylor as preferred veterinarian
+    Then the request is refused as forbidden
