@@ -1,0 +1,236 @@
+# Product and demonstration backlog
+
+> Current business direction: see [SPEC-01 decisions](docs/specs/business-decisions.md).
+> The user has specified four services, including VeterinarianServices, and checkout
+> after a documented visit. Earlier held/pay-to-confirm targets below are historical
+> proposals pending SPEC-02 revision, not approved requirements.
+
+## Purpose and agreed direction
+
+For the November talk, demonstrate that business behavior (BDD), service/API
+contracts, and observability contracts can guide an agent to implement and
+reconstruct software. Passing checks establish the specified behavior, not
+complete enterprise correctness or identical source code.
+
+- Preserve Git tag `1.0` (commit `897c9e4`) as the original baseline.
+- Keep storage in memory. Restart recovery and durable transactions are out of scope.
+- Evolve toward Customer, Reservation, VeterinarianServices, and Checkout services in one repository,
+  running as separate local processes communicating over HTTP.
+- Use a deterministic fake payment provider; test our integration behavior, not
+  third-party internals. No real charges or payment credentials.
+- Design API/service contracts, observability rules, and BDD feature files before
+  implementation. Review the specification set with the user, then create executable
+  checks, prove the expected failures, and implement against those checks.
+- No service implementation is authorized merely by adding an item here.
+
+## Current baseline
+
+The Express application and plain JavaScript UI support patient viewing, visit
+scheduling, and duplicate-date prevention. Data lives in `src/store.js`.
+
+Cancellation is intentionally specified but absent:
+
+| Suite | Expected baseline result | Missing behavior |
+| --- | --- | --- |
+| BDD | Three original scenarios pass; cancellation fails | Accessible cancellation button and confirmation |
+| API contract | Cancellation fails | DELETE route returns 404 rather than the specified 200 |
+| Observability | Cancellation fails | Completed `petclinic.visit.cancel` span |
+
+These are expected demonstration failures, not permission to weaken tests.
+`npm test` currently stops after a failing suite; run the other suites separately
+to inspect the full baseline. A specification-only milestone may intentionally
+remain red; an implementation milestone requires all three suites to pass.
+
+## Ordered work
+
+The [five-week project plan](PROJECT-PLAN.md) sequences these tasks and defines
+milestone exit criteria. Task status remains recorded here.
+
+Follow [the development workflow](docs/development-workflow.md) for every item.
+As an item becomes active, record its stage, specification links, accepted
+decisions, verification results, and next action using the handoff fields there.
+
+### SPEC-01 — Agree service boundaries and business decisions
+
+Status: user decisions recorded in [SPEC-01](docs/specs/business-decisions.md); follow-up semantics remain open.
+
+| Service | Owns | Calls |
+| --- | --- | --- |
+| Customer | Customer identity and booking eligibility | None |
+| Reservation | Scheduling, reservation lifecycle, and clinical Visit storage | Customer |
+| VeterinarianServices | Veterinary service fees in USD | None |
+| Checkout | Visit bills, payment attempts, and payment authorization outcomes | Customer, Reservation, VeterinarianServices, fake payment provider |
+
+Acceptance: document ownership, allowed state transitions, error meanings, and
+dependency failure behavior. Services must not read one another's in-memory stores.
+
+Resolve before making executable requirements:
+
+- How do existing pets/owners and visits map to customers and reservations?
+- What makes a customer eligible? Which service owns price, currency, and fee rules?
+- Does a declined payment retain or release a hold? Do holds expire?
+- What happens when payment succeeds but reservation confirmation fails?
+- What scopes an idempotency key, how long is it retained, and what happens when
+  the same key is reused with different input or concurrently?
+- What are the timeout and retry rules? How is an unknown payment outcome represented?
+
+Suggested initial scope: success, decline, and duplicate checkout. Recovery after
+payment succeeds but confirmation fails is a separate stretch item, not silently
+treated as an ordinary failed payment.
+
+### SPEC-02 — Publish the three specification layers
+
+Status: initial Customer/Pet/Visit draft in progress; depends on remaining SPEC-01 decisions.
+
+See [the domain model](docs/specs/domain-model.md) and its linked draft feature files.
+These capture the user's field definitions, cross-pet account balance, history
+aggregation, and record preservation. They are not yet executable coverage.
+The draft now also includes Reservation, Calendar, and VeterinarianService models,
+calendar/capacity scenarios, and the revised service catalog. Requested/accepted
+time semantics and service collection definitions are now settled in the
+domain model: scheduledStart/End, requestedAt/acceptedAt, requestedServices[], and
+performedServices[]. Remaining domain decisions are listed at the end of that model.
+Checkout now has a proposed record and draft payment/idempotency feature files:
+remaining balance, authorization, unpaid completion, different-method retry, and
+sequential/concurrent duplicate protection. Steps, API contracts, and updated OBS
+assertions remain to be created after review; these drafts are not executable coverage.
+Next action: formalize the accepted domain structure and field schemas,
+then derive the corresponding API and telemetry contracts.
+The [schema decision log](docs/specs/schema-decisions.md) records settled rules,
+recommended defaults, and field requiredness. Q-01–Q-05 are now approved and reflected
+in the domain model. Next schema deliverable: structural components and valid/invalid
+examples, with cross-record constraints documented separately.
+
+Latest model update includes stable IDs, two synthetic veterinarian seed records,
+contact/insurance structures, estimated birth dates, reservation/visit cardinality,
+per-visit account entries, payment attempts, and historical billed prices. User
+accepted reservationState with CompletedSettled/CompletedOutstanding, unique
+quantity-one services, independent performed services, finalized price snapshots,
+full-balance payments, and one Checkout with multiple attempts per Visit. Reservation
+is assigned clinical record storage. The core domain checkpoint is settled;
+API schemas and executable assertions are not yet implemented.
+
+- Write service OpenAPI contracts and the payment adapter contract, including
+  schemas, identifiers, integer monetary units, currency, errors, and idempotency.
+- Write BDD scenarios for eligible-customer booking, successful checkout, payment
+  decline, and repeated checkout without duplicate charge or confirmation.
+- Define exact workflow spans, attributes, statuses, and propagation checks using
+  [the observability standard](docs/observability.md).
+- Include unknown customers/reservations, ineligible customers, occupied slots,
+  and dependency failures where the business decisions require them.
+- Specify unknown-reservation checkout and reuse of an idempotency key with
+  different input, including responses and absence of additional payment attempts.
+- D-12 is approved for identical duplicate checkout requests: return the same
+  result and authorize only once, including concurrent submissions. SPEC-01 now
+  defines delegated mock defaults: UUID keys, visit scope, session retention,
+  changed-input conflict, and a new key/method for retry after decline.
+- Include the confirmed fee catalog, Customer-owned balances, veterinarian-owned
+  records, Central Time schedule, and Accepted-only capacity. Confirmed: $20 paid
+  at acceptance, zero balance remains in good standing, and post-visit decline means
+  CompletedOutstanding. Cancellation releases the slot, preserves clinical
+  records, and retains the fee. Resolve remaining details listed in SPEC-01.
+- Review the complete specification set before implementing services. Proposed
+  names in the observability document become binding only through this step.
+
+### SPEC-03 — Trace observability rules to executable tests
+
+Status: specification and initial mapping documented; future rule tests remain planned.
+
+See [the traceability specification](docs/specs/observability-traceability.md).
+Assign stable OBS IDs, include them in asserting test titles, and maintain the
+rule → test → implementation status table in `docs/observability.md`. Preserve
+proposed versus binding status and make missing coverage explicit. The existing
+cancellation test is OBS-011; its assertions and intentional failure remain intact.
+
+### TEST-01 — Build independent executable verification
+
+Status: planned; depends on reviewed SPEC-02.
+
+- Add real browser scenarios and provider/consumer contract checks over HTTP.
+- Add a deterministic fake payment adapter with success, decline, and timeout
+  outcomes, plus inspectable call counts for retry assertions.
+- Verify distributed trace relationships across actual process boundaries using
+  a test collector or equivalent shared capture; an in-process exporter alone
+  cannot demonstrate cross-process propagation.
+- Prove failures are caused by absent behavior, not broken fixtures or missing tools.
+- Provide one start command and one verification command that reports all suites,
+  even when an earlier suite fails. Preserve separate CI checks and evidence.
+
+### IMPL-01 — Complete existing visit cancellation
+
+Status: superseded for the new domain by approved reservation cancellation; requires
+SPEC-02 migration design before implementation. The existing tests below remain
+baseline evidence until their intentional replacement is specified. Do not implement
+clinical-record deletion from this historical appointment terminology.
+
+Existing binding acceptance criteria:
+
+- Button accessible as `Cancel {petName}'s visit on {date}`.
+- Successful cancellation displays `Visit cancelled successfully` and updates count.
+- `DELETE /api/pets/{petId}/visits/{visitId}` returns HTTP 200 with exactly
+  `{ petId, visitId, status: "cancelled" }` and removes that visit.
+- OpenAPI specifies 404 for missing pet or visit.
+- Emit the existing cancellation trace contract described in `docs/observability.md`.
+
+Specification additions to review before implementation: preserve unrelated visits
+and pets, define repeated cancellation, allow reuse of a cancelled date, and maintain
+unique visit IDs after deletion. The current `visits.length + 1` ID strategy can
+collide after removal. Add meaningful checks rather than hardcoding fixture IDs.
+
+### IMPL-02 — Build the four-service checkout workflow
+
+Status: deferred until SPEC-01, SPEC-02, and TEST-01 are complete.
+
+Implement successful checkout, declined payment, and idempotent retries against
+the agreed expectations. Run real local service dependencies in integration tests;
+fake only the payment boundary. Keep stores independent and in memory. Document
+that restarting a process loses state and idempotency protection.
+
+### DEMO-01 — Rehearse deletion and reconstruction
+
+Status: planned after a passing implementation checkpoint.
+
+- Create a tagged working checkpoint and a bounded deletion script or documented steps.
+- Delete Checkout implementation only; retain contracts, features, tests, helpers,
+  Customer, Reservation, and the fake payment provider.
+- Rebuild in a fresh agent context to reduce reliance on remembered implementation.
+- Review specification/test diffs and verify all suites plus the visible workflow.
+- Rehearse timings, pin a supported runtime, preinstall browsers, and retain a
+  recovery checkpoint and recorded fallback. No destructive deletion during planning.
+
+## Experiment and presentation work
+
+### EXP-01 — Measure service reconstruction
+
+Status: planned; depends on a verified IMPL-02 checkpoint.
+
+Follow the experiment protocol and run-record template in `PROJECT-PLAN.md`.
+Perform at least three fresh Checkout reconstructions with frozen expectations,
+no access to deleted source/history, and independent evaluation of published
+requirements. Record failures, timings, interventions, and specification changes.
+Two-service reconstruction and a prose-versus-executable comparison are stretch
+experiments, not prerequisites for the primary demo.
+
+### DEMO-02 — Prepare presentation and recovery
+
+Status: planned; depends on DEMO-01 and EXP-01 evidence.
+
+Confirm the talk duration and reconstruction time budget. Require three consecutive
+rehearsals within budget and all required checks green for a live rebuild. Prepare
+a clearly labeled recording, separate recovery checkpoint, and narrative explaining
+retained scaffolding, limitations, and observed results. Freeze core scope in Week 5.
+
+## Optional feature candidates
+
+- Reschedule appointments: preserve ID, reject date conflicts, record success/conflict.
+- Filter upcoming visits: define date range boundaries, ordering, and query outcomes.
+- Register patients: define validation and identifiers; avoid owner details in telemetry.
+- Complete visits: define allowed transitions and trace previous/new states.
+- Recover payment-success/confirmation-failure cases using an agreed retry or refund policy.
+
+## Definition of done for implementation
+
+Reviewed requirements are implemented without weakening their checks; all BDD,
+contract, and observability suites pass; the browser workflow works; trace evidence
+is captured; known in-memory limitations are documented. Documentation of a proposed
+feature or an intentionally failing baseline does not mean that feature is complete.

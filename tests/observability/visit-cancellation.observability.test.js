@@ -8,7 +8,7 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { seedVisit, startTestServer } from "../helpers/test-server.js";
 
-test("cancelling a visit emits an operationally useful trace", async () => {
+test("[OBS-011] cancelling a visit emits an operationally useful trace", async () => {
   const exporter = new InMemorySpanExporter();
   const provider = new BasicTracerProvider({
     spanProcessors: [new SimpleSpanProcessor(exporter)]

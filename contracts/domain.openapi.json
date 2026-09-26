@@ -1,0 +1,170 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PetClinic Domain Contracts",
+    "version": "0.1.0",
+    "description": "Specification-first domain schemas. These components do not imply implemented endpoints."
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Uuid": { "type": "string", "format": "uuid" },
+      "UtcTimestamp": { "type": "string", "format": "date-time" },
+      "UsdCents": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+      "Currency": { "type": "string", "const": "USD" },
+      "Address": {
+        "type": "object", "additionalProperties": false,
+        "required": ["street", "city", "state", "postalCode"],
+        "properties": {
+          "street": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "secondLine": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "city": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "state": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "postalCode": { "type": "string", "pattern": "^[0-9]{5}(?:-[0-9]{4})?$" }
+        }
+      },
+      "Contact": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "phone", "relationship"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "phone": { "type": "string", "minLength": 1, "maxLength": 32 },
+          "relationship": { "type": "string", "minLength": 1, "maxLength": 100 }
+        }
+      },
+      "Billing": {
+        "type": "object", "additionalProperties": false,
+        "required": ["billingAddress"],
+        "properties": {
+          "mockMethodReference": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "billingAddress": { "$ref": "#/components/schemas/Address" }
+        }
+      },
+      "InsurancePolicy": {
+        "type": "object", "additionalProperties": false,
+        "required": ["provider", "policyNumber", "coveredPetIds"],
+        "properties": {
+          "provider": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "policyNumber": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "coveredPetIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/components/schemas/Uuid" } }
+        }
+      },
+      "ServiceReference": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/components/schemas/Uuid" } },
+      "ReservationState": {
+        "type": "string",
+        "enum": ["Requested", "Accepted", "Denied", "Canceled", "CompletedSettled", "CompletedOutstanding"]
+      },
+      "PaymentPurpose": { "type": "string", "enum": ["booking_fee", "visit_balance"] },
+      "PaymentOutcome": { "type": "string", "enum": ["authorized", "declined", "cash_recorded"] },
+      "CustomerCreate": {
+        "type": "object", "additionalProperties": false,
+        "required": ["firstName", "lastName", "phoneNumber", "address", "emergencyContact", "preferredVeterinarianId"],
+        "properties": {
+          "firstName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "lastName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "phoneNumber": { "type": "string", "minLength": 1, "maxLength": 32 },
+          "address": { "$ref": "#/components/schemas/Address" },
+          "emergencyContact": { "$ref": "#/components/schemas/Contact" },
+          "secondaryContact": { "$ref": "#/components/schemas/Contact" },
+          "billing": { "$ref": "#/components/schemas/Billing" },
+          "insurance": { "type": "array", "items": { "$ref": "#/components/schemas/InsurancePolicy" } },
+          "preferredVeterinarianId": { "$ref": "#/components/schemas/Uuid", "description": "Veterinarian chosen at profile creation (D-17); default for new reservation requests, which may override it." }
+        }
+      },
+      "CustomerUpdate": {
+        "type": "object", "additionalProperties": false, "minProperties": 1,
+        "properties": {
+          "firstName": { "type": "string", "minLength": 1, "maxLength": 100 }, "lastName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "phoneNumber": { "type": "string", "minLength": 1, "maxLength": 32 }, "address": { "$ref": "#/components/schemas/Address" },
+          "emergencyContact": { "$ref": "#/components/schemas/Contact" }, "secondaryContact": { "$ref": "#/components/schemas/Contact" },
+          "billing": { "$ref": "#/components/schemas/Billing" }, "insurance": { "type": "array", "items": { "$ref": "#/components/schemas/InsurancePolicy" } },
+          "preferredVeterinarianId": { "$ref": "#/components/schemas/Uuid" }
+        }
+      },
+      "CustomerRead": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CustomerCreate" },
+          { "type": "object", "required": ["id", "pets", "reservations", "visits", "insurance", "outstandingBalance", "accountEntries"], "properties": {
+            "id": { "$ref": "#/components/schemas/Uuid" }, "pets": { "type": "array", "items": { "$ref": "#/components/schemas/PetRead" } },
+            "reservations": { "type": "array", "items": { "$ref": "#/components/schemas/ReservationRead" } }, "visits": { "type": "array", "items": { "$ref": "#/components/schemas/VisitRead" } },
+            "insurance": { "type": "array", "items": { "$ref": "#/components/schemas/InsurancePolicy" } }, "outstandingBalance": { "$ref": "#/components/schemas/UsdCents" },
+            "accountEntries": { "type": "array", "items": { "$ref": "#/components/schemas/AccountEntryRead" } }
+          } }
+        ]
+      },
+      "PetCreate": {
+        "type": "object", "additionalProperties": false, "required": ["name", "type", "breed", "estimatedBirthDate", "ownerId"],
+        "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 100 }, "type": { "type": "string", "minLength": 1, "maxLength": 100 }, "breed": { "type": "string", "minLength": 1, "maxLength": 100 }, "estimatedBirthDate": { "type": "string", "format": "date" }, "ownerId": { "$ref": "#/components/schemas/Uuid" } }
+      },
+      "PetUpdate": {
+        "type": "object", "additionalProperties": false, "minProperties": 1,
+        "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 100 }, "type": { "type": "string", "minLength": 1, "maxLength": 100 }, "breed": { "type": "string", "minLength": 1, "maxLength": 100 }, "estimatedBirthDate": { "type": "string", "format": "date" } }
+      },
+      "PetRead": { "allOf": [{ "$ref": "#/components/schemas/PetCreate" }, { "type": "object", "required": ["id", "history"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" }, "history": { "type": "array", "items": { "$ref": "#/components/schemas/VisitRead" } } } }] },
+      "VeterinarianCreate": {
+        "type": "object", "additionalProperties": false, "required": ["firstName", "lastName", "officeId"],
+        "properties": { "firstName": { "type": "string", "minLength": 1, "maxLength": 100 }, "lastName": { "type": "string", "minLength": 1, "maxLength": 100 }, "officeId": { "type": "string", "minLength": 1, "maxLength": 100 } }
+      },
+      "VeterinarianUpdate": { "type": "object", "additionalProperties": false, "minProperties": 1, "properties": { "firstName": { "type": "string", "minLength": 1, "maxLength": 100 }, "lastName": { "type": "string", "minLength": 1, "maxLength": 100 }, "officeId": { "type": "string", "minLength": 1, "maxLength": 100 } } },
+      "VeterinarianRead": { "allOf": [{ "$ref": "#/components/schemas/VeterinarianCreate" }, { "type": "object", "required": ["id"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" } } }] },
+      "ReservationCreate": {
+        "type": "object", "additionalProperties": false, "required": ["customerId", "petId", "veterinarianId", "scheduledStart", "scheduledEnd", "requestedServices"],
+        "properties": {
+          "customerId": { "$ref": "#/components/schemas/Uuid" }, "petId": { "$ref": "#/components/schemas/Uuid" }, "veterinarianId": { "$ref": "#/components/schemas/Uuid" },
+          "scheduledStart": { "$ref": "#/components/schemas/UtcTimestamp" }, "scheduledEnd": { "$ref": "#/components/schemas/UtcTimestamp" }, "requestedServices": { "$ref": "#/components/schemas/ServiceReference" }
+        }
+      },
+      "ReservationUpdate": { "type": "object", "additionalProperties": false, "minProperties": 1, "properties": { "scheduledStart": { "$ref": "#/components/schemas/UtcTimestamp" }, "scheduledEnd": { "$ref": "#/components/schemas/UtcTimestamp" }, "requestedServices": { "$ref": "#/components/schemas/ServiceReference" } } },
+      "ReservationRead": {
+        "allOf": [{ "$ref": "#/components/schemas/ReservationCreate" }, { "type": "object", "required": ["id", "requestedAt", "acceptedAt", "bookingFeeAmount", "bookingFeePaid", "bookingPaymentId", "reservationState", "visitId", "denialReason"], "properties": {
+          "id": { "$ref": "#/components/schemas/Uuid" }, "requestedAt": { "$ref": "#/components/schemas/UtcTimestamp" }, "acceptedAt": { "anyOf": [{ "$ref": "#/components/schemas/UtcTimestamp" }, { "type": "null" }] },
+          "bookingFeeAmount": { "$ref": "#/components/schemas/UsdCents" }, "bookingFeePaid": { "type": "boolean" }, "bookingPaymentId": { "anyOf": [{ "$ref": "#/components/schemas/Uuid" }, { "type": "null" }] },
+          "reservationState": { "$ref": "#/components/schemas/ReservationState" }, "visitId": { "anyOf": [{ "$ref": "#/components/schemas/Uuid" }, { "type": "null" }] },
+          "denialReason": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }], "description": "Null unless Denied. Automatic outstanding-balance denials use exactly \"Please pay your full balance of $X\", where X is the customer's total outstanding balance formatted like 1,234.50 (D-20, D-27)." }
+        } }]
+      },
+      "VisitCreate": {
+        "type": "object", "additionalProperties": false, "required": ["reservationId", "customerId", "petId", "veterinarianId", "performedServices", "clinicalNotes", "diagnoses", "medications", "startedAt"],
+        "properties": {
+          "reservationId": { "$ref": "#/components/schemas/Uuid" }, "customerId": { "$ref": "#/components/schemas/Uuid" }, "petId": { "$ref": "#/components/schemas/Uuid" }, "veterinarianId": { "$ref": "#/components/schemas/Uuid" },
+          "performedServices": { "$ref": "#/components/schemas/ServiceReference" }, "clinicalNotes": { "type": "string", "minLength": 1, "maxLength": 10000 },
+          "diagnoses": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 2000 } }, "medications": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 2000 } },
+          "followUpNotes": { "type": "string", "minLength": 1, "maxLength": 2000 }, "startedAt": { "$ref": "#/components/schemas/UtcTimestamp" }, "endedAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+        }
+      },
+      "VisitUpdate": { "type": "object", "additionalProperties": false, "minProperties": 1, "properties": { "performedServices": { "$ref": "#/components/schemas/ServiceReference" }, "clinicalNotes": { "type": "string", "minLength": 1, "maxLength": 10000 }, "diagnoses": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 2000 } }, "medications": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 2000 } }, "followUpNotes": { "type": "string", "minLength": 1, "maxLength": 2000 }, "endedAt": { "$ref": "#/components/schemas/UtcTimestamp" } } },
+      "VisitRead": { "allOf": [{ "$ref": "#/components/schemas/VisitCreate" }, { "type": "object", "required": ["id"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" } } }] },
+      "VeterinarianServiceCreate": { "type": "object", "additionalProperties": false, "required": ["name", "feeAmount", "currency"], "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 100 }, "feeAmount": { "$ref": "#/components/schemas/UsdCents" }, "currency": { "$ref": "#/components/schemas/Currency" } } },
+      "VeterinarianServiceUpdate": { "type": "object", "additionalProperties": false, "minProperties": 1, "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 100 }, "feeAmount": { "$ref": "#/components/schemas/UsdCents" } } },
+      "VeterinarianServiceRead": { "allOf": [{ "$ref": "#/components/schemas/VeterinarianServiceCreate" }, { "type": "object", "required": ["id"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" } } }] },
+      "BilledLine": { "type": "object", "additionalProperties": false, "required": ["serviceId", "description", "priceAmount"], "properties": { "serviceId": { "$ref": "#/components/schemas/Uuid" }, "description": { "type": "string", "minLength": 1, "maxLength": 100 }, "priceAmount": { "$ref": "#/components/schemas/UsdCents" } } },
+      "BilledLineCreate": { "type": "object", "additionalProperties": false, "required": ["serviceId", "description", "priceAmount"], "properties": { "serviceId": { "$ref": "#/components/schemas/Uuid" }, "description": { "type": "string", "minLength": 1, "maxLength": 100 }, "priceAmount": { "$ref": "#/components/schemas/UsdCents" } } },
+      "BilledLineUpdate": { "type": "object", "additionalProperties": false, "maxProperties": 0, "description": "Finalized billed lines are immutable." },
+      "BilledLineRead": { "$ref": "#/components/schemas/BilledLine" },
+      "AccountEntry": { "type": "object", "additionalProperties": false, "description": "Balance = amountOwed - amountCredited - amountDiscounted; never negative (D-26).", "required": ["id", "customerId", "visitId", "amountOwed", "amountCredited", "amountDiscounted", "currency", "paymentIds"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" }, "customerId": { "$ref": "#/components/schemas/Uuid" }, "visitId": { "$ref": "#/components/schemas/Uuid" }, "amountOwed": { "$ref": "#/components/schemas/UsdCents" }, "amountCredited": { "$ref": "#/components/schemas/UsdCents" }, "amountDiscounted": { "$ref": "#/components/schemas/UsdCents", "description": "Applied promotion amount for this visit; 0 when none." }, "currency": { "$ref": "#/components/schemas/Currency" }, "paymentIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/components/schemas/Uuid" } } } },
+      "PaymentAttempt": { "type": "object", "additionalProperties": false, "required": ["attemptId", "customerId", "reservationId", "purpose", "amount", "currency", "outcome", "timestamp"], "properties": { "attemptId": { "$ref": "#/components/schemas/Uuid" }, "customerId": { "$ref": "#/components/schemas/Uuid" }, "reservationId": { "$ref": "#/components/schemas/Uuid" }, "visitId": { "$ref": "#/components/schemas/Uuid" }, "purpose": { "$ref": "#/components/schemas/PaymentPurpose" }, "amount": { "$ref": "#/components/schemas/UsdCents" }, "currency": { "$ref": "#/components/schemas/Currency" }, "mockMethodReference": { "type": "string", "minLength": 1, "maxLength": 100 }, "outcome": { "$ref": "#/components/schemas/PaymentOutcome" }, "timestamp": { "$ref": "#/components/schemas/UtcTimestamp" }, "authorizationReference": { "type": "string", "minLength": 1, "maxLength": 100 }, "recordedByVeterinarianId": { "$ref": "#/components/schemas/Uuid" } } },
+      "CheckoutCreate": { "type": "object", "additionalProperties": false, "required": ["customerId", "reservationId", "visitId", "currency", "billedLines", "totalAmount", "previouslyPaidAmount", "remainingBalance"], "properties": { "customerId": { "$ref": "#/components/schemas/Uuid" }, "reservationId": { "$ref": "#/components/schemas/Uuid" }, "visitId": { "$ref": "#/components/schemas/Uuid" }, "currency": { "$ref": "#/components/schemas/Currency" }, "billedLines": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/BilledLineCreate" } }, "totalAmount": { "$ref": "#/components/schemas/UsdCents" }, "previouslyPaidAmount": { "$ref": "#/components/schemas/UsdCents" }, "remainingBalance": { "$ref": "#/components/schemas/UsdCents" } } },
+      "CheckoutUpdate": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+      "CheckoutRead": { "allOf": [{ "$ref": "#/components/schemas/CheckoutCreate" }, { "type": "object", "required": ["id", "paymentAttempts", "promotion"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" }, "paymentAttempts": { "type": "array", "items": { "$ref": "#/components/schemas/PaymentAttempt" } }, "promotion": { "anyOf": [{ "$ref": "#/components/schemas/PromotionRead" }, { "type": "null" }], "description": "At most one promotion per visit (D-26)." } } }], "description": "remainingBalance = max(0, totalAmount - previouslyPaidAmount - promotion.appliedAmount)." },
+      "AccountEntryCreate": { "type": "object", "additionalProperties": false, "required": ["customerId", "visitId", "amountOwed", "currency"], "properties": { "customerId": { "$ref": "#/components/schemas/Uuid" }, "visitId": { "$ref": "#/components/schemas/Uuid" }, "amountOwed": { "$ref": "#/components/schemas/UsdCents" }, "currency": { "$ref": "#/components/schemas/Currency" } } },
+      "AccountEntryUpdate": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+      "AccountEntryRead": { "$ref": "#/components/schemas/AccountEntry" },
+      "PaymentAttemptCreate": { "allOf": [{ "$ref": "#/components/schemas/PaymentAttempt" }], "description": "Created payment attempts are validated by purpose and outcome rules in addition to this structural schema." },
+      "PaymentAttemptUpdate": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+      "PaymentAttemptRead": { "$ref": "#/components/schemas/PaymentAttempt" },
+      "PromotionCreate": { "type": "object", "additionalProperties": false, "required": ["appliedByVeterinarianId"], "description": "Veterinarian applies one promotion to a visit's finalized checkout (D-26).", "properties": { "appliedByVeterinarianId": { "$ref": "#/components/schemas/Uuid" }, "amount": { "$ref": "#/components/schemas/UsdCents", "default": 0, "description": "Discount the veterinarian enters; defaults to $0." } } },
+      "PromotionUpdate": { "type": "object", "additionalProperties": false, "maxProperties": 0, "description": "Applied promotions are immutable." },
+      "PromotionRead": { "type": "object", "additionalProperties": false, "required": ["id", "checkoutId", "visitId", "appliedByVeterinarianId", "amount", "appliedAmount", "appliedAt"], "properties": { "id": { "$ref": "#/components/schemas/Uuid" }, "checkoutId": { "$ref": "#/components/schemas/Uuid" }, "visitId": { "$ref": "#/components/schemas/Uuid" }, "appliedByVeterinarianId": { "$ref": "#/components/schemas/Uuid" }, "amount": { "$ref": "#/components/schemas/UsdCents", "description": "Amount entered." }, "appliedAmount": { "$ref": "#/components/schemas/UsdCents", "description": "min(amount, remaining balance at application); the portion actually deducted." }, "appliedAt": { "$ref": "#/components/schemas/UtcTimestamp" } } }
+    },
+    "examples": {
+      "ValidCustomer": { "summary": "Customer with no pets and optional electronic method", "value": { "firstName": "Jordan", "lastName": "Rivera", "phoneNumber": "312-555-0100", "address": { "street": "1 Main St", "city": "Chicago", "state": "IL", "postalCode": "60601" }, "emergencyContact": { "name": "Alex Rivera", "phone": "312-555-0101", "relationship": "partner" }, "preferredVeterinarianId": "10000000-0000-4000-8000-000000000001" } },
+      "InvalidCustomer": { "summary": "Invalid state and missing required emergency contact", "value": { "firstName": "Jordan", "lastName": "Rivera", "phoneNumber": "312-555-0100", "address": { "street": "1 Main St", "city": "Chicago", "state": "Illinois", "postalCode": "60601" } } },
+      "ValidReservation": { "summary": "Accepted reservation", "value": { "id": "10000000-0000-4000-8000-000000000101", "customerId": "10000000-0000-4000-8000-000000000201", "petId": "10000000-0000-4000-8000-000000000301", "veterinarianId": "10000000-0000-4000-8000-000000000001", "scheduledStart": "2026-10-12T14:00:00-05:00", "scheduledEnd": "2026-10-12T15:00:00-05:00", "requestedAt": "2026-09-26T15:00:00Z", "acceptedAt": "2026-09-26T15:01:00Z", "requestedServices": ["10000000-0000-4000-8000-000000000401"], "bookingFeeAmount": 2000, "bookingFeePaid": true, "bookingPaymentId": "10000000-0000-4000-8000-000000000501", "reservationState": "Accepted", "visitId": null, "denialReason": null } },
+      "InvalidReservation": { "summary": "Empty services and invalid state", "value": { "customerId": "not-a-uuid", "petId": "10000000-0000-4000-8000-000000000301", "veterinarianId": "10000000-0000-4000-8000-000000000001", "scheduledStart": "2026-10-12T12:30:00-05:00", "scheduledEnd": "2026-10-12T13:30:00-05:00", "requestedServices": [], "reservationState": "Paid" } },
+      "ValidCheckout": { "summary": "Finalized Wellness checkout", "value": { "id": "10000000-0000-4000-8000-000000000601", "customerId": "10000000-0000-4000-8000-000000000201", "reservationId": "10000000-0000-4000-8000-000000000101", "visitId": "10000000-0000-4000-8000-000000000701", "currency": "USD", "billedLines": [{ "serviceId": "10000000-0000-4000-8000-000000000401", "description": "Wellness", "priceAmount": 5000 }], "totalAmount": 7000, "previouslyPaidAmount": 2000, "remainingBalance": 5000, "paymentAttempts": [], "promotion": null } },
+      "ValidCheckoutPromotionExceedsBalance": { "summary": "Wellness checkout; $80 promotion exceeds $50 owed, so $50 is applied and nothing is owed", "value": { "id": "10000000-0000-4000-8000-000000000602", "customerId": "10000000-0000-4000-8000-000000000201", "reservationId": "10000000-0000-4000-8000-000000000102", "visitId": "10000000-0000-4000-8000-000000000702", "currency": "USD", "billedLines": [{ "serviceId": "10000000-0000-4000-8000-000000000401", "description": "Wellness", "priceAmount": 5000 }], "totalAmount": 7000, "previouslyPaidAmount": 2000, "remainingBalance": 0, "paymentAttempts": [], "promotion": { "id": "10000000-0000-4000-8000-000000000801", "checkoutId": "10000000-0000-4000-8000-000000000602", "visitId": "10000000-0000-4000-8000-000000000702", "appliedByVeterinarianId": "10000000-0000-4000-8000-000000000001", "amount": 8000, "appliedAmount": 5000, "appliedAt": "2026-10-12T15:05:00Z" } } },
+      "BalanceDeniedReservation": { "summary": "Automatic denial for a customer owing $1,234.50", "value": { "id": "10000000-0000-4000-8000-000000000103", "customerId": "10000000-0000-4000-8000-000000000202", "petId": "10000000-0000-4000-8000-000000000302", "veterinarianId": "10000000-0000-4000-8000-000000000002", "scheduledStart": "2026-10-13T09:00:00-05:00", "scheduledEnd": "2026-10-13T10:00:00-05:00", "requestedAt": "2026-09-26T16:00:00Z", "acceptedAt": null, "requestedServices": ["10000000-0000-4000-8000-000000000401"], "bookingFeeAmount": 2000, "bookingFeePaid": false, "bookingPaymentId": null, "reservationState": "Denied", "visitId": null, "denialReason": "Please pay your full balance of $1,234.50" } },
+      "InvalidPaymentAttempt": { "summary": "Declined attempt incorrectly includes authorization", "value": { "attemptId": "10000000-0000-4000-8000-000000000501", "customerId": "10000000-0000-4000-8000-000000000201", "reservationId": "10000000-0000-4000-8000-000000000101", "visitId": "10000000-0000-4000-8000-000000000701", "purpose": "visit_balance", "amount": 5000, "currency": "USD", "mockMethodReference": "fake-card-1", "outcome": "declined", "timestamp": "2026-10-12T15:02:00Z", "authorizationReference": "must-not-exist" } }
+    }
+  }
+}

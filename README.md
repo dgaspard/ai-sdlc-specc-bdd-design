@@ -11,6 +11,20 @@ The project is intentionally not a testing platform or evidence framework. It is
 - the same test command locally and in GitHub Actions;
 - a compact application that can be safely changed or partially removed during a live demonstration.
 
+## Planning and standards
+
+The [five-week project plan](PROJECT-PLAN.md) defines milestones, the reconstruction
+experiment, and live-demo readiness criteria.
+
+The [development workflow](docs/development-workflow.md) defines the sequence from
+feature design through independent verification, feature-file organization, and
+how to preserve decisions and progress between sessions.
+
+The [project backlog](BACKLOG.md) preserves the November talk goals, intentional
+failures, proposed three-service design, open decisions, and specification-first
+delivery order. [Observability standards and contracts](docs/observability.md)
+define the existing cancellation requirements and proposed cross-service rules.
+
 ## Prerequisites
 
 - Node.js 22 or newer
