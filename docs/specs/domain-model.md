@@ -160,7 +160,10 @@ even with different veterinarians; this is checked at request and at acceptance
 and never call the fake payment provider (D-19).
 
 Acceptance requires the $20 booking fee to be paid first (D-23). Reservation asks
-Checkout to collect it; Checkout owns every payment record (D-32). A failed booking
+Checkout to collect it; Checkout owns every payment record (D-32).
+Reservation does not validate requested service IDs against the catalog (D-37);
+Checkout prices performed services and rejects unknown IDs when the veterinarian
+finalizes the bill (D-36). A failed booking
 payment leaves the reservation Requested with no capacity consumed; the fee can be
 retried with another method or recorded as cash. Capacity is claimed only when
 payment succeeds, so first successful paid acceptance wins the slot.

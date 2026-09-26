@@ -40,6 +40,8 @@ the current implementation, feature files, or existing published contract.
 | D-33 | Requests that break calendar rules (weekend, lunch, non-slot hour, past start) or would double-book the pet are rejected with a validation error and are not saved. Only outstanding-balance denials are saved as Denied (D-20). |
 | D-34 | An applied promotion is final: it cannot be changed or removed. A $0 promotion still uses the visit's one promotion. |
 | D-35 | Service feature files live in `features/<service>/`; workflow files in `features/workflows/`. |
+| D-36 | The veterinarian who performed the visit finalizes the bill. Completion is automatic: whenever a payment, cash recording, or promotion brings the remaining balance to $0, Checkout completes the reservation as CompletedSettled without further action. |
+| D-37 | No new cross-service dependencies. Reservation does not validate requested service IDs against VeterinarianServices; it checks only that the list is nonempty and has no duplicates. Performed services are priced (and unknown IDs rejected) by Checkout at bill finalization. |
 | D-24 | The new four-service application replaces the legacy app. Legacy tests and behavior remain preserved at tag `1.0` as history but are not part of the new suite and need no migration. |
 | D-21 | Owner and customer are the same entity. Customers own pets. There is no separate Owner entity in the new domain. |
 | D-22 | Requests outside the calendar (for example, a Saturday such as 2026-10-10) are valid negative scenarios: the specification expects them to be rejected. |

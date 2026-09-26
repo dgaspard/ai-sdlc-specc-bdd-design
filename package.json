@@ -3,16 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A clean-room PetClinic demo showing executable specifications in the AI SDLC.",
+  "description": "Specification-first PetClinic demo: an AI agent builds four services from protected BDD, API, schema, and observability tests.",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
-    "test": "npm run verify",
-    "test:bdd": "cucumber-js",
-    "test:bdd:headed": "HEADED=true cucumber-js",
-    "test:contract": "node --test tests/contracts/visit-cancellation.contract.test.js",
-    "test:observability": "node --test tests/observability/visit-cancellation.observability.test.js",
-    "verify": "npm run test:bdd && npm run test:contract && npm run test:observability"
+    "test": "cucumber-js",
+    "test:bdd": "cucumber-js"
   },
   "engines": {
     "node": "22 || 24 || >=26"

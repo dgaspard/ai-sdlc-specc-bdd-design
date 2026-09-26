@@ -2,7 +2,7 @@
 Feature: Apply a promotion
   The veterinarian may apply one final promotion to a visit to reduce what is still owed.
   The amount owed never goes below $0.
-  Decisions: D-26, D-34. Schema: PromotionCreate, PromotionRead. Telemetry: OBS-030, OBS-040.
+  Decisions: D-26, D-34, D-36. Schema: PromotionCreate, PromotionRead. Telemetry: OBS-030, OBS-040.
 
   Background:
     Given Milo's finalized Wellness checkout has a remaining balance of "$50.00"

@@ -19,5 +19,5 @@ This repository demonstrates how executable specifications guide AI-assisted dev
 - Do not hardcode values solely to satisfy the current examples.
 - Treat `contracts/` and the assertions under `tests/observability/` as externally agreed expectations.
 - Do not weaken, skip, or delete a failing BDD, contract, or observability test.
-- Run `npm test` before declaring work complete. All three suites must pass.
+- Run `npm test` before declaring work complete. All suites must pass.
 - Explain any requirement ambiguity before implementing a guess that changes behavior.

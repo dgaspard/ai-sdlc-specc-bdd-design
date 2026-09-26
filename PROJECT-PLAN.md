@@ -27,9 +27,8 @@ to be confirmed. The schedule is a planning target, not a delivery guarantee.
 - Service-owned feature files, separate cross-service workflow feature files,
   published API contracts, and executable telemetry requirements.
 - Independent verification, repeatable reconstruction experiments, and demo recovery.
-- Preserve tag `1.0`; maintain the existing behavior unless an intentional migration
-  is specified and approved. Complete the current cancellation exercise as a small
-  first application of the process.
+- Preserve tag `1.0` as history. The new four-service application replaces the legacy
+  app; no migration is required (D-24).
 
 ### Outside the initial scope
 
@@ -40,11 +39,11 @@ No new feature beyond the core demonstration is required to prove the hypothesis
 
 ## Current position
 
-The repository contains a single Express application. Patient viewing, scheduling,
-and duplicate-date prevention pass their browser scenarios. Cancellation intentionally
-fails in BDD, API, and observability checks. The three-service architecture is planned,
-not implemented. Workflow documentation, OBS-001–OBS-022, and a coverage table exist;
-most telemetry rules remain proposed and untested.
+Specifications and schemas are complete (tag `spec-schema-complete`): decisions
+D-01–D-37, the domain model, `contracts/domain.openapi.json`, OBS-001–OBS-040, and
+149 service scenarios. Legacy code and tests were removed (still at tag `1.0`). Next:
+derive per-service API contracts, then write protected service and schema contract
+tests that fail on creation, then workflow features. No application code exists.
 
 ## Working agreements and ownership
 
@@ -81,7 +80,7 @@ inspect its requests and invocation counts.
 | Week | Focus and backlog links | Deliverables | Exit criteria |
 | --- | --- | --- | --- |
 | 1 | Business decisions and initial specification set: SPEC-01, SPEC-02, SPEC-03 | Decision record; per-service and workflow features; service/payment API contracts; reviewed telemetry obligations and coverage links; cancellation edge-case decisions | Core workflow semantics are explicit, specification layers agree, and the user has reviewed them; unresolved stretch behavior is labeled |
-| 2 | Executable evidence and first complete slice: TEST-01, IMPL-01 | Deterministic service harness and payment fake; real assertions for the core service contracts; distributed trace capture setup; recorded red baseline; cancellation implementation after its checks exist | Cancellation passes all three layers; future capabilities fail for identifiable missing behavior; suite runner reports all suites rather than hiding later results |
+| 2 | Protected executable tests: TEST-01 | Per-service API contracts; service harness and payment fake; service and schema contract tests; workflow features and tests; distributed trace capture setup; recorded red baseline | Every test fails on creation for identifiable missing behavior; tests are frozen/hashed so the agent cannot modify them; suite runner reports all suites |
 | 3 | Service implementation: IMPL-02 | Customer and Reservation, then Checkout; browser integration; success, decline, retries, and rejection paths; completed OBS mappings | All agreed core BDD, API, and observability suites pass against real local services; no weakened assertions; clean startup/reset/teardown |
 | 4 | Reconstruction experiments: DEMO-01, EXP-01 | Isolated experiment workspace; exact deletion manifest; fixed prompt; at least three fresh Checkout reconstructions; evidence log; optional two-service attempt | Each run has recorded timing, interventions, failures, and independent evaluation; decide live feasibility against the agreed time budget |
 | 5 | Presentation and reliability: DEMO-02 | Final walkthrough and narrative; known-good checkpoint; bounded reset procedure; representative recording; final rehearsal results | Core scope frozen; three consecutive Checkout rehearsals meet the demo gate below, or presentation switches to a disclosed recorded reconstruction |

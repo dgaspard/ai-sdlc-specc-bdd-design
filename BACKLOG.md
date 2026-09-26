@@ -25,21 +25,12 @@ complete enterprise correctness or identical source code.
 
 ## Current baseline
 
-The Express application and plain JavaScript UI support patient viewing, visit
-scheduling, and duplicate-date prevention. Data lives in `src/store.js`.
-
-Cancellation is intentionally specified but absent:
-
-| Suite | Expected baseline result | Missing behavior |
-| --- | --- | --- |
-| BDD | Three original scenarios pass; cancellation fails | Accessible cancellation button and confirmation |
-| API contract | Cancellation fails | DELETE route returns 404 rather than the specified 200 |
-| Observability | Cancellation fails | Completed `petclinic.visit.cancel` span |
-
-These are expected demonstration failures, not permission to weaken tests.
-`npm test` currently stops after a failing suite; run the other suites separately
-to inspect the full baseline. A specification-only milestone may intentionally
-remain red; an implementation milestone requires all three suites to pass.
+Tag `spec-schema-complete` locks the business decisions, domain model, schemas,
+observability rules, and service feature files. The legacy single-app code, its
+tests, and its API contract were removed (D-24); they remain available at tag `1.0`.
+There is no application code and there are no step definitions. `npm test` runs
+Cucumber, which reports every service scenario as undefined. That is the expected
+state until TEST-01 creates protected tests, each of which must fail on creation.
 
 ## Ordered work
 
@@ -156,26 +147,11 @@ Status: planned; depends on reviewed SPEC-02.
 - Provide one start command and one verification command that reports all suites,
   even when an earlier suite fails. Preserve separate CI checks and evidence.
 
-### IMPL-01 — Complete existing visit cancellation
+### IMPL-01 — Legacy visit cancellation (retired)
 
-Status: superseded for the new domain by approved reservation cancellation; requires
-SPEC-02 migration design before implementation. The existing tests below remain
-baseline evidence until their intentional replacement is specified. Do not implement
-clinical-record deletion from this historical appointment terminology.
-
-Existing binding acceptance criteria:
-
-- Button accessible as `Cancel {petName}'s visit on {date}`.
-- Successful cancellation displays `Visit cancelled successfully` and updates count.
-- `DELETE /api/pets/{petId}/visits/{visitId}` returns HTTP 200 with exactly
-  `{ petId, visitId, status: "cancelled" }` and removes that visit.
-- OpenAPI specifies 404 for missing pet or visit.
-- Emit the existing cancellation trace contract described in `docs/observability.md`.
-
-Specification additions to review before implementation: preserve unrelated visits
-and pets, define repeated cancellation, allow reuse of a cancelled date, and maintain
-unique visit IDs after deletion. The current `visits.length + 1` ID strategy can
-collide after removal. Add meaningful checks rather than hardcoding fixture IDs.
+Status: retired by D-24. The legacy app was removed; its cancellation exercise is
+preserved at tag `1.0`. Reservation cancellation is specified in
+`features/reservation/cancel-reservation.feature` and is built under IMPL-02.
 
 ### IMPL-02 — Build the four-service checkout workflow
 

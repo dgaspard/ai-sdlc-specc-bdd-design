@@ -2,7 +2,7 @@
 Feature: Pay the remaining visit balance
   Checkout collects the full remaining balance by card or records cash, then tells
   Customer and Reservation the result.
-  Decisions: D-05, D-08, D-09, D-10, D-19, SCH-011. Telemetry: OBS-031, OBS-032, OBS-033.
+  Decisions: D-05, D-08, D-09, D-10, D-19, D-36, SCH-011. Telemetry: OBS-031, OBS-032, OBS-033.
 
   Background:
     Given Milo's finalized Wellness checkout has a remaining balance of "$50.00"
