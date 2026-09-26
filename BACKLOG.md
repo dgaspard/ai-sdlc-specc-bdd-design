@@ -326,6 +326,14 @@ Done so far:
   forwarding the vet's token to Checkout, denial amount without the thousands comma, weekend
   slots, past slots offered; each caught by the scenario owning that rule. Spike deleted;
   baseline: 73/73 fail as not implemented.
+- Slice 4: Checkout steps (34 scenarios) with Customer, Reservation, and VeterinarianServices
+  stubs plus the real fake payment provider, whose call log proves whether a card was charged.
+  Assertions cover amounts, billed-line snapshots, account changes, completion requests, and
+  service-role tokens (`sub: checkout`). The spike found one step bug (a regex group count),
+  fixed before review. Validated against a throwaway spike (34/34 green), then five faults:
+  no idempotency (5 fail), concurrent duplicates racing (1), booking fee collected twice (7),
+  promotion driving the balance negative (1), reporting settled when completion fails (1).
+  Spike deleted; baseline: 161/161 service scenarios fail as not implemented.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 
