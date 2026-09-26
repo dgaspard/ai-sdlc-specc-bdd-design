@@ -133,9 +133,117 @@ rule → test → implementation status table in `docs/observability.md`. Preser
 proposed versus binding status and make missing coverage explicit. The existing
 cancellation test is OBS-011; its assertions and intentional failure remain intact.
 
+### ARCH-01 — Repository layout with separate projects
+
+Status: planned; priority 1. Decision A-01.
+
+- Create `services/<name>/` for each of the four services, `frontend/`, and `spec/`.
+- Move `features/` and `contracts/` under `spec/` and update Cucumber and doc paths.
+- Each service project has its own dependency file and `start` script and can be
+  deleted without affecting any other project.
+- Acceptance: deleting one service folder leaves every other project buildable.
+
+### ARCH-02 — Language-neutral runtime contract
+
+Status: planned; priority 2. Decision A-02.
+
+- Specify the `start` convention, environment variables (port, dependency URLs,
+  clinic clock, OTLP endpoint), health endpoint, and test-only reset endpoint.
+- Specify how tests set the clinic clock so "past start" scenarios are repeatable.
+- Publish this as a contract every service must satisfy in any language.
+
+### ARCH-03 — Black-box test harness
+
+Status: planned; priority 3. Decision A-03.
+
+- Harness starts services through `start`, waits for health, resets state per scenario.
+- Step definitions call services only over HTTP; responses are validated against schemas.
+- Deterministic fake payment provider as its own process with inspectable call counts.
+- No test imports application code.
+
+### ARCH-04 — Cross-process telemetry capture
+
+Status: planned; priority 4. Decision A-03.
+
+- Test OTLP collector that receives traces from any language and exposes them to tests.
+- OBS assertions read from the collector rather than an in-process exporter.
+
+### OTEL-01 — OpenTelemetry specification conformance
+
+Status: planned; with ARCH-04. Decision A-08.
+
+- Use the official OpenTelemetry SDK in each service's language; OTLP export to the test collector.
+- W3C Trace Context propagation on every inbound and outbound HTTP call.
+- Resource attributes `service.name` (per OBS-001) and `service.version`.
+- HTTP server/client spans and errors follow OpenTelemetry semantic conventions
+  (for example `http.request.method`, `http.route`, `http.response.status_code`, `error.type`).
+- Business attributes stay under `petclinic.*`; no custom names that duplicate a standard one.
+- Tests check attribute names against the semantic conventions, not just presence.
+- Update `docs/observability.md` to cite the conventions and version used.
+
+### AUTH-01 — Simple local authentication and data access
+
+Status: planned; before SPEC-04 so API contracts include it. Decision A-09.
+
+- Users in `spec/seed-data/users.json`: username, plain-text demo password, role, and
+  a link to a `customerId` or `veterinarianId` (the two seeded veterinarians).
+- Customer service login endpoint returns a signed token carrying user ID, role, and
+  linked ID. Shared demo secret comes from an environment variable.
+- Every service verifies the token locally and applies the rules:
+  veterinarian sees any data; customer sees only their own records.
+- Missing or invalid token is rejected. The exact status codes are set in SPEC-04.
+- Add service feature scenarios for login and for a customer being refused another
+  customer's data (a deliberate SPEC update, per D-28).
+- Tokens and passwords are never exported in telemetry (extends OBS-005).
+
+### GUARD-01 — Protect tests from agent modification
+
+Status: planned; priority 5. Decision A-07.
+
+- Commit `.claude/settings.json` deny rules for `spec/**` and `.github/**`.
+- Add `CODEOWNERS` for protected paths.
+- Add a required `guard` workflow: `protected.sha256` integrity check plus a frozen
+  test-ID inventory that catches deleted or skipped tests.
+- After the GitHub remote exists: branch ruleset requiring PR, `guard`, and code-owner review.
+
+### SPEC-04 — Per-service API contracts
+
+Status: planned; after ARCH-01..04, OTEL-01, AUTH-01, and GUARD-01.
+
+- Derive each service's OpenAPI contract from its feature files and `domain.openapi.json`:
+  endpoints, requests, responses, error codes, idempotency headers, test-only endpoints.
+- Include the fake payment provider contract.
+
+### FE-01 — Frontend project
+
+Status: planned. Decision A-04.
+
+- Plain HTML/JS in `frontend/`, calling services only through their published APIs.
+- Accessible labels and roles so Playwright scenarios read like a user's actions.
+- Playwright workflow scenarios live in `spec/` and stay unchanged across the language swap.
+
+### PERF-01 — Minimum performance test
+
+Status: planned. Decision A-06.
+
+- Language-neutral HTTP load test against key endpoints (reservation request,
+  acceptance, bill finalization, visit payment).
+- Proposed budget: p95 under 200 ms, 10 concurrent users for 30 seconds, zero errors.
+  Confirm thresholds before the test is frozen.
+- Run against the JavaScript build and the Python rebuild with the same thresholds.
+
+### DEMO-03 — Language swap demonstration
+
+Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
+
+- Show Playwright workflow and performance passing on the all-JavaScript build.
+- Delete `services/checkout/`; the agent rebuilds it in Python from unchanged specs and tests.
+- Rerun all suites, Playwright, and performance; show the connected trace.
+- Stretch (recorded): rebuild the whole backend in Python.
+
 ### TEST-01 — Build independent executable verification
 
-Status: planned; depends on reviewed SPEC-02.
+Status: planned; depends on ARCH-01..04, OTEL-01, AUTH-01, GUARD-01, and SPEC-04.
 
 - Add real browser scenarios and provider/consumer contract checks over HTTP.
 - Add a deterministic fake payment adapter with success, decline, and timeout

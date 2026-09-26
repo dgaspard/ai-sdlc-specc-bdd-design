@@ -35,6 +35,9 @@ the current checkout. Distinguish approved expectations from proposed designs.
 
 1. Lock business decisions, domain model, and schemas (specs only; no tests or code).
 2. Write **service** feature files, one folder per service (D-28).
+2a. Set the language-neutral architecture and test protection first: repository
+   layout, runtime contract, black-box harness, telemetry collector, guard
+   (PROJECT-PLAN A-01–A-07; BACKLOG ARCH-01..04, GUARD-01).
 3. Derive each service's API contract from its features and the domain schemas.
 4. Write service and schema contract tests. Every test must fail on creation.
    These tests are protected: the implementing agent may not modify them.

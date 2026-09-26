@@ -11,8 +11,10 @@ Prepare a November presentation demonstrating that reviewed BDD scenarios, API
 contracts, and observability contracts can guide an AI agent to recreate a deleted
 service that interoperates with existing services.
 
-Primary demonstration: delete and reconstruct Checkout. Stretch experiment: delete
-and reconstruct Checkout and Reservation. The evidence supports this bounded example,
+Primary demonstration: build all services in JavaScript, show the Playwright workflow
+passing, delete Checkout, have the agent rebuild it **in Python** from the unchanged
+tests, then rerun the same Playwright workflow and performance check (A-05). Stretch:
+a recorded rebuild of the whole backend in Python. The evidence supports this bounded example,
 not a claim that arbitrary enterprise systems can be reconstructed from tests.
 
 Use five relative weeks starting when this plan is adopted. The exact talk date,
@@ -21,7 +23,9 @@ to be confirmed. The schedule is a planning target, not a delivery guarantee.
 
 ### In scope
 
-- Customer, Reservation, VeterinarianServices, and Checkout as separate local HTTP processes in one repo.
+- Customer, Reservation, VeterinarianServices, and Checkout as separate local HTTP processes,
+  each its own project in one repo (A-01), able to use different languages.
+- A separate plain HTML/JS frontend project (A-04) and a minimum performance test (A-06).
 - Independent in-memory stores and a deterministic fake payment boundary.
 - A small browser workflow for appointment reservation and checkout.
 - Service-owned feature files, separate cross-service workflow feature files,
@@ -32,7 +36,8 @@ to be confirmed. The schedule is a planning target, not a delivery guarantee.
 
 ### Outside the initial scope
 
-Persistent databases, durable idempotency, cloud deployment, Kubernetes, message
+Persistent databases, durable idempotency, cloud deployment, Docker/containers
+(decided against: added complexity, little value for an unshared project), Kubernetes, message
 brokers, real payments, authentication infrastructure, production monitoring, and
 automatic refund/reconciliation systems. Their absence must be explicit in the talk.
 No new feature beyond the core demonstration is required to prove the hypothesis.
@@ -65,24 +70,41 @@ the requirements. Review and test each bounded slice before moving to the next.
 
 | Service | Owns | Dependencies |
 | --- | --- | --- |
-| Customer | Identity and booking eligibility | None |
-| Reservation | Scheduling, reservation lifecycle, and clinical Visit storage | Customer |
-| VeterinarianServices | Veterinary service fees in USD | None |
-| Checkout | Visit bills, payment attempts, and payment authorization outcomes | Customer, Reservation, VeterinarianServices, fake payment adapter |
+| Customer | Profiles, pets, account balance, booking eligibility | None |
+| Reservation | Calendar, reservation lifecycle, clinical Visit storage | Customer; Checkout (booking fee, D-32) |
+| VeterinarianServices | Service catalog and fees in USD | None |
+| Checkout | Bills, promotions, all payments, cash | Customer, Reservation, VeterinarianServices, fake payment provider |
 
 Services communicate through their published interfaces, never shared store access.
 Resolve the mapping from existing pets/owners/visits before changing current APIs.
 Keep the fake payment implementation outside any deleted service and independently
 inspect its requests and invocation counts.
 
+## Architecture decisions for a language-neutral demo
+
+| ID | Decision |
+| --- | --- |
+| A-01 | One repository with separate projects: `services/customer/`, `services/reservation/`, `services/veterinarian-services/`, `services/checkout/`, `frontend/`, and `spec/` (features, contracts, tests, harness, payment fake, telemetry collector). Each service has its own dependency file and builds, starts, and is deleted independently. |
+| A-02 | Language-neutral runtime contract: every service starts with `services/<name>/start`, reads configuration only from environment variables (port, dependency URLs, clinic clock, telemetry endpoint), exposes a health endpoint and a test-only reset endpoint, and honors a controllable clinic clock. |
+| A-03 | Tests are black-box: they reach services only over HTTP, validate responses against the published schemas, and never import application code. Telemetry is exported over OTLP to a test collector so OBS rules work in any language. |
+| A-04 | The frontend is its own plain HTML/JS project. It calls services only through their published APIs and uses accessible labels for Playwright. |
+| A-05 | Final demo: all services built in JavaScript; Checkout rebuilt live in Python against unchanged tests; Playwright and performance rerun. A whole-backend Python rebuild is a recorded stretch. |
+| A-06 | Minimum performance test: key endpoints stay under a p95 latency budget (proposed 200 ms) at a small concurrent load (proposed 10 users for 30 s) with zero errors. Same thresholds for every language. |
+| A-07 | Test protection: `.claude/settings.json` deny rules, `CODEOWNERS`, and a required `guard` workflow that checks a `protected.sha256` manifest and a frozen test inventory. |
+| A-08 | Observability follows OpenTelemetry specifications. Each service uses the official OpenTelemetry SDK for its language (allowed dependency), exports over OTLP, propagates W3C Trace Context, sets standard resource attributes (`service.name`, `service.version`), and uses OpenTelemetry semantic conventions for HTTP spans and errors. Only business-specific attributes use the `petclinic.*` namespace. |
+| A-09 | Simple local authentication, no cloud dependency. Users are defined in `spec/seed-data/users.json` with plain-text demo passwords (clearly non-production). The Customer service exposes login and returns a signed token (HMAC, shared demo secret in an environment variable). Every service verifies the token locally, so no service calls another to authenticate. Roles: `veterinarian` sees all data; `customer` sees only their own customer, pets, reservations, visits, and bills. |
+
+These architecture tasks (ARCH-01..04, OTEL-01, AUTH-01, GUARD-01) take priority over designing the
+per-service API contracts (SPEC-04), because the contracts and tests must follow them.
+
 ## Five-week schedule and exit criteria
 
 | Week | Focus and backlog links | Deliverables | Exit criteria |
 | --- | --- | --- | --- |
 | 1 | Business decisions and initial specification set: SPEC-01, SPEC-02, SPEC-03 | Decision record; per-service and workflow features; service/payment API contracts; reviewed telemetry obligations and coverage links; cancellation edge-case decisions | Core workflow semantics are explicit, specification layers agree, and the user has reviewed them; unresolved stretch behavior is labeled |
-| 2 | Protected executable tests: TEST-01 | Per-service API contracts; service harness and payment fake; service and schema contract tests; workflow features and tests; distributed trace capture setup; recorded red baseline | Every test fails on creation for identifiable missing behavior; tests are frozen/hashed so the agent cannot modify them; suite runner reports all suites |
-| 3 | Service implementation: IMPL-02 | Customer and Reservation, then Checkout; browser integration; success, decline, retries, and rejection paths; completed OBS mappings | All agreed core BDD, API, and observability suites pass against real local services; no weakened assertions; clean startup/reset/teardown |
-| 4 | Reconstruction experiments: DEMO-01, EXP-01 | Isolated experiment workspace; exact deletion manifest; fixed prompt; at least three fresh Checkout reconstructions; evidence log; optional two-service attempt | Each run has recorded timing, interventions, failures, and independent evaluation; decide live feasibility against the agreed time budget |
+| 2 | Architecture, protection, and protected tests: ARCH-01..04, GUARD-01, SPEC-04, TEST-01 | Repository layout and runtime contract; black-box harness and OTLP collector; test protection; per-service API contracts; service harness and payment fake; service and schema contract tests; workflow features and tests; distributed trace capture setup; recorded red baseline | Every test fails on creation for identifiable missing behavior; tests are frozen/hashed so the agent cannot modify them; suite runner reports all suites |
+| 3 | Service implementation: IMPL-02, FE-01, PERF-01 | All four services in JavaScript; plain HTML/JS frontend; minimum performance test; success, decline, retries, and rejection paths; completed OBS mappings | All agreed core BDD, API, and observability suites pass against real local services; no weakened assertions; clean startup/reset/teardown |
+| 4 | Reconstruction experiments: DEMO-01, DEMO-03, EXP-01 | Isolated experiment workspace; exact deletion manifest; fixed prompt; at least three fresh Checkout reconstructions in Python; evidence log; optional two-service attempt | Each run has recorded timing, interventions, failures, and independent evaluation; decide live feasibility against the agreed time budget |
 | 5 | Presentation and reliability: DEMO-02 | Final walkthrough and narrative; known-good checkpoint; bounded reset procedure; representative recording; final rehearsal results | Core scope frozen; three consecutive Checkout rehearsals meet the demo gate below, or presentation switches to a disclosed recorded reconstruction |
 
 These are focus periods, not a large handoff between specification and development
@@ -216,10 +238,15 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 | In-memory state is mistaken for production resilience | Explain restart data/idempotency loss; exclude durability claims |
 | Five-week scope grows | Drop two-service and recovery stretch work first; retain core correctness |
 | Reconstruction is too slow live | Use rehearsal gate and a disclosed recording; report actual timings |
+| Language swap exposes hidden JavaScript assumptions in tests | Black-box HTTP tests only (A-03); exact specs for money format, time zone, IDs; rehearse the Python rebuild early |
+| Python environment fails at the venue | Preinstall runtime and dependencies; pin versions; keep a recording |
+| Performance results vary by machine | Modest thresholds; same machine for both runs; report actual numbers |
 
 ## Immediate next action
 
-Start SPEC-01 with a short decision session to settle the core business semantics
-and confirm the talk timing. Then draft the bounded core feature files, derive API
-contracts, and review their OBS requirements before creating executable checks.
-This plan adds no implementation and does not mark any service specification approved.
+Specifications are complete (tag `spec-schema-complete`). Next, in order: ARCH-01
+(repository layout), ARCH-02 (runtime contract), ARCH-03 (black-box harness),
+ARCH-04 (telemetry collector), OTEL-01 (OpenTelemetry conformance), AUTH-01
+(simple authentication), GUARD-01 (test protection), then SPEC-04 (per-service
+API contracts). Still needed from the presenter: talk date, session length, and the
+live rebuild time budget.
