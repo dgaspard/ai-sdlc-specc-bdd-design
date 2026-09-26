@@ -36,7 +36,7 @@ services/<name>/                   One project per service (any language); READM
 frontend/                          Plain HTML/JS frontend; README only for now
 spec/                              Protected: features, contracts, seed data, tests, harness, fakes
 docs/specs/                        Protected: decisions, domain model, schema decisions
-docs/observability.md              Telemetry rules OBS-001..OBS-040 and coverage
+docs/observability.md              Telemetry rules OBS-001..OBS-042 and coverage
 PROJECT-PLAN.md                    Milestones, experiment protocol, demo gate
 BACKLOG.md                         Task status and open items
 docs/development-workflow.md       Working sequence and handoff rules

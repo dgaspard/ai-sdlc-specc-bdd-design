@@ -96,7 +96,7 @@ Services send traces with the official OpenTelemetry SDK for their language over
 OTLP/HTTP **protobuf** to `OTEL_EXPORTER_OTLP_ENDPOINT` (`/v1/traces`). JSON and gRPC
 are not used. The test collector rejects any other format with 415 and records it,
 which fails RT-008. Every handled HTTP request, including `GET /health`, produces a
-server span. Traces only; metrics and logs are off.
+server span following OBS-041 (named `GET /health` for the health check). Traces only; metrics and logs are off.
 
 ## Health
 

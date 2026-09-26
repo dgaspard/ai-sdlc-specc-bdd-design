@@ -9,6 +9,7 @@ const SUITES = [
   { name: "Harness self-checks", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/harness/**/*.test.js"] },
   { name: "Schema contracts", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/contract/**/*.test.js"] },
   { name: "Runtime contract", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/runtime/**/*.test.js"] },
+  { name: "Observability (OpenTelemetry)", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/observability/**/*.test.js"] },
   { name: "Service features (Cucumber)", cmd: "npx", args: ["cucumber-js"] },
 ];
 

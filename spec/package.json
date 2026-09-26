@@ -10,7 +10,8 @@
     "test:runtime": "node --test --test-concurrency=1 \"tests/runtime/**/*.test.js\"",
     "test:bdd": "cucumber-js",
     "test:harness": "node --test --test-concurrency=1 \"tests/harness/**/*.test.js\"",
-    "trace": "node harness/show-trace.js"
+    "trace": "node harness/show-trace.js",
+    "test:observability": "node --test --test-concurrency=1 \"tests/observability/**/*.test.js\""
   },
   "engines": {
     "node": "22 || 24 || >=26"

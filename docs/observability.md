@@ -14,8 +14,11 @@ preserved at tag `1.0` and are not part of the new suite (D-24).
 Services follow OpenTelemetry specifications (PROJECT-PLAN A-08, BACKLOG OTEL-01): the
 official SDK per language, OTLP/HTTP protobuf export only (A-10), W3C Trace Context, standard resource attributes,
 and semantic conventions for HTTP spans and errors. The `petclinic.*` names below are
-only for business attributes with no standard equivalent. The semantic-conventions
-version will be pinned in OTEL-01. Auth tokens and passwords are forbidden in telemetry.
+only for business attributes with no standard equivalent. Reference version: semantic
+conventions **v1.44.0**; only the stable HTTP subset (stable since v1.23) is enforced, so SDK
+versions may differ by language. Official auto-instrumentation is allowed but not required;
+tests check only what reaches the collector (`spec/harness/semconv.js`). Auth tokens and
+passwords are forbidden in telemetry.
 
 ## Naming conventions
 
@@ -64,6 +67,15 @@ Entity ID attributes used below: `petclinic.customer.id`, `petclinic.pet.id`,
    sampling, external monitoring, dashboards, and alerting are later scope.
 10. **OBS-010** — If metrics are added, use bounded labels such as service, operation, and outcome.
     Never label metrics with entity IDs, trace IDs, or idempotency keys.
+11. **OBS-041** — HTTP spans follow stable semantic conventions. Incoming (SERVER) spans carry
+    `http.request.method`, `http.route`, `url.path`, `url.scheme`, `http.response.status_code`
+    and are named `{method} {route}` (e.g. `GET /health`). Outgoing (CLIENT) spans carry
+    `http.request.method`, `server.address`, `server.port`, `url.full`,
+    `http.response.status_code`. 5xx responses add `error.type`. Deprecated names
+    (`http.method`, `http.status_code`, `http.url`, `http.target`, `net.peer.name`) are
+    forbidden. Every `petclinic.*` business span is a child of its request's SERVER span.
+12. **OBS-042** — Every span's resource has `service.name` (per OBS-001), a non-empty
+    `service.version`, and `telemetry.sdk.language` (shows `nodejs` or `python` in the demo).
 
 ## Workflow span contracts
 
@@ -146,7 +158,7 @@ the specification review; each will fail on creation until implementation exists
 
 | Rule | Requirement | Authority | Test reference / planned title | Implementation status |
 | --- | --- | --- | --- | --- |
-| OBS-001 | Service identity | Proposed | No test; planned `[OBS-001] services identify their telemetry` | Not implemented |
+| OBS-001 | Service identity | Proposed | [runtime-contract.test.js](../spec/tests/runtime/runtime-contract.test.js): `[RT-008] [OBS-001] <Service> exports traces as OTLP/HTTP protobuf named <service.name>` | Not implemented; failing test |
 | OBS-002 | W3C propagation and context isolation | Proposed | No test; planned `[OBS-002] HTTP calls preserve trace parents and isolate contexts` | Not implemented |
 | OBS-003 | One business span per attempt | Proposed | No test; planned `[OBS-003] each attempt finishes exactly one business span` | Not implemented |
 | OBS-004 | Outcome/status mapping | Proposed | No test; planned `[OBS-004] outcomes map to agreed statuses` | Not implemented |
@@ -186,3 +198,5 @@ the specification review; each will fail on creation until implementation exists
 | OBS-038 | Replay evidence | Proposed | No test; planned `[OBS-038] replay emits telemetry without repeating payment` | Not implemented |
 | OBS-039 | Booking acceptance evidence | Proposed | No test; planned `[OBS-039] acceptance authorizes booking fee before claiming capacity` | Not implemented |
 | OBS-040 | Promotion-to-zero evidence | Proposed | No test; planned `[OBS-040] full promotion settles without payment authorization` | Not implemented |
+| OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`. Client spans, 5xx `error.type`, and business-span parenting: planned in TEST-01 | Not implemented; failing tests |
+| OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Not implemented; failing test |

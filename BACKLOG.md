@@ -199,16 +199,16 @@ service scenarios fail as not implemented.
 
 ### OTEL-01 — OpenTelemetry specification conformance
 
-Status: planned; with ARCH-04. Decision A-08.
+Status: done. Decision A-08. Phase: spec.
 
-- Use the official OpenTelemetry SDK in each service's language; OTLP export to the test collector.
-- W3C Trace Context propagation on every inbound and outbound HTTP call.
-- Resource attributes `service.name` (per OBS-001) and `service.version`.
-- HTTP server/client spans and errors follow OpenTelemetry semantic conventions
-  (for example `http.request.method`, `http.route`, `http.response.status_code`, `error.type`).
-- Business attributes stay under `petclinic.*`; no custom names that duplicate a standard one.
-- Tests check attribute names against the semantic conventions, not just presence.
-- Update `docs/observability.md` to cite the conventions and version used.
+Result: semantic conventions reference v1.44.0 (stable HTTP subset enforced);
+auto-instrumentation allowed, not required. New rules OBS-041 (HTTP span names and
+attributes, deprecated names forbidden, business spans parented by the SERVER span) and
+OBS-042 (`service.name`, `service.version`, `telemetry.sdk.language`). Checks in
+`spec/harness/semconv.js`; tests in `spec/tests/observability/otel-conventions.test.js`
+(12 failing: services not implemented) and helper self-checks in `spec/tests/harness/`.
+Client-span, 5xx `error.type`, business-span parenting, and W3C propagation (OBS-002)
+tests move to TEST-01, after SPEC-04 defines endpoints.
 
 ### AUTH-01 — Simple local authentication and data access
 
