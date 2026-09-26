@@ -1,0 +1,81 @@
+// Cucumber world and lifecycle for service features. Protected scaffolding.
+// Service features (@service:<name>) run the real service under test, stubs for the
+// services it calls (D-28), and the real fake payment provider.
+import {
+  World, setWorldConstructor, setDefaultTimeout, Before, After, AfterAll, Status,
+} from "@cucumber/cucumber";
+import { PROJECTS, projectUrl, DEFAULT_CLINIC_NOW } from "../../harness/config.js";
+import {
+  assertImplemented, ensureRunning, resetProject, stopAll, logTail, setClinicClock,
+} from "../../harness/processes.js";
+import { StubServer } from "../../harness/stub-server.js";
+
+setDefaultTimeout(30_000);
+
+const stubs = new Map(); // project name -> StubServer (started once per run)
+
+async function stubFor(name) {
+  if (!stubs.has(name)) {
+    const s = new StubServer(name);
+    await s.start();
+    stubs.set(name, s);
+  }
+  const s = stubs.get(name);
+  s.reset();
+  return s;
+}
+
+class PetClinicWorld extends World {
+  constructor(options) {
+    super(options);
+    this.service = null; // project under test
+    this.stubs = {};     // dependency name -> StubServer
+  }
+
+  url(name = this.service) {
+    return projectUrl(name);
+  }
+
+  /** Step helper for "Given the clinic clock reads ...": restarts only if the clock changes. */
+  async setClinicClock(isoTimestamp) {
+    await setClinicClock(this.service, isoTimestamp);
+    await resetProject(this.service);
+  }
+}
+setWorldConstructor(PetClinicWorld);
+
+function serviceTag(pickle) {
+  const tag = pickle.tags.map((t) => t.name).find((t) => t.startsWith("@service:"));
+  return tag ? tag.slice("@service:".length) : null;
+}
+
+Before(async function ({ pickle }) {
+  const name = serviceTag(pickle);
+  if (!name) return;
+  if (!PROJECTS[name]) throw new Error(`Unknown service tag @service:${name}`);
+  this.service = name;
+  assertImplemented(name); // fails the scenario with "<Service> not implemented: ..."
+
+  for (const dep of PROJECTS[name].dependsOn) {
+    if (dep === "payment") {
+      await ensureRunning("payment");
+      await resetProject("payment");
+    } else {
+      this.stubs[dep] = await stubFor(dep);
+    }
+  }
+  await ensureRunning(name, { clinicNow: DEFAULT_CLINIC_NOW });
+  await resetProject(name);
+});
+
+After(function ({ result }) {
+  if (result?.status === Status.FAILED && this.service) {
+    try { assertImplemented(this.service); } catch { return; } // nothing to show yet
+    this.attach(`Last log lines for ${this.service}:\n${logTail(this.service)}`, "text/plain");
+  }
+});
+
+AfterAll(async function () {
+  await stopAll();
+  await Promise.all([...stubs.values()].map((s) => s.stop()));
+});

@@ -163,14 +163,20 @@ Browser access: CORS from `FRONTEND_ORIGIN` (default `http://localhost:3000`); n
 
 ### ARCH-03 — Black-box test harness
 
-Status: planned; priority 3. Decision A-03.
+Status: done. Decision A-03. Phase: spec.
 
-- Harness frees ports, starts projects through `start`, waits for health, resets state per
-  scenario, and restarts services when a scenario needs a different `CLINIC_NOW`.
-- Tests that every project follows `spec/contracts/runtime-contract.md`.
-- Step definitions call services only over HTTP; responses are validated against schemas.
-- Deterministic fake payment provider as its own process with inspectable call counts.
-- No test imports application code.
+Result: `spec/harness/` (config, process control, stub server, schema validator,
+free-port), `spec/fakes/payment/` with its contract `spec/contracts/payment-provider.openapi.json`,
+runtime-contract tests (RT-001..RT-007), domain-example schema tests, Cucumber
+lifecycle (`spec/tests/support/world.js`), and `spec/run-all.js` reporting every suite.
+
+Baseline (`npm test`):
+- Runtime contract: fake payment provider passes; all four services and the frontend
+  fail with "<Project> not implemented: <folder>/start not found".
+- Service features: 150 of 150 scenarios fail with the same not-implemented message.
+- Schema contracts: 9 of 9 pass after fixing two defects the harness found in
+  `domain.openapi.json` (Read schemas rejected their own fields; declined payments could
+  carry an authorization reference).
 
 ### ARCH-04 — Cross-process telemetry capture
 

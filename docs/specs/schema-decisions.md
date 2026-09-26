@@ -136,6 +136,14 @@ the domain model; these rows retain the question IDs for traceability.
 | Q-04 | Can a persisted Visit have blank clinicalNotes, or must it contain a note? | Require nonblank clinicalNotes; allow empty diagnoses[]/medications[] and absent followUpNotes |
 | Q-05 | Can a Checkout exist before its bill is finalized? | Persist Checkout only with a finalized nonempty billedLines snapshot; later attempts reuse that same record |
 
+## Structural fixes (ARCH-03)
+
+- Each entity has an unrestricted `<Entity>Fields` schema. `<Entity>Create` and
+  `<Entity>Read` compose it and forbid unknown fields with `unevaluatedProperties: false`.
+  Previously `additionalProperties: false` on Create made every Read schema reject its
+  own extra fields. No field meanings changed.
+- `PaymentAttempt`: a declined attempt must not include `authorizationReference`.
+
 ## Completion checklist
 
 - Done: record approval of Q-01–Q-05 and reconcile the domain field table.

@@ -3,7 +3,17 @@
 Every project that runs as a process (the four services, the frontend, and the fake
 payment provider) must follow this contract in any language. It lets the harness start,
 check, reset, and stop each project without knowing how it is built. Protected file;
-humans change it deliberately. Tests for it are added in ARCH-03.
+humans change it deliberately. Verified by `spec/tests/runtime/runtime-contract.test.js`.
+
+| Rule | Requirement | Applies to |
+| --- | --- | --- |
+| RT-001 | Executable `setup` and `start` scripts | All |
+| RT-002 | Healthy on its static port | All |
+| RT-003 | Listens on `PORT` | All |
+| RT-004 | `POST /test/reset` returns 204 when test endpoints are enabled | Services, fake payment |
+| RT-005 | `/test/*` returns 404 when test endpoints are disabled | Services, fake payment |
+| RT-006 | CORS allowed only from `FRONTEND_ORIGIN` | Services |
+| RT-007 | Stops within 5 seconds of SIGTERM | All |
 
 ## Scripts
 

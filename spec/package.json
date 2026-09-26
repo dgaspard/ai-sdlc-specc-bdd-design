@@ -5,7 +5,9 @@
   "type": "module",
   "description": "Protected specifications, contracts, test harness, validators, and fakes. Agents may read but not modify during the build phase.",
   "scripts": {
-    "test": "cucumber-js",
+    "test": "node run-all.js",
+    "test:schema": "node --test --test-concurrency=1 \"tests/contract/**/*.test.js\"",
+    "test:runtime": "node --test --test-concurrency=1 \"tests/runtime/**/*.test.js\"",
     "test:bdd": "cucumber-js"
   },
   "engines": {
