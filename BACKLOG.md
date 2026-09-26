@@ -303,7 +303,14 @@ OBS-002 via `traceparent` recorded by stubs; stubs assert internal calls carry a
 `service`-role token and never the user's token (negative check), and internal
 operations reject user tokens with 403. Workflow features and Playwright are TEST-02.
 
-Done so far: test clock (runtime contract, harness, RT-009).
+Done so far:
+- Part 1: test clock (runtime contract, harness, RT-009). Tag `test-01-clock`.
+- Slice 1: shared helpers (`clinic-time.js`, `money.js`, `seed.js`), Cucumber world `api()`
+  that validates every response against the service contract, `tokenFor()`/`actAs()`
+  (real login against Customer; identical locally signed tokens elsewhere), shared steps,
+  and VeterinarianServices steps. Validated against a throwaway spike service (9/9 green),
+  then with two deliberate faults (wrong fee: 3 scenarios fail; extra field: 2 fail with
+  "Contract violation"). Spike deleted; baseline: 9/9 fail as not implemented.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 

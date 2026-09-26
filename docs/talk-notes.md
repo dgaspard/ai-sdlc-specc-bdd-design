@@ -34,6 +34,14 @@ in another language cannot silently diverge:
 | Runtimes | Node 22+, Python 3.12; `setup`/`start` scripts | Runtime contract |
 | Ports and config | Static ports; environment variables only | Runtime contract |
 
+## Testing the tests
+
+- Every API response a step receives is validated against the service's contract, so
+  behavior scenarios also enforce the API contract ("Contract violation: ... unevaluated properties").
+- Each slice of step definitions is proven against a throwaway spike service, then
+  broken on purpose (wrong fee, extra field) to confirm the tests fail, then the spike is
+  deleted so the committed baseline stays red.
+
 ## Moments worth showing live
 
 - The agent tries to edit a feature file and gets the GUARD-01 message.
