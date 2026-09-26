@@ -317,6 +317,15 @@ Done so far:
   three deliberate faults: clamping an over-credit (1 fails), customers reading others'
   profiles (1 fails), login leaking the password (fails widely via the `User` schema).
   Spike deleted; baseline: 45/45 fail as not implemented.
+- Slice 3: Reservation steps (73 scenarios incl. outlines) with Customer and Checkout stubs:
+  default stub answers per scenario, assertions on what Reservation sent (amounts, method,
+  Idempotency-Key, service-role token signed with the shared secret and never the user's
+  token). States are reached only through the API; `BeforeStep` records Given/When/Then so
+  `the reservation is "<state>"` sets up in a Given and asserts in a Then. Validated against
+  a throwaway spike (73/73 green), then five faults: no slot lock during acceptance (race),
+  forwarding the vet's token to Checkout, denial amount without the thousands comma, weekend
+  slots, past slots offered; each caught by the scenario owning that rule. Spike deleted;
+  baseline: 73/73 fail as not implemented.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 

@@ -2,7 +2,7 @@
 // Service features (@service:<name>) run the real service under test, stubs for the
 // services it calls (D-28), the real fake payment provider, and the OTLP test collector.
 import {
-  World, setWorldConstructor, setDefaultTimeout, Before, After, AfterAll, Status,
+  World, setWorldConstructor, setDefaultTimeout, Before, BeforeStep, After, AfterAll, Status,
 } from "@cucumber/cucumber";
 import { PROJECTS, projectUrl, DEFAULT_CLINIC_NOW } from "../../harness/config.js";
 import {
@@ -132,6 +132,14 @@ Before(async function ({ pickle }) {
   }
   await ensureRunning(name, { clinicNow: DEFAULT_CLINIC_NOW });
   await resetProject(name);
+});
+
+// Records whether the current step is setup ("Context": Given), an action ("Action":
+// When), or a check ("Outcome": Then). "And"/"But" inherit the previous keyword's type.
+// Lets one phrase such as `the reservation is "Accepted"` set up state in a Given and
+// assert it in a Then.
+BeforeStep(function ({ pickleStep }) {
+  this.stepType = pickleStep.type;
 });
 
 After(function ({ result }) {
