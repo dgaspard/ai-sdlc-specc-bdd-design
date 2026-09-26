@@ -311,6 +311,12 @@ Done so far:
   and VeterinarianServices steps. Validated against a throwaway spike service (9/9 green),
   then with two deliberate faults (wrong fee: 3 scenarios fail; extra field: 2 fail with
   "Contract violation"). Spike deleted; baseline: 9/9 fail as not implemented.
+- Slice 2: Customer steps for profile, pets, account, eligibility, login, and access
+  scenarios (45 scenarios). Internal operations are called with service-role tokens.
+  Validated against a throwaway spike (45/45 green; AUTH-001..004 10/10 green), then with
+  three deliberate faults: clamping an over-credit (1 fails), customers reading others'
+  profiles (1 fails), login leaking the password (fails widely via the `User` schema).
+  Spike deleted; baseline: 45/45 fail as not implemented.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 
