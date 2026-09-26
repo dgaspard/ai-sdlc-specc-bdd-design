@@ -257,7 +257,7 @@ from the token, never the body; one OpenAPI file per service reusing domain sche
 
 Result: `customer` (12 operations, includes login), `reservation` (12), `veterinarian-services`
 (3, read-only), `checkout` (8) contracts plus `common.openapi.json`. Customer serves
-`CustomerProfile`/`PetProfile` without embedded reservations or visits (D-37). Every feature
+`CustomerRead`/`PetRead`, which no longer embed reservations, visits, or history (D-38). Every feature
 file maps to at least one operation (`x-features`). Structural tests in
 `spec/tests/contract/api-contracts.test.js` pass (131 schema checks in total).
 

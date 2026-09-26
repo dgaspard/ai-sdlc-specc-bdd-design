@@ -78,7 +78,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerProfile"
+                  "$ref": "domain.openapi.json#/components/schemas/CustomerRead"
                 }
               }
             }
@@ -113,7 +113,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CustomerProfile"
+                    "$ref": "domain.openapi.json#/components/schemas/CustomerRead"
                   }
                 }
               }
@@ -163,7 +163,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerProfile"
+                  "$ref": "domain.openapi.json#/components/schemas/CustomerRead"
                 }
               }
             }
@@ -219,7 +219,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerProfile"
+                  "$ref": "domain.openapi.json#/components/schemas/CustomerRead"
                 }
               }
             }
@@ -281,7 +281,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PetProfile"
+                  "$ref": "domain.openapi.json#/components/schemas/PetRead"
                 }
               }
             }
@@ -333,7 +333,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/PetProfile"
+                    "$ref": "domain.openapi.json#/components/schemas/PetRead"
                   }
                 }
               }
@@ -383,7 +383,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PetProfile"
+                  "$ref": "domain.openapi.json#/components/schemas/PetRead"
                 }
               }
             }
@@ -636,35 +636,6 @@
       }
     },
     "schemas": {
-      "PetProfile": {
-        "description": "Pet as served by Customer. Visit history is served by Reservation (GET /visits?petId=), not embedded (D-37).",
-        "allOf": [
-          {
-            "$ref": "domain.openapi.json#/components/schemas/PetFields"
-          },
-          {
-            "type": "object",
-            "required": [
-              "id"
-            ],
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              }
-            }
-          }
-        ],
-        "required": [
-          "id",
-          "name",
-          "type",
-          "breed",
-          "estimatedBirthDate",
-          "ownerId"
-        ],
-        "unevaluatedProperties": false
-      },
       "PetCreateRequest": {
         "description": "ownerId comes from the path.",
         "allOf": [
@@ -683,59 +654,6 @@
             "ownerId"
           ]
         },
-        "unevaluatedProperties": false
-      },
-      "CustomerProfile": {
-        "description": "Customer as served by Customer. Reservations and visits are served by Reservation (GET /reservations?customerId=, GET /visits?customerId=); clients compose the full CustomerRead view (D-37).",
-        "allOf": [
-          {
-            "$ref": "domain.openapi.json#/components/schemas/CustomerFields"
-          },
-          {
-            "type": "object",
-            "required": [
-              "id",
-              "pets",
-              "insurance",
-              "outstandingBalance",
-              "accountEntries"
-            ],
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "pets": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PetProfile"
-                }
-              },
-              "outstandingBalance": {
-                "$ref": "domain.openapi.json#/components/schemas/UsdCents"
-              },
-              "accountEntries": {
-                "type": "array",
-                "items": {
-                  "$ref": "domain.openapi.json#/components/schemas/AccountEntryRead"
-                }
-              }
-            }
-          }
-        ],
-        "required": [
-          "id",
-          "firstName",
-          "lastName",
-          "phoneNumber",
-          "address",
-          "emergencyContact",
-          "preferredVeterinarianId",
-          "pets",
-          "insurance",
-          "outstandingBalance",
-          "accountEntries"
-        ],
         "unevaluatedProperties": false
       },
       "Eligibility": {

@@ -24,10 +24,8 @@ with an offset, interpreted against the America/Chicago clinic calendar.
 | phoneNumber | Phone number, represented as text |
 | address | Address object defined below |
 | pets | Collection of the customer's pets |
-| reservations | Collection of reservations for this customer and their pets |
 | outstandingBalance | Total outstanding USD balance across all of the customer's pets |
 | insurance | Optional collection of policies linked to covered petIds |
-| visits | All recorded visits for this customer's pets |
 | emergencyContact | Contact object |
 | secondaryContact | Optional Contact object |
 | billing | Optional Billing object; electronic method need not be stored for cash-only customers |
@@ -44,9 +42,10 @@ unpaid amount. Amounts use integer cents in APIs (for example, 3500 means $35.00
 The balance is maintained through account operations, not a client-editable profile
 field. This is a proposed API boundary protecting the already agreed balance rule.
 
-Customer can have zero pets. `visits` and `reservations` are read views of shared
-records, not separately editable copies. Historical records keep the original
-customer reference if ownership ever changes; transfers are outside this demo.
+Customer can have zero pets and exists independently of any reservation (D-38).
+Customer holds no reservations or visits; those records reference the customer and
+are owned by Reservation. Historical records keep the original customer reference if
+ownership ever changes; transfers are outside this demo.
 
 ### Contact and insurance value objects
 
@@ -74,12 +73,12 @@ customer. Cash-only customers need not store an electronic payment method.
 | type | Required nonblank text such as cat or dog; not limited to those examples |
 | breed | Required breed text; Unknown is allowed |
 | estimatedBirthDate | Required estimated birth date, not in the future; replaces stored age |
-| history | Collection of recorded visits for this pet |
 | owner | The customer who owns the pet |
 
 A customer can own multiple pets; each pet has one owner in this demo model.
-Pet history contains that pet's visits only. Customer visits aggregate the same
-records across their pets. Neither view creates a second clinical record.
+A pet's visit history and a customer's visits across pets are queries on Reservation
+(`GET /visits?petId=`, `GET /visits?customerId=`), not fields of Pet or Customer (D-38).
+Neither query creates a second clinical record.
 
 ## Visit
 
@@ -102,8 +101,7 @@ Performed services record actual care; Reservation.requestedServices records the
 request. Both collections must be nonempty, contain unique catalog service IDs, and
 use quantity one per service. Performed services may differ from requested services;
 they need not be a subset, but must reference valid catalog entries.
-Diagnoses and medications may be empty; followUpNotes is optional. Pet.history is
-a read view of these shared visit records.
+Diagnoses and medications may be empty; followUpNotes is optional.
 
 ## Veterinarian
 
@@ -322,13 +320,11 @@ If authorization succeeds but a subsequent state update fails, preserve the paym
 outcome for manual recovery. Do not claim full completion or initiate a fresh payment
 automatically. Detailed recovery responses remain part of the open API design.
 
-## API projections (SPEC-04)
+## Dependency direction (D-38)
 
-Customer serves `CustomerProfile` and `PetProfile`: the domain fields without embedded
-reservations, visits, or pet history. Those collections belong to Reservation
-(`GET /reservations?customerId=`, `GET /visits?customerId=` or `?petId=`), and clients
-compose the full `CustomerRead`/`PetRead` view. This keeps Customer free of any
-dependency on Reservation (D-37). Contracts: `spec/contracts/README.md`.
+Dependencies point one way: Reservation, Visit, and Checkout records reference Customer
+and Pet; Customer and Pet reference nothing downstream. A customer can exist without
+any reservation. Contracts: `spec/contracts/README.md`.
 
 ## Relationships and proposed API representation
 
@@ -345,8 +341,8 @@ erDiagram
     CHECKOUT ||--o{ PAYMENT_ATTEMPT : records
     CHECKOUT ||--o| PROMOTION : discounted_by
     CUSTOMER }o--|| VETERINARIAN : prefers
-    CUSTOMER ||--o{ VISIT : aggregates
-    PET ||--o{ VISIT : has_history
+    CUSTOMER ||--o{ VISIT : "referenced by"
+    PET ||--o{ VISIT : "referenced by"
     VETERINARIAN ||--o{ VISIT : records
     VISIT }o--|{ VETERINARY_SERVICE : performs
 ```
@@ -362,8 +358,7 @@ The exact ID format, endpoints, collection ordering, and projection schemas will
 specified in OpenAPI after the feature review. Existing baseline numeric IDs remain
 unchanged during this design task.
 
-Customer owns customer and pet profile data; Customer's Visit[] is a read view, not
-authority to edit veterinarian-owned clinical records. Reservation is the software
+Customer owns customer and pet profile data and has no view of clinical records (D-38). Reservation is the software
 owner of Visit storage and Checkout owns its bill and payment-attempt records;
 Customer owns account entries. Cross-service reads/writes use APIs rather than
 direct access to another service's in-memory store. No database change is needed.

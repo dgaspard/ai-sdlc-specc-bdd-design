@@ -278,8 +278,6 @@
             "required": [
               "id",
               "pets",
-              "reservations",
-              "visits",
               "insurance",
               "outstandingBalance",
               "accountEntries"
@@ -292,18 +290,6 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/PetRead"
-                }
-              },
-              "reservations": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ReservationRead"
-                }
-              },
-              "visits": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VisitRead"
                 }
               },
               "insurance": {
@@ -332,7 +318,8 @@
           "address",
           "emergencyContact",
           "preferredVeterinarianId"
-        ]
+        ],
+        "description": "Customer with pets and account entries. Reservations and visits reference the customer and are served by Reservation (D-38)."
       },
       "PetFields": {
         "type": "object",
@@ -411,18 +398,11 @@
           {
             "type": "object",
             "required": [
-              "id",
-              "history"
+              "id"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/Uuid"
-              },
-              "history": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VisitRead"
-                }
               }
             }
           }
@@ -434,7 +414,8 @@
           "breed",
           "estimatedBirthDate",
           "ownerId"
-        ]
+        ],
+        "description": "Pet profile. Visit history is served by Reservation (GET /visits?petId=) (D-38)."
       },
       "VeterinarianFields": {
         "type": "object",
