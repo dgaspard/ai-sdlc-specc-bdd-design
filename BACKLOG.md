@@ -150,37 +150,24 @@ Root `npm test` runs the spec project. `npm --prefix spec ci` verified locally
 
 ### ARCH-02 — Language-neutral runtime contract
 
-Status: next; priority 2. Decision A-02. Phase: spec.
+Status: done. Decision A-02. Phase: spec.
 
-Agreed values:
+Result: [`spec/contracts/runtime-contract.md`](spec/contracts/runtime-contract.md) defines
+`setup`/`start` scripts, static ports, environment variables (OpenTelemetry standard names
+where they exist), frozen `CLINIC_NOW` clock, `GET /health`, `POST /test/reset` behind
+`PETCLINIC_TEST_ENDPOINTS=enabled`, and seed files read from `SEED_DATA_DIR`. Added
+`spec/seed-data/services.json` (fixed catalog IDs) and `spec/harness/free-port.sh`.
+Reference runtimes: Node 22+ (24.21.0 in use), Python 3.12.
 
-| Project | Port |
-| --- | --- |
-| frontend | 3000 |
-| Customer | 4001 |
-| Reservation | 4002 |
-| VeterinarianServices | 4003 |
-| Checkout | 4004 |
-| Fake payment provider | 4010 |
-| OTLP test collector | 4318 |
-
-- Clinic clock: static `CLINIC_NOW` environment variable read at startup (ISO timestamp).
-  Scenarios needing a different clock restart the affected services. Time rules in scope:
-  no past appointments, hidden past slots, no acceptance after start, cancel only before
-  start, visit only at/after start. No other ordering rules are in scope.
-- Add a port-freeing script (for example `scripts/free-port.sh <port>`) used by the
-  harness and the demo before starting or rebuilding a service on its static port.
-
-- Specify the `start` convention, environment variables (port, dependency URLs,
-  clinic clock, OTLP endpoint), health endpoint, and test-only reset endpoint.
-- Specify how tests set the clinic clock so "past start" scenarios are repeatable.
-- Publish this as a contract every service must satisfy in any language.
+Browser access: CORS from `FRONTEND_ORIGIN` (default `http://localhost:3000`); no frontend proxy.
 
 ### ARCH-03 — Black-box test harness
 
 Status: planned; priority 3. Decision A-03.
 
-- Harness starts services through `start`, waits for health, resets state per scenario.
+- Harness frees ports, starts projects through `start`, waits for health, resets state per
+  scenario, and restarts services when a scenario needs a different `CLINIC_NOW`.
+- Tests that every project follows `spec/contracts/runtime-contract.md`.
 - Step definitions call services only over HTTP; responses are validated against schemas.
 - Deterministic fake payment provider as its own process with inspectable call counts.
 - No test imports application code.
@@ -248,7 +235,8 @@ Status: planned; after ARCH-01..04, OTEL-01, AUTH-01, and GUARD-01.
 
 Status: planned. Decision A-04.
 
-- Plain HTML/JS in `frontend/`, calling services only through their published APIs.
+- Plain HTML/JS in `frontend/`, calling services directly through their published APIs
+  using CORS (runtime contract).
 - Accessible labels and roles so Playwright scenarios read like a user's actions.
 - Playwright workflow scenarios live in `spec/` and stay unchanged across the language swap.
 

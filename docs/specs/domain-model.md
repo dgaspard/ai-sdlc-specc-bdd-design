@@ -113,7 +113,8 @@ a separate Office service. The veterinarian owns the clinical record as a domain
 responsibility. Reservation owns the Visit records and exposes their read/write
 interfaces; Customer and Pet histories are read projections of those records.
 
-Synthetic seed data is in [veterinarians.json](../../spec/seed-data/veterinarians.json): Avery
+Synthetic seed data is in [veterinarians.json](../../spec/seed-data/veterinarians.json)
+(the catalog with fixed service IDs is in [services.json](../../spec/seed-data/services.json)): Avery
 Taylor in office-1 and Morgan Reed in office-2. The file is specification seed data;
 the current application does not load it yet.
 

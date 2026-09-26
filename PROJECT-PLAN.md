@@ -85,7 +85,7 @@ inspect its requests and invocation counts.
 | ID | Decision |
 | --- | --- |
 | A-01 | One repository with separate projects: `services/customer/`, `services/reservation/`, `services/veterinarian-services/`, `services/checkout/`, `frontend/`, and `spec/` (features, contracts, tests, harness, payment fake, telemetry collector). Each service has its own dependency file and builds, starts, and is deleted independently. |
-| A-02 | Language-neutral runtime contract: every service starts with `services/<name>/start`, reads configuration only from environment variables (port, dependency URLs, `CLINIC_NOW`, telemetry endpoint), and exposes a health endpoint and a test-only reset endpoint. Static ports: frontend 3000, Customer 4001, Reservation 4002, VeterinarianServices 4003, Checkout 4004, payment fake 4010, OTLP collector 4318. A port-freeing script clears a port before a service starts or is rebuilt. |
+| A-02 | Language-neutral runtime contract: every service starts with `services/<name>/start`, reads configuration only from environment variables (port, dependency URLs, `CLINIC_NOW`, telemetry endpoint), and exposes a health endpoint and a test-only reset endpoint. Static ports: frontend 3000, Customer 4001, Reservation 4002, VeterinarianServices 4003, Checkout 4004, payment fake 4010, OTLP collector 4318. A port-freeing script clears a port before a service starts or is rebuilt. Full contract: `spec/contracts/runtime-contract.md`. |
 | A-03 | Tests are black-box: they reach services only over HTTP, validate responses against the published schemas, and never import application code. Telemetry is exported over OTLP to a test collector so OBS rules work in any language. |
 | A-04 | The frontend is its own plain HTML/JS project. It calls services only through their published APIs and uses accessible labels for Playwright. |
 | A-05 | Final demo: all services built in JavaScript; Checkout rebuilt live in Python against unchanged tests; Playwright and performance rerun. A whole-backend Python rebuild is a recorded stretch. |
@@ -244,7 +244,7 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 
 ## Immediate next action
 
-Specifications are complete (tag `spec-schema-complete`) and ARCH-01 is done. Next, in order: ARCH-02 (runtime contract), ARCH-03 (black-box harness),
+Specifications are complete (tag `spec-schema-complete`) ARCH-01 and ARCH-02 are done. Next, in order: ARCH-03 (black-box harness),
 ARCH-04 (telemetry collector), OTEL-01 (OpenTelemetry conformance), AUTH-01
 (simple authentication), GUARD-01 (test protection), then SPEC-04 (per-service
 API contracts). Still needed from the presenter: talk date, session length, and the
