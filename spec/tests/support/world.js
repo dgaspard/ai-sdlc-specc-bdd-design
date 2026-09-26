@@ -36,10 +36,9 @@ class PetClinicWorld extends World {
     return projectUrl(name);
   }
 
-  /** Step helper for "Given the clinic clock reads ...": restarts only if the clock changes. */
+  /** Step helper for "Given the clinic clock reads ...": moves the clock, keeps stored data. */
   async setClinicClock(isoTimestamp) {
     await setClinicClock(this.service, isoTimestamp);
-    await resetProject(this.service);
   }
 }
 setWorldConstructor(PetClinicWorld);

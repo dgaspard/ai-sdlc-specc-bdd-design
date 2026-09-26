@@ -1,5 +1,5 @@
 // Verifies every runnable project follows spec/contracts/runtime-contract.md.
-// Rule IDs RT-001..RT-008 are defined in that contract. Protected test.
+// Rule IDs RT-001..RT-009 are defined in that contract. Protected test.
 import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,6 +9,9 @@ import {
   assertImplemented, projectDir, startProject, stopProject, stopAll, ensureRunning, resetProject,
 } from "../../harness/processes.js";
 import { fetchSpans, waitForSpans } from "../../harness/traces.js";
+import { login, bearer, decodeJwt } from "../../harness/auth.js";
+
+const JORDAN = "10000000-0000-4000-8000-000000000201";
 
 after(stopAll);
 
@@ -93,6 +96,37 @@ for (const [name, p] of Object.entries(PROJECTS)) {
         assert.ok(spans.length > 0);
         const { rejected } = await fetchSpans();
         assert.deepEqual(rejected, [], "collector rejected exports that were not OTLP/HTTP protobuf");
+      });
+    }
+
+    if (p.kind === "service") {
+      it(`[RT-009] ${p.title} moves the clinic clock with POST /test/clock and reset restores it`, async () => {
+        assertImplemented(name);
+        await startProject(name, { clinicNow: "2026-10-05T09:00:00-05:00" });
+        const set = (now) => fetch(`http://localhost:${p.port}/test/clock`, {
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ now }),
+        });
+        assert.equal((await set("2026-10-12T09:05:00-05:00")).status, 204);
+        assert.equal((await set("not-a-time")).status, 400);
+        if (name === "customer") {
+          // Data survives a clock change: a pet added before the change is still there after.
+          await set("2026-10-05T09:00:00-05:00");
+          const vet = (await login("avery.taylor", "petclinic-demo")).body.token;
+          const added = await fetch(`http://localhost:${p.port}/customers/${JORDAN}/pets`, {
+            method: "POST", headers: { "content-type": "application/json", ...bearer(vet) },
+            body: JSON.stringify({ name: "Clock", type: "cat", breed: "Unknown", estimatedBirthDate: "2024-01-01" }),
+          });
+          assert.equal(added.status, 201);
+          const petId = (await added.json()).id;
+          assert.equal((await set("2026-10-12T09:05:00-05:00")).status, 204);
+          assert.equal((await fetch(`http://localhost:${p.port}/pets/${petId}`, { headers: bearer(vet) })).status, 200);
+          // The clock itself is observable through the clinic-clock iat of a login token.
+          const t1 = decodeJwt((await login("jordan.rivera", "petclinic-demo")).body.token).claims.iat;
+          assert.equal(t1, Date.parse("2026-10-12T09:05:00-05:00") / 1000);
+          await fetch(`http://localhost:${p.port}/test/reset`, { method: "POST" });
+          const t2 = decodeJwt((await login("jordan.rivera", "petclinic-demo")).body.token).claims.iat;
+          assert.equal(t2, Date.parse("2026-10-05T09:00:00-05:00") / 1000);
+        }
       });
     }
 

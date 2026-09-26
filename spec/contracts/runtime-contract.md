@@ -15,6 +15,7 @@ humans change it deliberately. Verified by `spec/tests/runtime/runtime-contract.
 | RT-006 | CORS allowed only from `FRONTEND_ORIGIN` | Services |
 | RT-007 | Stops within 5 seconds of SIGTERM | All |
 | RT-008 | Exports traces as OTLP/HTTP protobuf with the correct `service.name` (also verifies OBS-001) | Services |
+| RT-009 | `POST /test/clock` changes the clinic clock without erasing stored data; reset restores `CLINIC_NOW` | Services |
 
 ## Scripts
 
@@ -71,12 +72,13 @@ cross-service dependencies). Missing required variables fail startup with a clea
 ## Clinic clock
 
 - `CLINIC_NOW` is an ISO 8601 timestamp with offset, e.g. `2026-10-05T09:00:00-05:00`.
-- When set, the clock is **frozen** at that instant for the life of the process. Every
-  "now" the service uses (validation and recorded timestamps such as `requestedAt`,
-  `acceptedAt`, `appliedAt`) equals `CLINIC_NOW`.
+- When set, the clock is **frozen** at that instant. Every "now" the service uses
+  (validation and recorded timestamps such as `requestedAt`, `acceptedAt`, `appliedAt`)
+  equals the frozen value until it is changed through `POST /test/clock`.
 - When unset, the service uses real time.
 - Calendar rules are evaluated in `America/Chicago`, whatever offset `CLINIC_NOW` uses.
-- Scenarios that need a different time restart the affected services with a new value.
+- Scenarios that need a different time move the frozen clock with `POST /test/clock`
+  (below). This keeps in-memory data; restarting a process would erase it.
 - Time rules in scope: no past appointments, hidden past slots, no acceptance after
   start, cancel only before start, visit only at or after start. No other ordering rules.
 
@@ -111,6 +113,9 @@ When `PETCLINIC_TEST_ENDPOINTS=enabled`:
 - `POST /test/reset` clears all in-memory state (including idempotency records and,
   for the fake payment provider, call counts), reloads seed data, and returns 204.
 - No authentication. Returns only after the reset is complete.
+- `POST /test/clock` with `{ "now": "<ISO 8601 with offset>" }` sets the frozen clinic clock
+  without touching stored data and returns 204. 400 for a missing or invalid timestamp.
+  `POST /test/reset` restores the clock to `CLINIC_NOW` (services only).
 
 When not enabled, `/test/*` paths return 404.
 

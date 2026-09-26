@@ -107,9 +107,12 @@ export async function ensureRunning(name, opts = {}) {
   return true;
 }
 
-/** Restarts a project only if its clinic clock differs (runtime contract: frozen clock). */
+/** Moves a running service's frozen clinic clock (POST /test/clock); stored data is kept. */
 export async function setClinicClock(name, clinicNow) {
-  return ensureRunning(name, { clinicNow });
+  const res = await fetch(`${projectUrl(name)}/test/clock`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ now: clinicNow }),
+  });
+  if (res.status !== 204) throw new Error(`${PROJECTS[name].title} /test/clock returned ${res.status}, expected 204`);
 }
 
 export async function resetProject(name) {

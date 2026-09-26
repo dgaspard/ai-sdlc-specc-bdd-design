@@ -289,19 +289,21 @@ Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
 - Rerun all suites, Playwright, and performance; show the connected trace.
 - Stretch (recorded): rebuild the whole backend in Python.
 
-### TEST-01 — Build independent executable verification
+### TEST-01 — Service-level executable tests (all red)
 
-Status: planned; depends on ARCH-01..04, OTEL-01, AUTH-01, GUARD-01, and SPEC-04.
+Status: in progress. Phase: spec.
 
-- Add real browser scenarios and provider/consumer contract checks over HTTP.
-- Add a deterministic fake payment adapter with success, decline, and timeout
-  outcomes, plus inspectable call counts for retry assertions.
-- Verify distributed trace relationships across actual process boundaries using
-  a test collector or equivalent shared capture; an in-process exporter alone
-  cannot demonstrate cross-process propagation.
-- Prove failures are caused by absent behavior, not broken fixtures or missing tools.
-- Provide one start command and one verification command that reports all suites,
-  even when an earlier suite fails. Preserve separate CI checks and evidence.
+Decisions: test clock `POST /test/clock` (RT-009) instead of restarts, so in-memory data
+survives a clock change; "Given" state only through published APIs with stubs for
+dependencies (no seed backdoors); one step file per service plus shared steps (clock,
+login, "refused as <reason>" → problem `code`); access control generated from every
+contract operation's `x-roles` (401 missing/bad-signature/`alg: none`/expired, 403 wrong
+role, 404 another customer's record); OBS-023..040 in dedicated observability tests,
+OBS-002 via `traceparent` recorded by stubs; stubs assert internal calls carry a
+`service`-role token and never the user's token (negative check), and internal
+operations reject user tokens with 403. Workflow features and Playwright are TEST-02.
+
+Done so far: test clock (runtime contract, harness, RT-009).
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 
