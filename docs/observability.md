@@ -220,9 +220,14 @@ the specification review; each will fail on creation until implementation exists
 | OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`. Client spans, 5xx `error.type`, and business-span parenting: planned in TEST-01 | Not implemented; failing tests |
 | OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Not implemented; failing test |
 
-Slice 6 was frozen at checkpoint `test-01-s5-s6`. Subsequent contract gap decisions
-GAP-01–07 and their tests are awaiting a new human freeze; see
-[the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
+Slice 6 was frozen at checkpoint `test-01-s5-s6`. The supplied working-tree
+manifest now passes the guard for the GAP-01–07 revisions and was not changed
+by the rehearsal. The [2026-09-27 rehearsal](test-slices-5-6-rehearsal.md) passed
+all 92 slice-6 telemetry/workflow checks, alongside 218 access checks, and
+detected deliberate defects in propagation, outcomes, status, span uniqueness,
+parenting, replay, payment counts, and downstream account work. Temporary
+implementations were removed; the table's application implementation status
+therefore remains red. See also [the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
 claim of exhaustive outcome coverage or a passing application. Helpers also check
 span uniqueness, completion, status, and SERVER parenting for the exercised cases;
 this does not close the broader OBS-003–009 test gaps above.

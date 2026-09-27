@@ -28,9 +28,12 @@ complete enterprise correctness or identical source code.
 Tag `spec-schema-complete` locks the business decisions, domain model, schemas,
 observability rules, and service feature files. The legacy single-app code, its
 tests, and its API contract were removed (D-24); they remain available at tag `1.0`.
-There is no application code and there are no step definitions. `npm test` runs
-Cucumber, which reports every service scenario as undefined. That is the expected
-state until TEST-01 creates protected tests, each of which must fail on creation.
+There is no application code. TEST-01 is complete: protected service steps,
+schema, access-control, and telemetry checks exist, and their temporary-service
+rehearsals are recorded below. All 166 service scenarios resolve their steps but
+remain red because the application is absent. The frozen guard, harness checks,
+and schema checks pass. Next: TEST-02 cross-service workflow features and browser
+tests, before application implementation.
 
 ## Ordered work
 
@@ -291,7 +294,14 @@ Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
 
 ### TEST-01 — Service-level executable tests (all red)
 
-Status: in progress. Phase: spec.
+Status: done (2026-09-27). Phase: spec. Stage: tests red.
+Checkpoint tag: `test-01`.
+
+Completion means the service-level executable specifications and their
+green/mutation rehearsals are complete. It does not mean the application passes:
+temporary implementations have been removed and missing-service failures are
+intentional. Workflow features/browser tests and broader observability coverage
+gaps remain outside this task.
 
 Decisions: test clock `POST /test/clock` (RT-009) instead of restarts, so in-memory data
 survives a clock change; "Given" state only through published APIs with stubs for
@@ -349,8 +359,16 @@ Done so far:
   Verification: npm test passes 45 harness and 131 schema checks; application
   assertions remain red because service implementations are absent. BDD dry run
   resolves all 166 scenarios. Guard reports the intentional protected revisions.
-  Next: review/freeze the revisions and perform the green/mutation rehearsal
-  before declaring the executable specification complete.
+  Latest verification (2026-09-27): supplied working-tree manifest passes the
+  guard and was preserved unchanged. The [green/mutation rehearsal](docs/test-slices-5-6-rehearsal.md)
+  passed all 310 slice-5/6 checks (218 access, 92 telemetry/workflow), detected
+  13 deliberate implementation defects, and passed all 10 distinct mutation
+  targets after restoration. Temporary implementations were removed; final
+  `npm test` again passes guard, 45 harness and 131 schema checks, with application
+  suites intentionally red because services are absent. No protected files changed.
+  Next: define TEST-02 workflow features and browser tests.
+  The TEST-01 specification handoff and first green/mutation rehearsal are complete;
+  broader privacy/exporter/fault coverage gaps remain outside these slices.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 

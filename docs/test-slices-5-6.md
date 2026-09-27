@@ -1,6 +1,9 @@
 # TEST-01 slices 5 and 6 review
 
 Phase: specification. These tests add requirements checks, not service implementations.
+Latest verification: the [2026-09-27 green/mutation rehearsal](test-slices-5-6-rehearsal.md)
+passed all 310 slice checks and detected 13 deliberate defects without changing
+protected files. Temporary implementations were removed afterward.
 Recent commits reviewed: `aba9d82` (Reservation steps), `a6f2cd2` (freeze), and
 `1cfea69` (Checkout steps). Existing steps and features are unchanged.
 
@@ -114,9 +117,12 @@ mutations verify detection of missing/duplicate spans, wrong outcomes/statuses/r
 flags, unended spans, wrong parents, missing headers, mixed contexts, and wrong HTTP
 destinations. These are harness checks, not proof that the application passes.
 
-Unlike the earlier slices, these additions have not been run green against a complete
-throwaway service implementation. Runtime arrangement paths and end-to-end assertions
-still need a green/mutation rehearsal once that implementation is available.
+The initial handoff lacked a green rehearsal. That gap is now closed by the
+[2026-09-27 rehearsal](test-slices-5-6-rehearsal.md): all runtime arrangement paths and
+assertions in the three slice suites passed against temporary services, including
+real cross-process workflows. Thirteen deliberate defects failed their targeted
+checks, and all targets passed again after restoration. This does not close the
+broader observability coverage gaps described above.
 
 Checkpoint `test-01-s5-s6`: the supplied protected manifest now includes these
 additions and the preceding Checkout slice; `guard:check` passes. The assistant
