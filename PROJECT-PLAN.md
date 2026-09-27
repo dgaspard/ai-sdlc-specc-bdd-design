@@ -11,6 +11,14 @@ Prepare a November presentation demonstrating that reviewed BDD scenarios, API
 contracts, and observability contracts can guide an AI agent to recreate a deleted
 service that interoperates with existing services.
 
+The fourth pillar is **Engineering Discipline**: passing behavioral specifications,
+API contracts, and observability checks is followed by an implementation review of
+service boundaries, payment safety, and maintainability. The required gate is
+[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap).
+Apply it after code generation at the all-JavaScript implementation checkpoint
+and every Python Checkout reconstruction. Record test results separately from
+review findings; both the automated checks and engineering review must pass.
+
 Primary demonstration: build all services in JavaScript, show the Playwright workflow
 passing, delete Checkout, have the agent rebuild it **in Python** from the unchanged
 tests, then rerun the same Playwright workflow and performance check (A-05). Stretch:
@@ -53,13 +61,14 @@ access and telemetry/workflow checks and caught 13 deliberate defects; its
 temporary implementations were removed afterward. The legacy application remains
 at tag `1.0`. No application or frontend code exists.
 
-SPEC-05 and TEST-02 are now being drafted: complete self-registration information,
+SPEC-05 and TEST-02 are reviewed and frozen: complete self-registration information,
 partial per-visit payments, clinical-text corrections, catalog updates, and fast
 backend journeys using Playwright HTTP requests without a browser. No extra UI/setup
 flows are added. Pet removal and archival are deferred to the separate DATA-01
 learning exercise. See BACKLOG for current verification and review status.
-After those tests are frozen, build the application under IMPL-02,
-FE-01, and PERF-01. The intentional red application baseline is documented; it is
+Next, build the application under IMPL-02, FE-01, and PERF-01, and complete
+[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
+before the implementation checkpoint is ready. The intentional red application baseline is documented; it is
 not a specification failure.
 
 ## Working agreements and ownership
@@ -214,6 +223,7 @@ Time budget / elapsed time:
 Test iterations and suite results:
 Human interventions / specification corrections:
 Independent evaluation and diff review:
+ENG-01 review record, code-check commands/results, findings and dispositions:
 Evidence paths:
 Outcome and next action:
 ```
@@ -224,6 +234,13 @@ The presenter sets the live reconstruction time budget before Week 4. Proceed li
 only after three consecutive clean Checkout rehearsals meet that budget, pass all
 required checks, preserve frozen expectations, and need no unplanned human code
 repair. Disclose any prepared scaffolding and rehearsed prompt.
+
+Each rehearsal must also pass
+[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap):
+inspect the complete diff and connected trace, run the language-appropriate code
+checks, and resolve payment-safety and service-boundary findings. Retain a review
+record for the JavaScript baseline and each Python reconstruction. This is a
+demo-readiness gate, not a production-readiness claim.
 
 Suggested sequence: explain one business scenario, show its API and OBS obligations,
 show the working workflow, remove Checkout in the disposable workspace, show red
@@ -258,8 +275,9 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 
 ## Immediate next action
 
-TEST-01 is complete at tag `test-01`. The next task is TEST-02: review the proposed
-cross-service journeys, then write and freeze workflow features, protected workflow
-steps, and Playwright browser checks. After TEST-02, proceed to FE-01, PERF-01, and
-IMPL-02. Still needed from the presenter are the talk date, session length, and
+TEST-01 is complete at tag `test-01`; SPEC-05 and TEST-02 are reviewed and frozen.
+Proceed to IMPL-02, coordinating FE-01 and PERF-01, then apply
+[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
+to the first working implementation and every subsequent reconstruction.
+Still needed from the presenter are the talk date, session length, and
 live rebuild time budget; those choices become relevant before DEMO-01.

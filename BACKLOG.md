@@ -263,6 +263,8 @@ Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
 - Show Playwright workflow and performance passing on the all-JavaScript build.
 - Delete `services/checkout/`; the agent rebuilds it in Python from unchanged specs and tests.
 - Rerun all suites, Playwright, and performance; show the connected trace.
+- Pass [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
+  for the JavaScript baseline and each Python reconstruction.
 - Stretch (recorded): rebuild the whole backend in Python.
 
 ### TEST-01 — Service-level executable tests (all red)
@@ -478,6 +480,10 @@ Status: ready to start; TEST-02 expectations and tests are reviewed and frozen.
 Service specifications and TEST-01 are complete; coordinate the JavaScript build
 with FE-01 and the agreed PERF-01 checks.
 
+Before declaring this checkpoint ready, pass
+[ENG-01](#eng-01--review-implementation-quality-across-the-language-swap) and retain
+the JavaScript engineering review record alongside the test results.
+
 Implement successful checkout, declined payment, and idempotent retries against
 the agreed expectations. Run real local service dependencies in integration tests;
 fake only the payment boundary. Keep stores independent and in memory. Document
@@ -492,10 +498,72 @@ Status: planned after a passing implementation checkpoint.
   Customer, Reservation, and the fake payment provider.
 - Rebuild in a fresh agent context to reduce reliance on remembered implementation.
 - Review specification/test diffs and verify all suites plus the visible workflow.
+- Complete [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
+  for every reconstruction before calling the run demo-ready.
 - Rehearse timings, pin a supported runtime, preinstall browsers, and retain a
   recovery checkpoint and recorded fallback. No destructive deletion during planning.
 
 ## Experiment and presentation work
+
+### ENG-01 — Review implementation quality across the language swap
+
+Status: planned; applies to the all-JavaScript implementation and each Python
+Checkout reconstruction. Phase: implementation and demo review. Depends on a
+runnable implementation. Fourth pillar: **Engineering Discipline**.
+
+Purpose: passing BDD, API, observability, and browser checks establishes the
+behavior they cover. Review the implementation separately to determine whether
+its boundaries, payment handling, and structure are sound enough to maintain.
+Apply the same review criteria to both languages. An agent must perform this
+review after generating code and fixing test failures, before declaring the
+implementation or reconstruction checkpoint ready.
+
+Review tasks:
+
+- **Inspect the complete implementation diff.** Identify Checkout behavior,
+  dependencies, startup configuration, and telemetry. Confirm the rebuilt service
+  has not changed protected specifications, tests, or surviving services to pass.
+- **Check service ownership.** Checkout uses published APIs, owns its state, and
+  neither reads another service's store nor copies its business logic. Keep the
+  payment fake outside Checkout.
+- **Trace one payment from request to outcome.** Locate the idempotency check,
+  provider call, recorded result, and Reservation/Customer updates. Verify
+  sequential and concurrent retries cause no duplicate provider calls or credits.
+- **Review money and state transitions.** Use integer cents; require the $20
+  booking fee before acceptance. A booking decline leaves the request Requested.
+  Partial and full visit payments produce the specified CompletedOutstanding or
+  CompletedSettled state without overcollection or cross-visit allocation.
+- **Inspect partial failures.** Provider success followed by downstream failure
+  must be reported accurately in the response and trace. A retry must not silently
+  charge again. Record limitations outside the agreed in-memory demo scope.
+- **Review access and telemetry.** Inspect service-token use, ownership checks,
+  trace propagation, and sensitive customer/payment information in spans or errors.
+- **Review code structure.** Look for hardcoded scenario values, duplicate payment
+  paths, unnecessary coupling, and control flow that obscures payment outcomes.
+- **Run language-appropriate code checks.** Add and run formatting, lint, and
+  useful static checks. Record exact commands, versions, and results for JavaScript
+  and Python; equivalent criteria do not require identical tools.
+- **Verify and record the result.** Run frozen suites, backend journeys, and the
+  same browser journey once available; inspect the diff and a connected trace.
+  Record findings, fixes, remaining limitations, and the final commit/workspace.
+
+Acceptance criteria: frozen behavioral suites and configured code checks pass;
+the review record separates test results from code-review findings. Resolve
+payment-safety and service-boundary concerns before demo readiness. Record each
+other finding's disposition and remaining limitations. Judge JavaScript and Python
+by the same criteria; green tests alone do not establish production readiness.
+
+Record each review under `docs/engineering-reviews/` with checkpoint/language,
+reviewed diff and files, test/check commands and results, payment/trace evidence,
+findings with fixes and dispositions, limitations, and a pass/blocked decision.
+Add targeted regression checks for concrete uncovered behavior through the normal
+specification-first process; proposed checks under protected paths need explicit
+specification authorization and human review/freeze before implementation.
+Do not modify frozen tests merely to pass this gate.
+
+Next action: use this gate at IMPL-02 and every DEMO-01/DEMO-03/EXP-01 checkpoint;
+refine the checklist against the first working Checkout implementation. No review
+or language-tool result is claimed before that implementation exists.
 
 ### EXP-01 — Measure service reconstruction
 
@@ -505,6 +573,9 @@ Follow the experiment protocol and run-record template in `PROJECT-PLAN.md`.
 Perform at least three fresh Checkout reconstructions with frozen expectations,
 no access to deleted source/history, and independent evaluation of published
 requirements. Record failures, timings, interventions, and specification changes.
+Apply [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
+to each reconstruction; record code-check results and review findings separately
+from behavioral test outcomes using the same criteria as the JavaScript baseline.
 Two-service reconstruction and a prose-versus-executable comparison are stretch
 experiments, not prerequisites for the primary demo.
 

@@ -22,14 +22,15 @@ see the [rehearsal report](docs/test-slices-5-6-rehearsal.md).
 
 The temporary implementations were removed. There is no application code yet:
 the frozen TEST-01 checkpoint passes the protected guard, harness, and schema suites.
-Current SPEC-05 drafts add complete self-registration, partial payments, clinical
-corrections, and catalog updates. The guard flags those changes until human review
-and freeze; application-dependent suites fail because the services do not exist.
+Reviewed and frozen SPEC-05 adds complete self-registration, partial payments,
+clinical corrections, and catalog updates. The guard passes;
+application-dependent suites fail because the services do not exist.
 The scenarios have step definitions; they are not undefined.
 
-TEST-02 now has nine draft backend journeys using Playwright HTTP requests without
+TEST-02 now has nine frozen backend journeys using Playwright HTTP requests without
 launching a browser. These retain the existing workflows without extra UI/setup
-flows. Review and freeze the specifications before building the application.
+flows. The next checkpoint is implementation plus the
+[Engineering Discipline review](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap).
 [BACKLOG.md](BACKLOG.md) tracks verification and task status. The earlier
 single-app version remains preserved at tag `1.0`.
 
