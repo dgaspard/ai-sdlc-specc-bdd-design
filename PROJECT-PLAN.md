@@ -44,11 +44,19 @@ No new feature beyond the core demonstration is required to prove the hypothesis
 
 ## Current position
 
-Specifications and schemas are complete (tag `spec-schema-complete`): decisions
-D-01–D-37, the domain model, `spec/contracts/domain.openapi.json`, OBS-001–OBS-040, and
-149 service scenarios. Legacy code and tests were removed (still at tag `1.0`). Next:
-derive per-service API contracts, then write protected service and schema contract
-tests that fail on creation, then workflow features. No application code exists.
+The specification phase through TEST-01 is complete at tag `test-01` (commit
+`9d7b08e`): decisions D-01–D-38, the domain model, per-service and payment
+contracts, OBS-001–OBS-042, protected service steps, schema assertions,
+access-control checks, and business-trace checks are present. The 166 service
+scenarios resolve their steps. The latest temporary-service rehearsal passed 310
+access and telemetry/workflow checks and caught 13 deliberate defects; its
+temporary implementations were removed afterward. The legacy application remains
+at tag `1.0`. No application or frontend code exists.
+
+Next is TEST-02: review and write protected cross-service workflow features and
+browser tests. After those tests are frozen, build the application under IMPL-02,
+FE-01, and PERF-01. The intentional red application baseline is documented; it is
+not a specification failure.
 
 ## Working agreements and ownership
 
@@ -104,7 +112,7 @@ per-service API contracts (SPEC-04), because the contracts and tests must follow
 | Week | Focus and backlog links | Deliverables | Exit criteria |
 | --- | --- | --- | --- |
 | 1 | Business decisions and initial specification set: SPEC-01, SPEC-02, SPEC-03 | Decision record; per-service and workflow features; service/payment API contracts; reviewed telemetry obligations and coverage links; cancellation edge-case decisions | Core workflow semantics are explicit, specification layers agree, and the user has reviewed them; unresolved stretch behavior is labeled |
-| 2 | Architecture, protection, and protected tests: ARCH-01..04, GUARD-01, SPEC-04, TEST-01 | Repository layout and runtime contract; black-box harness and OTLP collector; test protection; per-service API contracts; service harness and payment fake; service and schema contract tests; workflow features and tests; distributed trace capture setup; recorded red baseline | Every test fails on creation for identifiable missing behavior; tests are frozen/hashed so the agent cannot modify them; suite runner reports all suites |
+| 2 | Architecture, protection, and protected tests: ARCH-01..04, GUARD-01, SPEC-04, TEST-01 | Repository layout and runtime contract; black-box harness and OTLP collector; test protection; per-service API contracts; service harness and payment fake; service and schema contract tests; access-control and telemetry checks; recorded red baseline and green/mutation rehearsal | Service tests fail on creation for identifiable missing behavior; tests are frozen/hashed so the agent cannot modify them; 310 TEST-01 slice checks pass against temporary services and deliberate defects are caught |
 | 3 | Service implementation: IMPL-02, FE-01, PERF-01 | All four services in JavaScript; plain HTML/JS frontend; minimum performance test; success, decline, retries, and rejection paths; completed OBS mappings | All agreed core BDD, API, and observability suites pass against real local services; no weakened assertions; clean startup/reset/teardown |
 | 4 | Reconstruction experiments: DEMO-01, DEMO-03, EXP-01 | Isolated experiment workspace; exact deletion manifest; fixed prompt; at least three fresh Checkout reconstructions in Python; evidence log; optional two-service attempt | Each run has recorded timing, interventions, failures, and independent evaluation; decide live feasibility against the agreed time budget |
 | 5 | Presentation and reliability: DEMO-02 | Final walkthrough and narrative; known-good checkpoint; bounded reset procedure; representative recording; final rehearsal results | Core scope frozen; three consecutive Checkout rehearsals meet the demo gate below, or presentation switches to a disclosed recorded reconstruction |
@@ -246,9 +254,8 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 
 ## Immediate next action
 
-Specifications are complete (tag `spec-schema-complete`) ARCH-01 through ARCH-04, OTEL-01, AUTH-01, GUARD-01, and SPEC-04 are done. Next: TEST-01 (step definitions and
-per-endpoint tests, all red), then FE-01, PERF-01, and IMPL-02. Earlier order was: ARCH-03 (black-box harness),
-ARCH-04 (telemetry collector), OTEL-01 (OpenTelemetry conformance), AUTH-01
-(simple authentication), GUARD-01 (test protection), then SPEC-04 (per-service
-API contracts). Still needed from the presenter: talk date, session length, and the
-live rebuild time budget.
+TEST-01 is complete at tag `test-01`. The next task is TEST-02: review the proposed
+cross-service journeys, then write and freeze workflow features, protected workflow
+steps, and Playwright browser checks. After TEST-02, proceed to FE-01, PERF-01, and
+IMPL-02. Still needed from the presenter are the talk date, session length, and
+live rebuild time budget; those choices become relevant before DEMO-01.

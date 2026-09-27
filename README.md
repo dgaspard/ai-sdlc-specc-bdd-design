@@ -14,9 +14,20 @@ The approach is test-driven:
 
 ## Current state
 
-Tag `spec-schema-complete` marks completed specifications and schemas. There is no
-application code yet and no step definitions, so `npm test` reports every scenario
-as undefined. The earlier single-app version is preserved at tag `1.0`.
+Tag `test-01` marks completion of service-level executable specification work.
+Business decisions D-01–D-38, domain schemas, per-service API contracts, and 166
+service scenarios are present. The latest access-control and telemetry rehearsal
+passed 310 checks against temporary services and detected 13 deliberate defects;
+see the [rehearsal report](docs/test-slices-5-6-rehearsal.md).
+
+The temporary implementations were removed. There is no application code yet:
+`npm test` passes the protected guard, harness, and schema suites, while
+application-dependent suites fail because the services/frontend do not exist.
+The scenarios have step definitions; they are not undefined.
+
+Next is TEST-02: review cross-service workflow features and browser tests before
+building the application. [BACKLOG.md](BACKLOG.md) tracks task status. The earlier
+single-app version remains preserved at tag `1.0`.
 
 ## Planned services
 
@@ -45,9 +56,15 @@ AGENTS.md                          Guardrails for coding agents
 
 ## Prerequisites and commands
 
-Node.js 22 or newer.
+Node.js 22, 24, or 26+ (matching the package engine declarations).
 
 ```bash
 npm ci
-npm test        # runs Cucumber
+npm --prefix spec ci
+npm test                            # runs every suite and prints an aggregate summary
+npm --prefix spec run guard:check    # verifies frozen protected files and skip/focus rules
+npm --prefix spec run test:bdd       # service scenarios only
 ```
+
+An exit code of 1 from `npm test` is expected at this specification-only checkpoint.
+A finished application must pass every required suite; TEST-01 is not that milestone.

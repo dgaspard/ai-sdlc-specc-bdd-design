@@ -5,7 +5,10 @@ Owns: Customer and pet profiles, account entries and balance, booking eligibilit
 - Port: 4001
 - Depends on: None
 - Behavior: [`spec/features/customer/`](../../spec/features/customer/)
-- Schemas: [`spec/contracts/domain.openapi.json`](../../spec/contracts/domain.openapi.json); per-service API contract comes in SPEC-04
-- Runtime rules: start with `./start`, configure only through environment variables (ARCH-02)
+- API: [`customer.openapi.json`](../../spec/contracts/customer.openapi.json)
+- Domain schemas: [`domain.openapi.json`](../../spec/contracts/domain.openapi.json)
+- Runtime contract: [`runtime-contract.md`](../../spec/contracts/runtime-contract.md); the future implementation supplies `setup`/`start` and uses environment configuration
 
-No code yet. Any language is allowed as long as the runtime contract and all tests pass.
+Service specifications and TEST-01 checks are complete; no application code or
+launch scripts remain. The initial build will be JavaScript. The runtime contract
+also supports the planned Python reconstruction without changing the tests.
