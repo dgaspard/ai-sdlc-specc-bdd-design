@@ -334,6 +334,16 @@ Done so far:
   no idempotency (5 fail), concurrent duplicates racing (1), booking fee collected twice (7),
   promotion driving the balance negative (1), reporting settled when completion fails (1).
   Spike deleted; baseline: 161/161 service scenarios fail as not implemented.
+- Slices 5–6 drafted: contract-generated access assertions for all 34 protected
+  operations; business trace assertions for OBS-023–040 and stub-header propagation
+  for OBS-002. Real-service trace tests cover cross-process evidence, replay,
+  booking acceptance/decline, and promotion to zero. Application services remain absent.
+  See [review, outcome coverage, and contract gaps](docs/test-slices-5-6.md).
+  Harness fixture/mutation checks pass; full runtime validation remains red.
+  Stage: tests red; supplied protected manifest passes guard:check and includes
+  these slices and the prior Checkout slice. Checkpoint tag: `test-01-s5-s6`.
+  Next: resolve the listed contract discrepancies, review/freeze any revisions, and perform the
+  green/mutation rehearsal before declaring the executable specification complete.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 

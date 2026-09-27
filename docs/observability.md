@@ -159,7 +159,7 @@ the specification review; each will fail on creation until implementation exists
 | Rule | Requirement | Authority | Test reference / planned title | Implementation status |
 | --- | --- | --- | --- | --- |
 | OBS-001 | Service identity | Proposed | [runtime-contract.test.js](../spec/tests/runtime/runtime-contract.test.js): `[RT-008] [OBS-001] <Service> exports traces as OTLP/HTTP protobuf named <service.name>` | Not implemented; failing test |
-| OBS-002 | W3C propagation and context isolation | Proposed | No test; planned `[OBS-002] HTTP calls preserve trace parents and isolate contexts` | Not implemented |
+| OBS-002 | W3C propagation and context isolation | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-002]` request/acceptance/finalization headers and concurrent reservation contexts | Not implemented; failing tests; manifest frozen |
 | OBS-003 | One business span per attempt | Proposed | No test; planned `[OBS-003] each attempt finishes exactly one business span` | Not implemented |
 | OBS-004 | Outcome/status mapping | Proposed | No test; planned `[OBS-004] outcomes map to agreed statuses` | Not implemented |
 | OBS-005 | IDs present, sensitive data excluded | Proposed | No test; planned `[OBS-005] telemetry includes known IDs without sensitive data` | Not implemented |
@@ -180,23 +180,29 @@ the specification review; each will fail on creation until implementation exists
 | OBS-020 | Dependency failure evidence | Proposed | No test; planned `[OBS-020] dependency failures finish spans without claiming success` | Not implemented |
 | OBS-021 | Privacy of captured telemetry | Proposed | No test; planned `[OBS-021] captured telemetry excludes sensitive fixture values` | Not implemented |
 | OBS-022 | Concurrent workflow isolation | Proposed | No test; planned `[OBS-022] concurrent workflows retain distinct contexts and correct IDs` | Not implemented |
-| OBS-023 | Reservation request | Proposed | No test; planned `[OBS-023] reservation request emits the agreed outcomes` | Not implemented |
-| OBS-024 | Reservation accept | Proposed | No test; planned `[OBS-024] acceptance emits the agreed outcomes` | Not implemented |
-| OBS-025 | Reservation deny | Proposed | No test; planned `[OBS-025] denial emits the agreed outcomes` | Not implemented |
-| OBS-026 | Reservation cancel | Proposed | No test; planned `[OBS-026] cancellation emits the agreed outcomes` | Not implemented |
-| OBS-027 | Visit record | Proposed | No test; planned `[OBS-027] visit recording emits the agreed outcomes` | Not implemented |
-| OBS-028 | Fee lookup | Proposed | No test; planned `[OBS-028] fee lookup emits the agreed outcomes` | Not implemented |
-| OBS-029 | Bill finalization | Proposed | No test; planned `[OBS-029] bill finalization emits the agreed outcomes` | Not implemented |
-| OBS-030 | Promotion | Proposed | No test; planned `[OBS-030] promotion emits entered and applied amounts` | Not implemented |
-| OBS-031 | Checkout pay | Proposed | No test; planned `[OBS-031] checkout payment emits outcome and replay attributes` | Not implemented |
-| OBS-032 | Fake payment authorize | Proposed | No test; planned `[OBS-032] payment authorization emits purpose, provider, and outcome` | Not implemented |
-| OBS-033 | Cash recording | Proposed | No test; planned `[OBS-033] cash recording emits the agreed outcomes` | Not implemented |
-| OBS-034 | Account change | Proposed | No test; planned `[OBS-034] account changes emit type and outcome` | Not implemented |
-| OBS-035 | Reservation completion | Proposed | No test; planned `[OBS-035] completion emits settled or outstanding` | Not implemented |
-| OBS-036 | Checkout success evidence | Proposed | No test; planned `[OBS-036] successful checkout connects payment, credit, and completion` | Not implemented |
-| OBS-037 | Checkout decline evidence | Proposed | No test; planned `[OBS-037] declined checkout completes outstanding without credit` | Not implemented |
-| OBS-038 | Replay evidence | Proposed | No test; planned `[OBS-038] replay emits telemetry without repeating payment` | Not implemented |
-| OBS-039 | Booking acceptance evidence | Proposed | No test; planned `[OBS-039] acceptance authorizes booking fee before claiming capacity` | Not implemented |
-| OBS-040 | Promotion-to-zero evidence | Proposed | No test; planned `[OBS-040] full promotion settles without payment authorization` | Not implemented |
+| OBS-023 | Reservation request | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-023] request emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-024 | Reservation accept | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-024] accept emits <outcome>` | Not implemented; red |
+| OBS-025 | Reservation deny | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-025] deny emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-026 | Reservation cancel | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-026] cancel emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-027 | Visit record | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-027] record_visit emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-028 | Fee lookup | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-028] get_fees emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-029 | Bill finalization | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-029] finalize_bill emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-030 | Promotion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-030] apply_promotion emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-031 | Checkout pay | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-031] pay emits <outcome>` | Not implemented; red |
+| OBS-032 | Fake payment authorize | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-032] payment.authorize emits <outcome>`; both purposes | Not implemented; red |
+| OBS-033 | Cash recording | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-033] record_cash emits <outcome>`; both purposes | Not implemented; red; partial outcomes |
+| OBS-034 | Account change | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-034] apply_account_change emits <outcome>`; charge/credit/discount | Not implemented; red; partial outcomes |
+| OBS-035 | Reservation completion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-035] complete emits <outcome>` | Not implemented; red; partial outcomes |
+| OBS-036 | Checkout success evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-036] checkout success connects real services` | Not implemented; red |
+| OBS-037 | Checkout decline evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-037] checkout decline connects real services` | Not implemented; red |
+| OBS-038 | Replay evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-038] <concurrent/sequential> <declined/authorized> retries preserve outcome and authorize once` | Not implemented; red |
+| OBS-039 | Booking acceptance evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-039] booking <decline/acceptance>` | Not implemented; red |
+| OBS-040 | Promotion-to-zero evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-040] promotion to zero completes settled across real services without authorization` | Not implemented; red |
 | OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`. Client spans, 5xx `error.type`, and business-span parenting: planned in TEST-01 | Not implemented; failing tests |
 | OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Not implemented; failing test |
+
+Slice 6 matches the supplied frozen manifest at checkpoint `test-01-s5-s6`. Outcome-level gaps and contract discrepancies
+are recorded in [the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
+claim of exhaustive outcome coverage or a passing application. Helpers also check
+span uniqueness, completion, status, and SERVER parenting for the exercised cases;
+this does not close the broader OBS-003–009 test gaps above.
