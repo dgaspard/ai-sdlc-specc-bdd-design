@@ -1,6 +1,6 @@
 @service:checkout
 Feature: Pay the remaining visit balance
-  Checkout collects the full remaining balance by card or records cash, then tells
+  Checkout collects part or all of a visit balance by card or records cash, then tells
   Customer and Reservation the result.
   Decisions: D-05, D-08, D-09, D-10, D-19, D-36, SCH-011. Telemetry: OBS-031, OBS-032, OBS-033.
 
@@ -49,8 +49,36 @@ Feature: Pay the remaining visit balance
     And Checkout sends Customer a credit of "$50.00" for Milo's visit
     And Checkout asks Reservation to complete the reservation as settled
 
-  Scenario: Only full-balance payments are accepted
+  Scenario: Partial card payment reduces the debt without settling the visit
     When Jordan pays "$30.00" of the visit balance
+    Then the fake payment provider is asked to authorize "$30.00" for purpose "visit_balance"
+    And a payment attempt is recorded as "authorized"
+    And the remaining balance is "$20.00"
+    And Checkout sends Customer a credit of "$30.00" for Milo's visit
+    And Checkout asks Reservation to complete the reservation as outstanding
+
+  Scenario: Partial cash payment reduces the debt without calling the provider
+    When Dr Avery Taylor records a "$20.00" cash payment for the visit
+    Then the fake payment provider is not called
+    And a payment attempt is recorded as "cash_recorded" by Dr Avery Taylor
+    And the remaining balance is "$30.00"
+    And Checkout sends Customer a credit of "$20.00" for Milo's visit
+    And Checkout asks Reservation to complete the reservation as outstanding
+
+  Scenario: A partial payment decline leaves the full debt
+    Given the fake payment provider will decline the card
+    When Jordan pays "$30.00" of the visit balance
+    Then a payment attempt is recorded as "declined"
+    And the remaining balance is "$50.00"
+    And Checkout sends Customer no credit
+
+  Scenario: Overpayments are rejected before authorization
+    When Jordan pays "$60.00" of the visit balance
+    Then the payment is refused as invalid
+    And the fake payment provider is not called
+
+  Scenario: Cash overpayment is rejected
+    When Dr Avery Taylor records a "$60.00" cash payment for the visit
     Then the payment is refused as invalid
     And the fake payment provider is not called
 

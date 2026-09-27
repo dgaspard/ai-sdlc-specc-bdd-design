@@ -30,7 +30,7 @@ No runtime implementation is implied by approval of a decision.
 | SCH-008 | One combined state | Exact enum: Requested, Accepted, Denied, Canceled, CompletedSettled, CompletedOutstanding |
 | SCH-009 | Historical billing | Preserve serviceId, description, priceAmount on each billed line; freeze prices at bill finalization and booking fee at acceptance |
 | SCH-010 | Account arithmetic | amountOwed includes booking fee; amountCredited includes booking payment; balance is owed minus credited; customer balance sums visit balances |
-| SCH-011 | Payment limits | Full remaining-balance payments; no partial payments, overpayments, or refunds |
+| SCH-011 | Payment limits | SPEC-05: positive partial or full payments against one visit, mixing card and veterinarian-recorded cash; no overpayments or refunds |
 | SCH-012 | Checkout cardinality | One Checkout per Visit, with multiple attempt records; no Checkout required before one is created |
 | SCH-013 | Clinical fields | clinicalNotes, diagnoses[], medications[], optional followUpNotes; Reservation stores records with veterinarian attribution |
 | SCH-014 | Insurance scope | Optional policies with provider, policyNumber, coveredPetIds; no claims processing |
@@ -58,7 +58,7 @@ not checks a standalone JSON Schema can perform.
 
 | Record | Required data | Optional / nullable / read-only |
 | --- | --- | --- |
-| Customer profile | firstName, lastName, phoneNumber, address, emergencyContact | secondaryContact and billing optional; insurance[] optional on input, [] on read; accountEntries and relationship views read-only |
+| Customer profile | firstName, lastName, phoneNumber, address, emergencyContact | Existing veterinarian-assisted creation retains optional secondaryContact, billing, insurance; SPEC-05 self-registration requires all three, a saved mock payment reference, preferred veterinarian and initial pets; accountEntries are read-only |
 | Address | street, city, state, postalCode | US-only; two-letter state and ZIP/ZIP+4; secondLine omitted when absent |
 | Contact | name, phone, relationship | No additional fields required |
 | Billing | billingAddress when Billing is present | mockMethodReference optional; require a method for electronic payment attempts; billingAddress may be copied from customer address |

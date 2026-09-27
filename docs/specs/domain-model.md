@@ -16,6 +16,17 @@ with an offset, interpreted against the America/Chicago clinic calendar.
 
 ## Customer
 
+SPEC-05 self-registration revision: `POST /auth/register` requires every customer
+profile field, including secondary contact, insurance, billing address and saved
+mock payment reference, a preferred seeded veterinarian, and at least one pet.
+The caller supplies new pet UUIDs to link insurance within the one request; the
+service assigns customer/user IDs and pet ownership. Registration is atomic and
+creates only a customer login, profile, and pets; it creates no appointment or bill.
+The existing veterinarian-assisted `CustomerCreate` and historical seed profiles
+retain their original shape. Optional labels below describe those existing shapes,
+not the stricter `CustomerRegistration` request. No additional UI/setup flow is added.
+Pet removal/archival is deferred to DATA-01; no removal endpoint exists in this MVP.
+
 | Field | Meaning |
 | --- | --- |
 | id | Stable customer identifier |
@@ -81,6 +92,13 @@ A pet's visit history and a customer's visits across pets are queries on Reserva
 Neither query creates a second clinical record.
 
 ## Visit
+
+SPEC-05 revision: the assigned veterinarian may correct clinicalNotes, diagnoses,
+medications, and followUpNotes after CompletedSettled or CompletedOutstanding.
+PATCH `/visits/{visitId}` accepts only these clinical fields. It preserves all
+other visit fields, reservation state, performed services, finalized checkout,
+payments, and customer debt. Other veterinarians and customers cannot correct
+the record. This endpoint rejects visits whose reservation is not completed.
 
 | Field | Meaning |
 | --- | --- |
@@ -189,6 +207,13 @@ separately introduced service.
 
 ## VeterinarianService
 
+SPEC-05 revision: either of the two seeded veterinarians may update a catalog
+entry's name or nonnegative integer USD fee through the fee service. Its ID and
+currency stay fixed. Updated values apply when a new bill is finalized; existing
+billed-line snapshots never change. Reset restores the seeded catalog. Customers
+and service-role callers cannot modify the catalog. This does not add service
+creation/removal or veterinarian administration to the November scope.
+
 Each catalog entry identifies a service by stable ID, name, USD fee, and currency.
 VeterinarianServices is the owning software service; VeterinarianService is one
 catalog entity. The latest user prices replace the previous catalog:
@@ -218,8 +243,10 @@ Customer.outstandingBalance is derived from these entries, never independently
 edited. amountOwed is the full bill including the booking fee; amountCredited
 includes the booking payment and later successful payments. Each entry's balance
 is amountOwed minus amountCredited, and the customer balance is the sum across visits.
-Require 0 <= amountCredited <= amountOwed. Full remaining-balance payments only;
-partial payments, overpayments, and refunds are outside this demo. Do not clamp
+Require 0 <= amountCredited <= amountOwed. SPEC-05 permits positive payments up to
+the current remaining balance, mixing card and veterinarian-recorded cash against
+one visit. Failed payments leave debt unchanged. Overpayments, cross-visit payment
+allocation, and refunds are outside this demo. Do not clamp
 inconsistent balances to zero. Apply each payment credit once by payment reference.
 
 A billed line stores `serviceId`, `description`, and a historical `priceAmount`
@@ -297,7 +324,8 @@ records, and reservationState carries the combined completion/financial standing
 For Wellness, total is 7000 cents, the booking payment is 2000 cents, and checkout
 authorizes 5000 cents. Successful authorization is considered paid for this demo;
 no capture or real payment integration is required. Complete the reservation as
-CompletedSettled and settle only this visit's balance. A separate unpaid
+CompletedSettled only when no balance remains, otherwise CompletedOutstanding.
+Credit only the amount successfully paid against this visit. A separate unpaid
 visit keeps the customer ineligible to reserve.
 
 Decline completes the reservation as CompletedOutstanding and leaves the
@@ -305,7 +333,7 @@ remaining amount outstanding on the Customer account exactly once. Repeated fail
 must not add the same visit debt again. The customer can attempt payment with a
 different method. CompletedSettled covers authorization, cash, or zero due;
 CompletedOutstanding means a positive remaining balance. No payment authorization
-is needed for zero due. Later full payment makes that reservation CompletedSettled.
+is needed for zero due. The payment that clears the balance makes that reservation CompletedSettled.
 Customer standing still depends on all visit balances, not this one reservation.
 
 Apply the [D-12 conventions](business-decisions.md#d-12--mock-idempotency-convention):

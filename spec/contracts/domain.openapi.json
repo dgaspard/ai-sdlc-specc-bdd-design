@@ -225,6 +225,38 @@
           "preferredVeterinarianId"
         ]
       },
+      "CustomerRegistration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["username", "password", "profile", "pets"],
+        "properties": {
+          "username": {"type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S"},
+          "password": {"type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S"},
+          "profile": {
+            "allOf": [{"$ref": "#/components/schemas/CustomerCreate"}],
+            "required": ["insurance", "secondaryContact", "billing"],
+            "properties": {
+              "insurance": {"minItems": 1},
+              "billing": {"required": ["mockMethodReference", "billingAddress"]}
+            }
+          },
+          "pets": {
+            "type": "array", "minItems": 1,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["id", "name", "type", "breed", "estimatedBirthDate"],
+              "properties": {
+                "id": {"$ref": "#/components/schemas/Uuid"},
+                "name": {"type": "string", "minLength": 1, "maxLength": 100},
+                "type": {"type": "string", "minLength": 1, "maxLength": 100},
+                "breed": {"type": "string", "minLength": 1, "maxLength": 100},
+                "estimatedBirthDate": {"type": "string", "format": "date"}
+              }
+            }
+          }
+        },
+        "description": "Atomic self-registration. Initial pet UUIDs are supplied by the caller so insurance.coveredPetIds can reference them in the same request; they must be distinct and unused. Customer/user IDs and pet ownership are server assigned. Every insurance reference must point to an initial pet. Reject future birth dates and an unknown preferred veterinarian. All profile information is required at registration; no deferred profile-completion flow."
+      },
       "CustomerUpdate": {
         "type": "object",
         "additionalProperties": false,
@@ -716,14 +748,13 @@
       },
       "VisitUpdate": {
         "type": "object",
+        "description": "Assigned-veterinarian clinical-text correction of a completed visit. References, performed services, timestamps, and finalized billing are immutable.",
         "additionalProperties": false,
         "minProperties": 1,
         "properties": {
-          "performedServices": {
-            "$ref": "#/components/schemas/ServiceReference"
-          },
           "clinicalNotes": {
             "type": "string",
+            "pattern": "\\S",
             "minLength": 1,
             "maxLength": 10000
           },
@@ -747,9 +778,6 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2000
-          },
-          "endedAt": {
-            "$ref": "#/components/schemas/UtcTimestamp"
           }
         }
       },

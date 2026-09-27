@@ -18,6 +18,8 @@ export function inputFor(op, f) {
   const ids = { customerId: jordan, petId: milo, veterinarianId: avery, serviceId: wellness,
     reservationId: f.reservation.id, visitId: f.visit.id, checkoutId: f.checkout?.id ?? f.reservation.id };
   const bodies = {
+    correctVisit: { clinicalNotes: "Corrected clinical note" },
+    updateService: { name: "Annual wellness", feeAmount: 6500 },
     createCustomer: { firstName: "Casey", lastName: "Park", phoneNumber: "312-555-0199",
       address: { street: "5 Elm St", city: "Chicago", state: "IL", postalCode: "60602" },
       emergencyContact: { name: "Robin Park", phone: "312-555-0198", relationship: "sibling" }, preferredVeterinarianId: avery },

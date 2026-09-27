@@ -9,8 +9,13 @@ and a shared secret are deliberate demo shortcuts, never a production pattern. S
 - Seeded in `spec/seed-data/users.json` and read by the Customer service from `SEED_DATA_DIR`.
 - Roles: `veterinarian` (linked `veterinarianId`) and `customer` (linked `customerId`).
 - Seed customers and their pets are in `spec/seed-data/customers.json`.
-- Only seeded users can log in. Veterinarians create new customer profiles; self-registration
-  and account creation are out of scope.
+- Seeded and self-registered users can log in. `POST /auth/register` atomically creates
+  a customer login, a complete profile (including insurance, secondary contact, and
+  saved mock payment details), at least one pet, and a preferred seeded veterinarian.
+  It always creates the customer role; clients cannot supply account IDs or ownership.
+  Pet UUIDs supplied for the initial pets allow insurance references in the same
+  request; they must be new and unique. Invalid registration saves nothing.
+  The existing veterinarian-assisted profile endpoint remains separate.
 
 ## Login
 
@@ -59,7 +64,7 @@ and a shared secret are deliberate demo shortcuts, never a production pattern. S
 
 ## Open endpoints (no token)
 
-`GET /health`, `/test/*` (when enabled), `POST /auth/login`, and CORS preflight `OPTIONS`.
+`GET /health`, `/test/*` (when enabled), `POST /auth/login`, `POST /auth/register`, and CORS preflight `OPTIONS`.
 
 ## Telemetry
 

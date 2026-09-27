@@ -12,7 +12,8 @@ Customer and pet profiles, account balance, booking eligibility, and demo login.
 
 | Method | Path | Roles | Purpose |
 | --- | --- | --- | --- |
-| POST | `/auth/login` | anonymous | Log in with a seeded demo user |
+| POST | `/auth/login` | anonymous | Log in with a seeded or registered demo user |
+| POST | `/auth/register` | anonymous | Atomically register a customer with complete information and initial pets |
 | POST | `/customers` | veterinarian | Create a customer profile (veterinarians only) |
 | GET | `/customers` | veterinarian | List customers |
 | GET | `/customers/{customerId}` | veterinarian, customer, service | Get a customer profile |
@@ -42,16 +43,19 @@ Calendar, reservation lifecycle, and clinical visit records. Calls Customer (own
 | POST | `/reservations/{reservationId}/visit` | veterinarian | Assigned veterinarian records the visit at or after the start |
 | GET | `/visits` | veterinarian, customer, service | Visit history by pet or customer (customers see only their own) |
 | GET | `/visits/{visitId}` | veterinarian, customer, service | Get a visit |
+| PATCH | `/visits/{visitId}` | veterinarian | Assigned veterinarian corrects completed clinical text; preserve services and bill |
 | POST | `/internal/reservations/{reservationId}/complete` | service | Record how the visit ended financially |
 
 ## VeterinarianServices service (port 4003) — [`veterinarian-services.openapi.json`](veterinarian-services.openapi.json)
 
-Read-only service catalog and fees in USD, seeded from services.json. Calls no other service.
+Service catalog and fees in USD, seeded from services.json. Veterinarians may update
+names and fees; finalized bill snapshots are immutable. Calls no other service.
 
 | Method | Path | Roles | Purpose |
 | --- | --- | --- | --- |
 | GET | `/services` | veterinarian, customer, service | List the veterinary service catalog |
 | GET | `/services/{serviceId}` | veterinarian, customer, service | Get one service and its fee |
+| PATCH | `/services/{serviceId}` | veterinarian | Update the catalog name or fee |
 | GET | `/fees` | veterinarian, customer, service | Fees for several services at once |
 
 ## Checkout service (port 4004) — [`checkout.openapi.json`](checkout.openapi.json)
@@ -66,8 +70,8 @@ Bills, promotions, and all payments. Calls VeterinarianServices (fees), Reservat
 | GET | `/checkouts` | veterinarian, customer, service | List checkouts (customers see only their own) |
 | GET | `/checkouts/{checkoutId}` | veterinarian, customer, service | Get a checkout |
 | POST | `/checkouts/{checkoutId}/promotion` | veterinarian | Veterinarian who performed the visit applies the visit's one promotion |
-| POST | `/checkouts/{checkoutId}/payments` | customer, veterinarian | Pay the full remaining balance by card |
-| POST | `/checkouts/{checkoutId}/cash-payments` | veterinarian | Veterinarian who performed the visit records a full cash payment |
+| POST | `/checkouts/{checkoutId}/payments` | customer, veterinarian | Pay part or all of one visit's balance by card |
+| POST | `/checkouts/{checkoutId}/cash-payments` | veterinarian | Veterinarian who performed the visit records part or all of the balance paid in cash |
 
 ## Other contracts
 

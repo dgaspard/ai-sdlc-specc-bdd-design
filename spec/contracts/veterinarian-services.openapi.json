@@ -3,7 +3,7 @@
   "info": {
     "title": "VeterinarianServices service",
     "version": "1.0.0",
-    "description": "Read-only service catalog and fees in USD, seeded from services.json. Calls no other service."
+    "description": "Service catalog and fees in USD, seeded from services.json. Veterinarians can update service names and fees; stable IDs and currency cannot change. Calls no other service."
   },
   "servers": [
     {
@@ -50,6 +50,23 @@
       }
     },
     "/services/{serviceId}": {
+      "patch": {
+        "operationId": "updateService",
+        "summary": "Veterinarian updates a service name or fee",
+        "description": "Updates the catalog entry used for future bill finalization. Previously finalized billed lines retain their descriptions and prices. Service ID and USD currency are immutable. Reset restores the seeded catalog.",
+        "x-roles": ["veterinarian"],
+        "x-features": ["spec/features/veterinarian-services/update-service.feature"],
+        "security": [{ "bearer": [] }],
+        "parameters": [{ "name": "serviceId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "domain.openapi.json#/components/schemas/VeterinarianServiceUpdate" } } } },
+        "responses": {
+          "200": { "description": "Updated service", "content": { "application/json": { "schema": { "$ref": "domain.openapi.json#/components/schemas/VeterinarianServiceRead" } } } },
+          "400": { "$ref": "common.openapi.json#/components/responses/BadRequest" },
+          "401": { "$ref": "common.openapi.json#/components/responses/Unauthorized" },
+          "403": { "$ref": "common.openapi.json#/components/responses/Forbidden" },
+          "404": { "$ref": "common.openapi.json#/components/responses/NotFound" }
+        }
+      },
       "get": {
         "operationId": "getService",
         "summary": "Get one service and its fee",

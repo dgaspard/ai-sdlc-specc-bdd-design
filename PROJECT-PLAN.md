@@ -53,8 +53,12 @@ access and telemetry/workflow checks and caught 13 deliberate defects; its
 temporary implementations were removed afterward. The legacy application remains
 at tag `1.0`. No application or frontend code exists.
 
-Next is TEST-02: review and write protected cross-service workflow features and
-browser tests. After those tests are frozen, build the application under IMPL-02,
+SPEC-05 and TEST-02 are now being drafted: complete self-registration information,
+partial per-visit payments, clinical-text corrections, catalog updates, and fast
+backend journeys using Playwright HTTP requests without a browser. No extra UI/setup
+flows are added. Pet removal and archival are deferred to the separate DATA-01
+learning exercise. See BACKLOG for current verification and review status.
+After those tests are frozen, build the application under IMPL-02,
 FE-01, and PERF-01. The intentional red application baseline is documented; it is
 not a specification failure.
 

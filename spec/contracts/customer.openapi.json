@@ -12,10 +12,24 @@
   ],
   "x-service": "customer",
   "paths": {
+    "/auth/register": {
+      "post": {
+        "operationId": "registerCustomer",
+        "summary": "Create a customer login, complete profile, and initial pets atomically",
+        "description": "Always creates a customer role. User and customer IDs and pet ownerId are server assigned. Usernames are case-sensitive and unique across seeded and registered users. Reject duplicate usernames or used/repeated pet IDs, insurance references outside the submitted pets, unknown veterinarian, or future pet birth dates with 400 validation_error. Any rejection saves no user, customer, or pet. Passwords are never returned. Registration creates no reservation, visit, checkout, or debt. Reset removes registered users and profiles. Existing veterinarian-assisted profile creation remains available separately.",
+        "x-roles": ["anonymous"], "security": [],
+        "x-features": ["spec/features/customer/register-customer.feature"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "domain.openapi.json#/components/schemas/CustomerRegistration"}}}},
+        "responses": {
+          "201": {"description": "Customer registered; use the normal login endpoint for a token", "content": {"application/json": {"schema": {"$ref": "domain.openapi.json#/components/schemas/CustomerRead"}}}},
+          "400": {"$ref": "common.openapi.json#/components/responses/BadRequest"}
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login",
-        "summary": "Log in with a seeded demo user",
+        "summary": "Log in with a seeded or self-registered demo user",
         "x-roles": [
           "anonymous"
         ],

@@ -21,12 +21,16 @@ passed 310 checks against temporary services and detected 13 deliberate defects;
 see the [rehearsal report](docs/test-slices-5-6-rehearsal.md).
 
 The temporary implementations were removed. There is no application code yet:
-`npm test` passes the protected guard, harness, and schema suites, while
-application-dependent suites fail because the services/frontend do not exist.
+the frozen TEST-01 checkpoint passes the protected guard, harness, and schema suites.
+Current SPEC-05 drafts add complete self-registration, partial payments, clinical
+corrections, and catalog updates. The guard flags those changes until human review
+and freeze; application-dependent suites fail because the services do not exist.
 The scenarios have step definitions; they are not undefined.
 
-Next is TEST-02: review cross-service workflow features and browser tests before
-building the application. [BACKLOG.md](BACKLOG.md) tracks task status. The earlier
+TEST-02 now has nine draft backend journeys using Playwright HTTP requests without
+launching a browser. These retain the existing workflows without extra UI/setup
+flows. Review and freeze the specifications before building the application.
+[BACKLOG.md](BACKLOG.md) tracks verification and task status. The earlier
 single-app version remains preserved at tag `1.0`.
 
 ## Planned services
@@ -64,6 +68,7 @@ npm --prefix spec ci
 npm test                            # runs every suite and prints an aggregate summary
 npm --prefix spec run guard:check    # verifies frozen protected files and skip/focus rules
 npm --prefix spec run test:bdd       # service scenarios only
+npm --prefix spec run test:workflows # real-service journeys using Playwright HTTP
 ```
 
 An exit code of 1 from `npm test` is expected at this specification-only checkpoint.

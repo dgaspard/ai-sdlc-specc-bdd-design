@@ -13,13 +13,16 @@ export const rules = {
   "OBS-028": ["veterinarian-services", "get_fees", "found unknown_service failed"],
   "OBS-029": ["checkout", "finalize_bill", "finalized already_finalized not_assigned_veterinarian unknown_service invalid_state not_found failed"],
   "OBS-030": ["checkout", "apply_promotion", "applied already_applied nothing_owed not_found failed"],
-  "OBS-031": ["checkout", "pay", "settled declined already_settled invalid_amount idempotency_conflict authorized_completion_failed not_found failed"],
+  "OBS-031": ["checkout", "pay", "settled partially_paid declined already_settled invalid_amount idempotency_conflict authorized_completion_failed not_found failed"],
   "OBS-032": ["checkout", "payment.authorize", "authorized declined failed"],
   "OBS-033": ["checkout", "record_cash", "recorded already_settled invalid_amount idempotency_conflict not_found failed"],
   "OBS-034": ["customer", "apply_account_change", "applied already_applied invalid_amount not_found failed"],
   "OBS-035": ["reservation", "complete", "completed_settled completed_outstanding already_completed invalid_state not_found failed"],
+  "OBS-043": ["customer", "register", "registered validation_error failed"],
+  "OBS-044": ["reservation", "correct_visit", "corrected not_assigned_veterinarian invalid_state not_found failed"],
+  "OBS-045": ["veterinarian-services", "update_service", "updated not_found failed"],
 };
-const success = new Set(["requested", "accepted", "canceled", "recorded", "found", "finalized", "applied", "settled", "authorized", "completed_settled", "completed_outstanding"]);
+const success = new Set(["requested", "accepted", "canceled", "recorded", "found", "finalized", "applied", "settled", "partially_paid", "registered", "corrected", "updated", "authorized", "completed_settled", "completed_outstanding"]);
 export const spanName = (id) => id === "OBS-032" ? "petclinic.payment.authorize"
   : `petclinic.${rules[id][0].replaceAll("-", "_")}.${rules[id][1]}`;
 export function context() {

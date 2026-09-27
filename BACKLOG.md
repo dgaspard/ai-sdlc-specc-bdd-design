@@ -30,10 +30,11 @@ observability rules, and service feature files. The legacy single-app code, its
 tests, and its API contract were removed (D-24); they remain available at tag `1.0`.
 There is no application code. TEST-01 is complete: protected service steps,
 schema, access-control, and telemetry checks exist, and their temporary-service
-rehearsals are recorded below. All 166 service scenarios resolve their steps but
-remain red because the application is absent. The frozen guard, harness checks,
-and schema checks pass. Next: TEST-02 cross-service workflow features and browser
-tests, before application implementation.
+rehearsals are recorded below. The frozen TEST-01 baseline contains 166 service
+scenarios. SPEC-05/TEST-02 are now reviewed and frozen: 219 service scenarios and
+nine Playwright HTTP journeys resolve their steps and remain red because the
+application is absent. The guard, harness, and schema checks pass. The checkpoint
+is tagged `spec-05-test-02-frozen`; see the handoff below.
 
 ## Ordered work
 
@@ -78,7 +79,7 @@ The [domain model](docs/specs/domain-model.md),
 [contract index](spec/contracts/README.md) define the reviewed service surfaces.
 Schema questions Q-01–Q-05 are approved. Customer and Pet expose profiles/account
 data; Reservation owns and serves clinical records (D-38). Integer USD cents,
-price snapshots, full-balance payments, promotion limits, and state transitions
+price snapshots, payment limits (revised for partial payments by SPEC-05), promotion limits, and state transitions
 are expressed in the published contracts and service features.
 
 SPEC-04 delivered the per-service and fake-payment contracts. TEST-01 supplied
@@ -343,38 +344,127 @@ Done so far:
   The TEST-01 specification handoff and first green/mutation rehearsal are complete;
   broader privacy/exporter/fault coverage gaps remain outside these slices.
 
-### TEST-02 — Cross-service workflow features and browser tests
+### SPEC-05 — Revise the November MVP domain and contracts
 
-Status: planned. Phase: spec. Stage: proposed. Depends on completed TEST-01.
+Status: reviewed and frozen (2026-09-27). Phase: spec. Stage: tests red.
+
+User-directed changes after `test-01-docs`: keep exactly two seeded veterinarians,
+their independent offices, assigned-veterinarian acceptance/denial/cancellation,
+customers canceling only their own appointments before the start, multiple services
+per visit, and the non-refundable $20 booking fee paid before acceptance.
+
+Add customer self-registration with a preferred veterinarian and at least one pet;
+allow correction of completed clinical records and veterinarian updates to service
+types. Revise the domain, API/auth contracts, features, access fixtures, schema
+checks, and affected telemetry expectations before building application code.
+Add service-level failing tests and cross-service journeys under TEST-02. This is
+the same specification-first process used for the original requirements; a prior
+freeze remains a historical checkpoint, not a prohibition on reviewed evolution.
+
+Approved correction scope: assigned-veterinarian changes to clinical notes,
+diagnoses, medications, and follow-up notes only; preserve services and finalized
+bills. Draft service features and PATCH contracts now cover this scope and
+catalog name/fee updates. Cross-service assertions must additionally prove that
+clinical corrections and catalog updates leave finalized bills and debt unchanged.
+
+Accepted scope clarification (2026-09-27): require all customer information at
+registration, including insurance, saved mock payment details, and secondary
+contact, plus a veterinarian and at least one pet. Keep one registration flow;
+do not introduce additional setup flows for collecting those details later.
+Allow multiple smaller payments against one visit, mixing card payments and
+veterinarian-recorded cash. Failed payments leave debt unchanged; any outstanding
+customer balance continues to block new appointment requests. Each payment targets
+one visit. Pet removal and archival are excluded from this demo.
+
+Workflow scope confirmed: retain the existing backend journeys and TEST-02 tests;
+avoid additional UI/setup flows for visits, bill payment, or appointment times.
+The draft includes coordinated registration/payment schemas, features, fixtures,
+and telemetry revisions. Self-registration requires complete information; the
+existing veterinarian-assisted profile endpoint retains its frozen input shape.
+The full-balance-only payment rule is superseded by the approved partial payments.
+
+Only the human runs `guard:freeze` after reviewing the revised protected files.
+Keep the original `test-01` and `test-01-docs` tags intact.
+
+Handoff (2026-09-27): registration, partial payment, catalog update, and completed
+clinical correction contracts/features/steps are frozen, with nine backend
+journeys and OBS-043–045. Pet removal is excluded. No business questions remain.
+The human reviewed the specification changes and ran `guard:freeze`. `npm test`
+passes the guard, harness, and schema suites; runtime, authentication,
+observability, service BDD (219 scenarios), and workflow BDD (nine scenarios) are
+red because the application services are absent. Cucumber resolves all 219
+service scenarios/1685 steps and nine workflow scenarios/58 steps, with no
+undefined or ambiguous steps. The new checks have not had a working-implementation
+or mutation rehearsal; do not claim implementation verification.
+Checkpoint: tag `spec-05-test-02-frozen`. Next: proceed to IMPL-02, coordinating
+the application build with FE-01 and PERF-01. Broader
+telemetry failure/privacy branches remain explicit gaps in the coverage table.
+
+### TEST-02 — Cross-service workflow specifications and API tests
+
+Status: reviewed and frozen (2026-09-27). Phase: spec. Stage: tests red. Depends on TEST-01 and SPEC-05.
 
 Scope: specify a small set of user journeys spanning the four services, then
-write protected workflow steps and Playwright checks before IMPL-02/FE-01.
+write protected workflow steps using Playwright's HTTP request API without
+launching a browser. The fast backend suite does not depend on a frontend design.
+Add a small headless browser suite with FE-01 once user interactions are specified.
 The existing HTTP telemetry workflows prove selected integration assertions;
 they do not replace workflow feature files or browser acceptance tests.
 
-Proposed journey selection for review (existing business rules only):
+Draft journey selection for review:
 
 - Request and accept an appointment, collect the booking fee, record the visit,
   finalize the bill, and settle the remaining balance.
-- Show booking-payment decline without claiming capacity, and post-visit decline
-  with CompletedOutstanding and the correct customer balance.
-- Retry identical payments without duplicate authorization or account updates;
-  settle outstanding debt using the already-specified retry/cash paths.
-- Apply a promotion covering the balance and complete without authorization.
+- Mix partial card payment, decline, and veterinarian-recorded cash; block another
+  pet's booking until customer debt is cleared.
+- Replay a partial payment after settlement without duplicate authorization or credit.
+- Apply a promotion after partial payment without overcrediting or another authorization.
+- Preserve finalized bills and debt through clinical corrections and catalog changes.
+- Reject one of two competing payments before overcollection.
+- Retain the booking fee on customer cancellation and reuse released capacity.
+- Accept simultaneous bookings for different pets with the two veterinarians.
+- Register a customer with complete information and request their first appointment.
 
 Acceptance criteria: reviewed features live under `spec/features/workflows/`;
 steps exercise actual local services with only the payment provider faked;
-browser checks use accessible labels/roles and published APIs; state, money,
-payment invocation counts, and relevant trace evidence agree. Keep detailed
-edge cases in the service suites. Register workflow/browser suites in the aggregate
+state, money, payment invocation counts, and the existing trace suites agree.
+Keep detailed edge cases in the service suites. Register the HTTP journey suite in the aggregate
 runner, record a meaningful red baseline, and have the human review/freeze the
 protected changes. Tests must stay unchanged for the JavaScript-to-Python demo.
+Browser interaction tests remain with FE-01 once its existing UI is designed;
+do not add extra UI/setup flows for this task.
 
 References: D-28/D-35, service features, `spec/contracts/`, OBS-036–040,
 A-04/A-05, and `docs/development-workflow.md`.
-Next action: review the journey selection and browser interaction expectations,
-then draft the workflow specifications. Listing this task does not authorize
+Next action: carry the frozen expectations into IMPL-02. Run with
+`npm --prefix spec run test:workflows`; the aggregate `npm test` includes it.
+Processes are reused between scenarios, with deterministic resets and one worker;
+there are no browser launches, screenshots, or retries hiding failures. This does not authorize
 application implementation or introduce new business behavior.
+
+### MVP-02 — Clinic growth and administration after the November demo
+
+Status: deferred; possible 2027 workshop. Phase: spec before implementation.
+
+Business case: the clinic is growing and hires additional veterinarians. Introduce
+an administrator role, veterinarian onboarding/removal and office capacity,
+administration of other veterinarians' appointments, and policies for future
+appointments and historical records when a veterinarian leaves. This is a separate
+exercise in evolving a tested product with AI, not required for the November demo.
+Payments allocated across multiple visits are also deferred; each MVP payment
+targets one visit. Pet removal and archival are excluded from the November demo
+and tracked separately below.
+
+### DATA-01 — Personal historical-data and archival learning demo
+
+Status: deferred until explicitly requested. Phase: research/spec before implementation.
+
+Explore pet removal, preservation of historical data, data governance, archival,
+retrieval, reporting, and enterprise data-archiving practices in a separate personal
+learning exercise. The user intentionally welcomes greater architectural depth in
+that later exercise to learn data engineering. Define retention, access, archival,
+and retrieval requirements then; no archival implementation, pet-removal endpoint,
+or related failing acceptance tests belong in the November TDD demo.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 
@@ -384,9 +474,9 @@ preserved at tag `1.0`. Reservation cancellation is specified in
 
 ### IMPL-02 — Build the four-service checkout workflow
 
-Status: deferred until TEST-02 workflow expectations and tests are reviewed and
-frozen. Service specifications and TEST-01 are complete; coordinate the eventual
-JavaScript build with FE-01 and the agreed PERF-01 checks.
+Status: ready to start; TEST-02 expectations and tests are reviewed and frozen.
+Service specifications and TEST-01 are complete; coordinate the JavaScript build
+with FE-01 and the agreed PERF-01 checks.
 
 Implement successful checkout, declined payment, and idempotent retries against
 the agreed expectations. Run real local service dependencies in integration tests;

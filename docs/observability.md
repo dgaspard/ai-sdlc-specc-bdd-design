@@ -97,13 +97,24 @@ entity is known at that point.
 | OBS-028 | `petclinic.veterinarian_services.get_fees` (VeterinarianServices) | `petclinic.veterinarian_service.count` (integer) | `found`, `unknown_service`, `failed` |
 | OBS-029 | `petclinic.checkout.finalize_bill` (Checkout) | checkout.id when created, visit.id, reservation.id, veterinarian.id, `petclinic.checkout.remaining_amount_cents` | `finalized`, `already_finalized`, `not_assigned_veterinarian`, `unknown_service`, `invalid_state`, `not_found`, `failed` |
 | OBS-030 | `petclinic.checkout.apply_promotion` (Checkout) | checkout.id, visit.id, promotion.id when created, veterinarian.id, `petclinic.promotion.amount_cents`, `petclinic.promotion.applied_amount_cents` | `applied`, `already_applied`, `nothing_owed`, `not_found`, `failed` |
-| OBS-031 | `petclinic.checkout.pay` (Checkout) | checkout.id, visit.id, reservation.id, payment.attempt.id, `petclinic.checkout.replayed` (boolean) | `settled`, `declined`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `authorized_completion_failed`, `not_found`, `failed` |
+| OBS-031 | `petclinic.checkout.pay` (Checkout) | checkout.id, visit.id, reservation.id, payment.attempt.id, `petclinic.checkout.replayed` (boolean) | `settled`, `partially_paid`, `declined`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `authorized_completion_failed`, `not_found`, `failed` |
 | OBS-032 | `petclinic.payment.authorize` (client span in calling service) | payment.attempt.id, `petclinic.payment.purpose` (`booking_fee` or `visit_balance`), `petclinic.payment.provider` = `fake`, `petclinic.payment.amount_cents` | `authorized`, `declined`, `failed` |
 | OBS-033 | `petclinic.checkout.record_cash` (Checkout, D-32) | payment.attempt.id, veterinarian.id, reservation.id, visit.id when present, `petclinic.payment.purpose`, `petclinic.checkout.replayed` (boolean) | `recorded`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `not_found`, `failed` |
 | OBS-034 | `petclinic.customer.apply_account_change` (Customer) | customer.id, visit.id, `petclinic.account.change_type` (`charge`, `credit`, `discount`) | `applied`, `already_applied`, `invalid_amount`, `not_found`, `failed` |
 | OBS-035 | `petclinic.reservation.complete` (Reservation) | reservation.id, visit.id | `completed_settled`, `completed_outstanding`, `already_completed`, `invalid_state`, `not_found`, `failed` |
+| OBS-043 | `petclinic.customer.register` (Customer) | customer.id on success | `registered`, `validation_error`, `failed` |
+| OBS-044 | `petclinic.reservation.correct_visit` (Reservation) | visit.id, veterinarian.id | `corrected`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
+| OBS-045 | `petclinic.veterinarian_services.update_service` (VeterinarianServices) | veterinarian_service.id, veterinarian.id | `updated`, `not_found`, `failed` |
 
 Notes:
+
+- SPEC-05 adds OBS-043–045 as draft contracts awaiting human review/freeze.
+  Successful `registered`, `corrected`, `updated`, and `partially_paid` outcomes
+  use OK status. Card partial payment uses `partially_paid`, not `settled`;
+  cash retains `recorded` for both partial and full payments. A replay retains
+  the original attempt's outcome even if subsequent payments have settled the bill.
+  Registration exports no credentials or profile content; correction exports no
+  clinical text. Existing privacy and HTTP span rules apply to these endpoints.
 
 - `denied_outstanding_balance` stores a Denied reservation (D-20); the balance amount
   and denial message are not exported.
@@ -223,6 +234,9 @@ uncovered rules.
 | OBS-040 | Promotion-to-zero evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-040] promotion to zero completes settled across real services without authorization` | Not implemented; red |
 | OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`; client-span, 5xx, and business-parent checks are exercised in TEST-01 | Scoped checks rehearsed; application not implemented |
 | OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Test present; application not implemented |
+| OBS-043 | Customer registration | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-043] register emits <outcome>` | Tests cover registration and relationship validation rejection; unexpected-failure/privacy payload branches remain gaps |
+| OBS-044 | Completed clinical correction | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-044] correct_visit emits <outcome>` | Tests cover correction, assignment, state, and missing visit; unexpected failure remains a gap |
+| OBS-045 | Catalog update | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-045] update_service emits <outcome>` | Tests cover update and missing service; unexpected failure remains a gap |
 
 Slice 6 was frozen at checkpoint `test-01-s5-s6`. The supplied working-tree
 manifest now passes the guard for the GAP-01–07 revisions and was not changed

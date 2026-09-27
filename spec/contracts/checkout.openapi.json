@@ -338,12 +338,12 @@
     "/checkouts/{checkoutId}/payments": {
       "post": {
         "operationId": "payVisitBalance",
-        "summary": "Pay the full remaining balance by card",
+        "summary": "Pay part or all of one visit's remaining balance by card",
         "x-roles": [
           "customer",
           "veterinarian"
         ],
-        "description": "409 already_settled or idempotency_conflict. 422 invalid_amount. 502 authorized_completion_failed when authorization succeeded but a later update failed (manual recovery; never reported as settled or declined).",
+        "description": "Accept a positive amount up to the current remaining balance. Credit only authorized amounts, once per payment reference. Partial success completes as CompletedOutstanding; clearing the balance completes as CompletedSettled. Declines leave the balance unchanged. Serialize concurrent payments for a checkout so total credits never exceed its amount owed after discount. Identical same-key retries replay the original attempt without another authorization or credit, including after later payments; changed input returns 409 idempotency_conflict. A new key after settlement returns 409 already_settled. Amount above current balance returns 422 invalid_amount before authorization. 502 authorized_completion_failed when authorization succeeded but a later update failed (manual recovery; never reported as settled or declined).",
         "x-features": [
           "spec/features/checkout/visit-payment.feature",
           "spec/features/checkout/payment-idempotency.feature"
@@ -416,11 +416,11 @@
     "/checkouts/{checkoutId}/cash-payments": {
       "post": {
         "operationId": "recordCashPayment",
-        "summary": "Veterinarian who performed the visit records a full cash payment",
+        "summary": "Veterinarian who performed the visit records part or all of the balance paid in cash",
         "x-roles": [
           "veterinarian"
         ],
-        "description": "Never calls the fake payment provider. Repeated key returns the original result and credits once. An identical same-key retry returns the original attempt and result with replayed=true, even after settlement; no additional credit or completion is sent. Changed input under the same key returns 409 idempotency_conflict before checking current balance. A new key against zero remaining balance returns 409 already_settled. A positive amount different from the remaining balance returns 422 invalid_amount. No rejected request creates a payment attempt.",
+        "description": "Never calls the fake payment provider. Accept positive amounts up to the current balance; partial payment completes as CompletedOutstanding, clearing the balance as CompletedSettled. Serialize with card payments to prevent overcollection. Repeated key returns the original result and credits once. An identical same-key retry returns the original attempt and result with replayed=true, even after settlement; no additional credit or completion is sent. Changed input under the same key returns 409 idempotency_conflict before checking current balance. A new key against zero remaining balance returns 409 already_settled. An amount above the remaining balance returns 422 invalid_amount. No rejected request creates a payment attempt.",
         "x-features": [
           "spec/features/checkout/visit-payment.feature",
           "spec/features/checkout/payment-idempotency.feature"
@@ -621,7 +621,7 @@
           "amount": {
             "type": "integer",
             "minimum": 1,
-            "description": "Must equal the remaining balance (422 invalid_amount otherwise)"
+            "description": "Must not exceed the remaining balance (422 invalid_amount otherwise)"
           },
           "mockMethodReference": {
             "type": "string",
@@ -640,7 +640,7 @@
           "amount": {
             "type": "integer",
             "minimum": 1,
-            "description": "Must equal the remaining balance"
+            "description": "Must not exceed the remaining balance"
           }
         }
       },

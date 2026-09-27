@@ -49,6 +49,37 @@ the current implementation, feature files, or existing published contract.
 
 ## Architectural implications
 
+### SPEC-05 scope revision after TEST-01
+
+The user reaffirmed two seeded veterinarians with independent offices,
+assigned-veterinarian acceptance/denial/cancellation, customers canceling only
+their own appointments before the start, multiple services per visit, and the
+non-refundable booking fee. Because acceptance already requires that fee to be
+paid, cancellation retains the payment; it does not charge the fee again.
+
+Customer self-registration with at least one pet and a preferred veterinarian,
+editing completed visits, and updating service types are requested November MVP
+changes. The user subsequently confirmed that all customer information is required
+at registration, including insurance, saved mock payment details, and secondary
+contact. Multiple smaller payments may target a single visit using card payments
+and veterinarian-recorded cash. Failed payments leave the balance unchanged;
+any outstanding customer balance blocks new appointment requests. These accepted
+changes require coordinated revisions of the older frozen schemas and tests under
+SPEC-05. Pet removal and archival are deferred to DATA-01, a separate personal
+learning demo covering governance, archival, retrieval, and reporting.
+Catalog name/fee updates are now specified in the domain and fee-service contract.
+Completed-visit corrections are limited to clinical notes, diagnoses, medications,
+and follow-up notes by the assigned veterinarian. Recorded services, timestamps,
+references, completion state, finalized bills, payments, and debt remain unchanged.
+
+An administrator role, additional veterinarians, veterinarian departure policies,
+and payments allocated across visits belong to a later MVP, possibly a 2027
+workshop on evolving a tested product with AI.
+
+Do not add extra profile-completion, visit, bill-payment, or appointment-time UI
+flows to the November demo. The user confirmed that the existing backend journeys
+and TEST-02 tests remain in scope.
+
 Latest domain decisions are authoritative in [SPEC-02](domain-model.md): stable IDs;
 zero-pet customers; no walk-ins; one reservation to zero/one visit; nonempty requested
 and performed service collections; estimated birth date replacing age; explicit

@@ -596,6 +596,24 @@
       }
     },
     "/visits/{visitId}": {
+      "patch": {
+        "operationId": "correctVisit",
+        "summary": "Correct clinical text on a completed visit",
+        "description": "Only the assigned veterinarian may correct clinicalNotes, diagnoses, medications, or followUpNotes, and only for CompletedSettled or CompletedOutstanding reservations. Preserve all other visit fields, reservation state, recorded services, finalized checkout, payments, and customer debt. Reject unassigned veterinarians with 403 not_assigned_veterinarian and incomplete visits with 409 invalid_state.",
+        "x-roles": ["veterinarian"],
+        "x-features": ["spec/features/reservation/correct-visit.feature"],
+        "security": [{"bearer": []}],
+        "parameters": [{"name": "visitId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "domain.openapi.json#/components/schemas/VisitUpdate"}}}},
+        "responses": {
+          "200": {"description": "Corrected visit", "content": {"application/json": {"schema": {"$ref": "domain.openapi.json#/components/schemas/VisitRead"}}}},
+          "400": {"$ref": "common.openapi.json#/components/responses/BadRequest"},
+          "401": {"$ref": "common.openapi.json#/components/responses/Unauthorized"},
+          "403": {"$ref": "common.openapi.json#/components/responses/Forbidden"},
+          "404": {"$ref": "common.openapi.json#/components/responses/NotFound"},
+          "409": {"$ref": "common.openapi.json#/components/responses/Conflict"}
+        }
+      },
       "get": {
         "operationId": "getVisit",
         "summary": "Get a visit",

@@ -7,6 +7,37 @@ import { asDefaultCaller } from "./common.steps.js";
 
 const UNKNOWN_SERVICE_ID = "10000000-0000-4000-8000-000000000499";
 
+When("the Wellness service is updated to name {string} and fee {int} cents", async function (name, feeAmount) {
+  await this.api("PATCH", `/services/${seed.service("Wellness").id}`, { body: { name, feeAmount } });
+});
+When(/^the Wellness service is patched with (.+)$/, async function (payload) {
+  await this.api("PATCH", `/services/${seed.service("Wellness").id}`, { body: JSON.parse(payload) });
+});
+Then("the updated Wellness catalog record has name {string} and fee {int} cents", async function (name, feeAmount) {
+  assert.equal(this.response.status, 200);
+  const expected = { ...seed.service("Wellness"), name, feeAmount };
+  assert.deepEqual(this.response.body, expected);
+  const r = await this.api("GET", `/services/${expected.id}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, expected);
+  const fees = await this.api("GET", `/fees?serviceIds=${expected.id}`);
+  assert.equal(fees.status, 200);
+  assert.deepEqual(fees.body.fees, [expected]);
+});
+Then("the Wellness catalog record retains its original name and fee", async function () {
+  const r = await this.api("GET", `/services/${seed.service("Wellness").id}`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, seed.service("Wellness"));
+});
+When("an unknown service is patched with a new fee", async function () {
+  await this.api("PATCH", `/services/${UNKNOWN_SERVICE_ID}`, { body: { feeAmount: 6500 } });
+});
+Then("the catalog still has its original service IDs", async function () {
+  const r = await this.api("GET", "/services");
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.map(s => s.id).sort(), seed.services.map(s => s.id).sort());
+});
+
 Given("the clinic's veterinary service catalog is loaded", async function () {
   await asDefaultCaller(this);
 });

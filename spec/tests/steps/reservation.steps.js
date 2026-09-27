@@ -129,6 +129,33 @@ async function recordVisit(world, reservationId, vetName, body) {
 const visitBody = (over = {}) => ({
   performedServices: [seed.service("Wellness").id], clinicalNotes: "Routine examination", diagnoses: [], medications: [], ...over,
 });
+When(/^"([^"]+)" corrects the visit with (\{.*\})$/, async function (actor, json) {
+  const token = await as(this, "Dr Avery Taylor");
+  const before = await this.api("GET", `/visits/${this.memo.visit.id}`, { token });
+  assert.equal(before.status, 200);
+  this.memo.correctionBefore = before.body;
+  this.memo.correctionReservation = await getReservation(this, this.memo.reservation.id);
+  this.memo.correctionPatch = JSON.parse(json);
+  this.response = await this.api("PATCH", `/visits/${this.memo.visit.id}`, {
+    token: await as(this, actor), body: this.memo.correctionPatch,
+  });
+});
+Then("the clinical correction is persisted without changing other visit fields or reservation state", async function () {
+  assert.equal(this.response.status, 200, JSON.stringify(this.response.body));
+  const expected = { ...this.memo.correctionBefore, ...this.memo.correctionPatch };
+  assert.deepEqual(this.response.body, expected);
+  const read = await this.api("GET", `/visits/${this.memo.visit.id}`, { token: await as(this, "Jordan") });
+  assert.equal(read.status, 200);
+  assert.deepEqual(read.body, expected);
+  assert.deepEqual(await getReservation(this, this.memo.reservation.id), this.memo.correctionReservation);
+});
+Then("the clinical correction returns status {int} and preserves the visit", async function (status) {
+  assert.equal(this.response.status, status, JSON.stringify(this.response.body));
+  const read = await this.api("GET", `/visits/${this.memo.visit.id}`, { token: await as(this, "Dr Avery Taylor") });
+  assert.equal(read.status, 200);
+  assert.deepEqual(read.body, this.memo.correctionBefore);
+  assert.deepEqual(await getReservation(this, this.memo.reservation.id), this.memo.correctionReservation);
+});
 When("Dr Avery Taylor records a visit with an unknown performed service", async function () {
   await doVisit(this, "Dr Avery Taylor", visitBody({ performedServices: ["ffffffff-ffff-4fff-8fff-ffffffffffff"] }));
 });

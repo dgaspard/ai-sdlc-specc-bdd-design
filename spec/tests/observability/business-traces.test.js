@@ -7,6 +7,7 @@ import { ServiceFixture, jordan, milo, avery, wellness, unknownId, reservationBo
 import { context, readTrace, assertBusiness, spanName, rules, assertPropagation } from "../support/business-traces.js";
 import { decodeJwt } from "../../harness/auth.js";
 import * as seed from "../../harness/seed.js";
+import { registration } from "../support/registration.js";
 
 const cases = [];
 const add = (id, outcome, arrange) => cases.push({ id, outcome, arrange });
@@ -198,7 +199,7 @@ for (const mismatch of [false, true]) add("OBS-029", "invalid_state", async (f) 
   } };
 });
 add("OBS-031", "invalid_amount", async (f) => {
-  await f.finalized(); const q = payRequest(f); q.options.body.amount = 4000; q.options.expected = 422;
+  await f.finalized(); const q = payRequest(f); q.options.body.amount = 6000; q.options.expected = 422;
   return { ...q, attributes: async (r) => { assert.equal((await f.providerCalls()).length, 0); return payAttrs(f, r); } };
 });
 for (const outcome of ["recorded", "already_settled", "invalid_amount", "idempotency_conflict"]) add("OBS-033", outcome, async (f) => {
@@ -208,7 +209,7 @@ for (const outcome of ["recorded", "already_settled", "invalid_amount", "idempot
   const replay = outcome === "recorded";
   const before = f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length;
   const completed = f.stubs.reservation.received("POST", "/internal/reservations/{reservationId}/complete").length;
-  return { method: "POST", path, options: { body: { amount: ["invalid_amount", "idempotency_conflict"].includes(outcome) ? 4000 : 5000 },
+  return { method: "POST", path, options: { body: { amount: outcome === "invalid_amount" ? 6000 : outcome === "idempotency_conflict" ? 4000 : 5000 },
     headers: { "idempotency-key": outcome === "already_settled" ? randomUUID() : key }, expected: replay ? 200 : outcome === "invalid_amount" ? 422 : 409 },
     attributes: async (r) => {
       if (replay) { assert.equal(r.body.replayed, true); assert.deepEqual(r.body.attempt, original.body.attempt); }
@@ -230,6 +231,37 @@ add("OBS-029", "already_finalized", async (f) => {
     assert.equal(f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length, before);
     return { "visit.id": f.visit.id, "reservation.id": f.reservation.id, "veterinarian.id": avery };
   } };
+});
+
+add("OBS-031", "partially_paid", async (f) => {
+  await f.finalized(); const q = payRequest(f); q.options.body.amount = 2000;
+  return { ...q, attributes: async (r) => {
+    assert.equal(r.body.checkout.remainingBalance, 3000);
+    assert.equal(r.body.attempt.outcome, "authorized");
+    assert.equal(f.stubs.reservation.received("POST", "/internal/reservations/{reservationId}/complete").at(-1).body.financialOutcome, "outstanding");
+    return payAttrs(f, r);
+  } };
+});
+for (const outcome of ["registered", "validation_error"]) add("OBS-043", outcome, async (f) => {
+  const body = registration();
+  if (outcome === "validation_error") body.profile.preferredVeterinarianId = unknownId;
+  return { method: "POST", path: "/auth/register", options: { body, token: null, expected: outcome === "registered" ? 201 : 400 },
+    attributes: r => outcome === "registered" ? { "customer.id": r.body.id } : {} };
+});
+for (const outcome of ["updated", "not_found"]) add("OBS-045", outcome, async () => {
+  const id = outcome === "updated" ? wellness : unknownId;
+  return { method: "PATCH", path: `/services/${id}`, options: { body: { feeAmount: 6500 }, expected: outcome === "updated" ? 200 : 404 },
+    attributes: () => ({ "veterinarian_service.id": id, "veterinarian.id": avery }) };
+});
+for (const outcome of ["corrected", "not_assigned_veterinarian", "invalid_state", "not_found"]) add("OBS-044", outcome, async (f) => {
+  await f.recordedVisit();
+  if (outcome !== "invalid_state") await f.call("POST", `/internal/reservations/${f.reservation.id}/complete`, {
+    actor: "service", body: { financialOutcome: "outstanding" }, expected: 200 });
+  const id = outcome === "not_found" ? unknownId : f.visit.id;
+  const actor = outcome === "not_assigned_veterinarian" ? "morgan.reed" : "avery.taylor";
+  return { method: "PATCH", path: `/visits/${id}`, options: { actor, body: { clinicalNotes: "Corrected examination" },
+    expected: outcome === "corrected" ? 200 : outcome === "not_found" ? 404 : outcome === "invalid_state" ? 409 : 403 },
+    attributes: () => ({ "visit.id": id, "veterinarian.id": seed.user(actor).veterinarianId }) };
 });
 
 for (const [index, c] of cases.entries()) it(`[${c.id}] ${rules[c.id][1]} emits ${c.outcome} (case ${index + 1})`, async (t) => {

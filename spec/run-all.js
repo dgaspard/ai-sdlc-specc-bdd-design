@@ -13,6 +13,7 @@ const SUITES = [
   { name: "Authentication", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/auth/**/*.test.js"] },
   { name: "Observability (OpenTelemetry)", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/observability/**/*.test.js"] },
   { name: "Service features (Cucumber)", cmd: "npx", args: ["cucumber-js"] },
+  { name: "Backend journeys (Playwright HTTP)", cmd: "npx", args: ["cucumber-js", "--profile", "workflows"] },
 ];
 
 const results = [];
