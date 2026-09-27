@@ -40,6 +40,11 @@ Feature: Record a visit
     When Dr Avery Taylor records another visit for the reservation
     Then the visit is refused as "already recorded"
 
+  Scenario: An unknown performed service cannot be recorded
+    When Dr Avery Taylor records a visit with an unknown performed service
+    Then the visit is refused as "unknown service"
+    And no visit is saved
+
   Scenario Outline: Visits are recorded only for Accepted reservations
     Given the reservation is "<state>"
     When Dr Avery Taylor records a visit

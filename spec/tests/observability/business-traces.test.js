@@ -61,7 +61,8 @@ for (const outcome of ["finalized", "already_finalized", "not_assigned_veterinar
   return { method: "POST", path: `/visits/${f.visit.id}/checkout`, options: { actor: outcome === "not_assigned_veterinarian" ? "morgan.reed" : "avery.taylor",
     expected: ({ finalized: 201, already_finalized: 409, not_assigned_veterinarian: 403, unknown_service: 422 })[outcome] },
     attributes: (r) => ({ "visit.id": f.visit.id, "reservation.id": f.reservation.id,
-      ...(outcome === "finalized" ? { "checkout.id": r.body.id, "checkout.remaining_amount_cents": 5000, "veterinarian.id": avery } : {}) }) };
+      "veterinarian.id": outcome === "not_assigned_veterinarian" ? seed.vet("Morgan Reed").id : avery,
+      ...(outcome === "finalized" ? { "checkout.id": r.body.id, "checkout.remaining_amount_cents": 5000 } : {}) }) };
 });
 for (const outcome of ["applied", "already_applied", "nothing_owed"]) add("OBS-030", outcome, async (f) => {
   await f.finalized();
@@ -98,7 +99,7 @@ add("OBS-033", "recorded", async (f) => {
   return { method: "POST", path: `/checkouts/${f.checkout.id}/cash-payments`, options: { body: { amount: 5000 }, expected: 200 },
     attributes: async (r) => { assert.equal((await f.providerCalls()).length, 0); return {
       "payment.attempt.id": r.body.attempt.attemptId, "veterinarian.id": avery, "reservation.id": f.reservation.id,
-      "visit.id": f.visit.id, "payment.purpose": "visit_balance" }; } };
+      "visit.id": f.visit.id, "payment.purpose": "visit_balance", "checkout.replayed": false }; } };
 });
 for (const type of ["charge", "credit", "discount"]) for (const outcome of ["applied", "already_applied", ...(type !== "charge" ? ["invalid_amount"] : [])]) add("OBS-034", outcome, async (f) => {
   const path = `/internal/customers/${jordan}/account-changes`;
@@ -164,12 +165,78 @@ add("OBS-029", "not_found", async (f) => {
 add("OBS-033", "recorded", async (f) => ({ method: "POST", path: "/internal/booking-fees", options: { actor: "service", expected: 200,
   body: { reservationId: f.reservation.id, customerId: jordan, amount: 2000, currency: "USD", method: "cash", recordedByVeterinarianId: avery } },
   attributes: async (r) => { assert.equal((await f.providerCalls()).length, 0); return { "payment.attempt.id": r.body.attempt.attemptId,
-    "veterinarian.id": avery, "reservation.id": f.reservation.id, "payment.purpose": "booking_fee" }; } }));
+    "veterinarian.id": avery, "reservation.id": f.reservation.id, "payment.purpose": "booking_fee", "checkout.replayed": false }; } }));
+
+add("OBS-024", "past_start", async (f) => {
+  await f.request(); await f.clock("2026-10-12T09:30:00-05:00");
+  return { method: "POST", path: `/reservations/${f.reservation.id}/accept`, options: {
+    body: { bookingFee: { method: "card", mockMethodReference: "fake-card-approve" } }, expected: 422 },
+    attributes: () => { assert.equal(f.stubs.checkout.received("POST", "/internal/booking-fees").length, 0);
+      return { "reservation.id": f.reservation.id, "veterinarian.id": avery }; } };
+});
+for (const id of ["OBS-026", "OBS-027"]) add(id, "not_assigned_veterinarian", async (f) => {
+  await f.request(); await f.accept();
+  if (id === "OBS-027") await f.clock("2026-10-12T09:05:00-05:00");
+  return { method: "POST", path: `/reservations/${f.reservation.id}/${id === "OBS-026" ? "cancel" : "visit"}`,
+    options: { actor: "morgan.reed", ...(id === "OBS-027" ? { body: visitBody() } : {}), expected: 403 },
+    attributes: () => ({ "reservation.id": f.reservation.id, ...(id === "OBS-027" ? { "veterinarian.id": seed.vet("Morgan Reed").id } : { "customer.id": jordan }) }) };
+});
+add("OBS-027", "unknown_service", async (f) => {
+  await f.request(); await f.accept(); await f.clock("2026-10-12T09:05:00-05:00");
+  return { method: "POST", path: `/reservations/${f.reservation.id}/visit`, options: { body: { ...visitBody(), performedServices: [unknownId] }, expected: 422 },
+    attributes: async () => {
+      assert.equal((await f.call("GET", `/reservations/${f.reservation.id}`, { expected: 200 })).body.visitId, null);
+      return { "reservation.id": f.reservation.id, "veterinarian.id": avery };
+    } };
+});
+for (const mismatch of [false, true]) add("OBS-029", "invalid_state", async (f) => {
+  if (mismatch) f.reservation.visitId = randomUUID(); else f.reservation.reservationState = "CompletedOutstanding";
+  return { method: "POST", path: `/visits/${f.visit.id}/checkout`, options: { expected: 409 }, attributes: async () => {
+    await f.call("GET", `/visits/${f.visit.id}/checkout`, { expected: 404 });
+    assert.equal(f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length, 0);
+    return { "visit.id": f.visit.id, "reservation.id": f.reservation.id, "veterinarian.id": avery };
+  } };
+});
+add("OBS-031", "invalid_amount", async (f) => {
+  await f.finalized(); const q = payRequest(f); q.options.body.amount = 4000; q.options.expected = 422;
+  return { ...q, attributes: async (r) => { assert.equal((await f.providerCalls()).length, 0); return payAttrs(f, r); } };
+});
+for (const outcome of ["recorded", "already_settled", "invalid_amount", "idempotency_conflict"]) add("OBS-033", outcome, async (f) => {
+  await f.finalized(); const key = randomUUID(), path = `/checkouts/${f.checkout.id}/cash-payments`;
+  let original;
+  if (outcome !== "invalid_amount") original = await f.call("POST", path, { body: { amount: 5000 }, headers: { "idempotency-key": key }, expected: 200 });
+  const replay = outcome === "recorded";
+  const before = f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length;
+  const completed = f.stubs.reservation.received("POST", "/internal/reservations/{reservationId}/complete").length;
+  return { method: "POST", path, options: { body: { amount: ["invalid_amount", "idempotency_conflict"].includes(outcome) ? 4000 : 5000 },
+    headers: { "idempotency-key": outcome === "already_settled" ? randomUUID() : key }, expected: replay ? 200 : outcome === "invalid_amount" ? 422 : 409 },
+    attributes: async (r) => {
+      if (replay) { assert.equal(r.body.replayed, true); assert.deepEqual(r.body.attempt, original.body.attempt); }
+      else assert.equal(r.body.code, outcome);
+      assert.equal(f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length, before);
+      assert.equal(f.stubs.reservation.received("POST", "/internal/reservations/{reservationId}/complete").length, completed);
+      assert.equal((await f.providerCalls()).length, 0);
+      const stored = await f.call("GET", `/checkouts/${f.checkout.id}`, { expected: 200 });
+      assert.deepEqual(stored.body.paymentAttempts, original ? [original.body.attempt] : [], "replay/rejection must not create a new attempt");
+      return { "veterinarian.id": avery, "reservation.id": f.reservation.id, "visit.id": f.visit.id, "payment.purpose": "visit_balance",
+        "checkout.replayed": replay, ...(replay ? { "payment.attempt.id": original.body.attempt.attemptId } : {}) };
+    } };
+});
+
+add("OBS-029", "already_finalized", async (f) => {
+  await f.finalized(); f.reservation.reservationState = "CompletedSettled";
+  const before = f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length;
+  return { method: "POST", path: `/visits/${f.visit.id}/checkout`, options: { expected: 409 }, attributes: () => {
+    assert.equal(f.stubs.customer.received("POST", "/internal/customers/{customerId}/account-changes").length, before);
+    return { "visit.id": f.visit.id, "reservation.id": f.reservation.id, "veterinarian.id": avery };
+  } };
+});
 
 for (const [index, c] of cases.entries()) it(`[${c.id}] ${rules[c.id][1]} emits ${c.outcome} (case ${index + 1})`, async (t) => {
   const f = new ServiceFixture(rules[c.id][0]); t.after(() => f.stop()); await f.start();
   const q = await c.arrange(f), ctx = context();
   const r = await send(f, q, ctx.headers);
+  if (r.status >= 400) assert.equal(r.body.code, c.outcome === "failed" ? "dependency_failed" : c.outcome);
   const spans = await readTrace(ctx, [spanName(c.id)]);
   assertBusiness(spans, c.id, c.outcome, await q.attributes(r));
 });

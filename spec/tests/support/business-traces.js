@@ -6,16 +6,16 @@ import { PROJECTS } from "../../harness/config.js";
 
 export const rules = {
   "OBS-023": ["reservation", "request", "requested denied_outstanding_balance invalid_slot past_start pet_conflict not_found failed"],
-  "OBS-024": ["reservation", "accept", "accepted booking_payment_declined slot_unavailable pet_conflict not_assigned_veterinarian invalid_state not_found failed"],
+  "OBS-024": ["reservation", "accept", "accepted past_start booking_payment_declined slot_unavailable pet_conflict not_assigned_veterinarian invalid_state not_found failed"],
   "OBS-025": ["reservation", "deny", "denied not_assigned_veterinarian invalid_state not_found failed"],
-  "OBS-026": ["reservation", "cancel", "canceled already_started invalid_state not_found failed"],
-  "OBS-027": ["reservation", "record_visit", "recorded already_recorded invalid_state unknown_service not_found failed"],
+  "OBS-026": ["reservation", "cancel", "canceled already_started not_assigned_veterinarian invalid_state not_found failed"],
+  "OBS-027": ["reservation", "record_visit", "recorded already_recorded not_assigned_veterinarian invalid_state unknown_service not_found failed"],
   "OBS-028": ["veterinarian-services", "get_fees", "found unknown_service failed"],
   "OBS-029": ["checkout", "finalize_bill", "finalized already_finalized not_assigned_veterinarian unknown_service invalid_state not_found failed"],
   "OBS-030": ["checkout", "apply_promotion", "applied already_applied nothing_owed not_found failed"],
-  "OBS-031": ["checkout", "pay", "settled declined already_settled idempotency_conflict authorized_completion_failed not_found failed"],
+  "OBS-031": ["checkout", "pay", "settled declined already_settled invalid_amount idempotency_conflict authorized_completion_failed not_found failed"],
   "OBS-032": ["checkout", "payment.authorize", "authorized declined failed"],
-  "OBS-033": ["checkout", "record_cash", "recorded already_recorded nothing_owed not_found failed"],
+  "OBS-033": ["checkout", "record_cash", "recorded already_settled invalid_amount idempotency_conflict not_found failed"],
   "OBS-034": ["customer", "apply_account_change", "applied already_applied invalid_amount not_found failed"],
   "OBS-035": ["reservation", "complete", "completed_settled completed_outstanding already_completed invalid_state not_found failed"],
 };
@@ -39,10 +39,9 @@ export function assertBusiness(spans, id, outcome, attributes = {}) {
   const s = matches[0];
   assert.ok(rules[id][2].split(" ").includes(outcome), `undefined expectation: ${outcome}`);
   assert.equal(s.attributes["petclinic.operation.outcome"], outcome);
-  const status = outcome === "failed" ? "ERROR" : success.has(outcome) ? "OK" : "UNSET";
-  // authorized_completion_failed has no explicit status in OBS-004; its distinct
-  // outcome is asserted without inventing a new status rule.
-  if (outcome !== "authorized_completion_failed") assert.equal(s.status.code, status);
+  const status = ["failed", "authorized_completion_failed"].includes(outcome) ? "ERROR" : success.has(outcome) ? "OK" : "UNSET";
+  assert.equal(s.status.code, status);
+  if (outcome === "authorized_completion_failed") assert.equal(s.attributes["error.type"], "authorized_completion_failed");
   if (outcome === "failed") assert.ok(s.attributes["error.type"], "unexpected failure needs error.type");
   assert.ok(BigInt(s.endTimeUnixNano) >= BigInt(s.startTimeUnixNano) && BigInt(s.endTimeUnixNano) > 0n, "span must be ended");
   for (const [key, value] of Object.entries(attributes)) assert.deepEqual(s.attributes[`petclinic.${key}`], value, key);

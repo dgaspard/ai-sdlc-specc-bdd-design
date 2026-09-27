@@ -214,6 +214,9 @@
           }
         },
         "responses": {
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -276,6 +279,9 @@
           }
         },
         "responses": {
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
           "201": {
             "description": "Created",
             "content": {

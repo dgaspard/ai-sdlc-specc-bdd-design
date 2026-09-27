@@ -85,6 +85,9 @@
           }
         ],
         "responses": {
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
           "200": {
             "description": "OK",
             "content": {
@@ -470,7 +473,7 @@
         "x-roles": [
           "veterinarian"
         ],
-        "description": "409 invalid_state (not Accepted, or before scheduledStart) or already_recorded. startedAt is the clinic clock.",
+        "description": "409 invalid_state (not Accepted, or before scheduledStart) or already_recorded. startedAt is the clinic clock. 422 unknown_service when any performedServices ID is absent from the seeded service catalog; no visit is stored. 403 not_assigned_veterinarian when the caller is not the assigned veterinarian.",
         "x-features": [
           "spec/features/reservation/record-visit.feature"
         ],
@@ -502,6 +505,9 @@
           }
         },
         "responses": {
+          "422": {
+            "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          },
           "201": {
             "description": "Created",
             "content": {

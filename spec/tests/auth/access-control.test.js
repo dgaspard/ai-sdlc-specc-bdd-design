@@ -36,9 +36,7 @@ for (const op of operations) {
       const f = new ServiceFixture(op.service); t.after(() => f.stop()); await f.start();
       const { path, body } = inputFor(op, f);
       for (const stub of Object.values(f.stubs)) stub.requests = [];
-      // Shared auth contract requires 403 even where this operation omitted that
-      // response. Validate the shared Problem, without silently editing OpenAPI.
-      const r = await f.call(op.method, path, { body, actor, expected: 403, validate: !!op.responses[403] });
+      const r = await f.call(op.method, path, { body, actor, expected: 403 });
       expectProblem(r, 403, "forbidden");
       for (const stub of Object.values(f.stubs)) assert.equal(stub.requests.filter((r) => r.path !== "/health").length, 0);
     });

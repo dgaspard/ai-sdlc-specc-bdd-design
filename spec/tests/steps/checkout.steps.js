@@ -290,6 +290,12 @@ Then("the fake payment provider receives no additional request", async function 
 // ---------------------------------------------------------------------------
 // Bill finalization
 // ---------------------------------------------------------------------------
+Given("the linked reservation for billing is not Accepted", function () {
+  this.memo.reservation.reservationState = "CompletedOutstanding";
+});
+Given("the linked reservation for billing is linked to a different visit", function () {
+  this.memo.reservation.visitId = crypto.randomUUID();
+});
 Given("Jordan's reservation for Milo has booking payment {string} of {string}", function (label, amount) {
   assert.equal(this.memo.reservation.bookingPaymentId, labelId(this, label));
   assert.equal(this.memo.reservation.bookingFeeAmount, cents(amount));
@@ -573,6 +579,9 @@ Given("Dr Avery Taylor recorded a {string} cash payment with attempt key {string
 });
 When("the same cash recording is sent again with attempt key {string}", async function (label) {
   await payCash(this, { key: labelId(this, label), amount: this.memo.results.at(-1).body.attempt.amount });
+});
+When("Dr Avery Taylor records {string} cash with attempt key {string}", async function (amount, label) {
+  await payCash(this, { amount: cents(amount), key: labelId(this, label) });
 });
 Then("the same result is returned", function () {
   const [a, b] = this.memo.results.slice(-2);

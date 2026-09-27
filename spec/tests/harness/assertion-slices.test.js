@@ -16,6 +16,9 @@ it("[TEST-01] generated access requests conform to every operation's request sch
     const f = new ServiceFixture(op.service), { path, body } = inputFor(op, f);
     assert.ok(!path.includes("{"), op.operationId);
     assert.ok(op.responses[401], `${op.operationId}: missing unauthorized response`);
+    if (["customer", "veterinarian", "service"].some((role) => !op["x-roles"].includes(role))) {
+      assert.ok(op.responses[403], `${op.operationId}: excluded role requires a documented 403`);
+    }
     if (op.requestBody) assert.deepEqual(validateRequest(op.contract, op.method, path, body).errors, [], op.operationId);
   }
 });
@@ -65,6 +68,18 @@ it("[TEST-01] trace assertions accept a conforming business span and outgoing pa
   const s = sample();
   assertBusiness(s.spans, "OBS-031", "settled", { "checkout.replayed": false });
   assertPropagation(s.call, s.ctx, s.spans);
+});
+it("[OBS-004] [OBS-031] authorized completion failure requires ERROR and its stable error.type", () => {
+  const s = sample();
+  s.business.attributes["petclinic.operation.outcome"] = "authorized_completion_failed";
+  s.business.attributes["error.type"] = "authorized_completion_failed";
+  s.business.status.code = "ERROR";
+  assertBusiness(s.spans, "OBS-031", "authorized_completion_failed");
+  s.business.status.code = "OK";
+  assert.throws(() => assertBusiness(s.spans, "OBS-031", "authorized_completion_failed"), assert.AssertionError);
+  s.business.status.code = "ERROR";
+  delete s.business.attributes["error.type"];
+  assert.throws(() => assertBusiness(s.spans, "OBS-031", "authorized_completion_failed"), assert.AssertionError);
 });
 for (const [name, mutate] of [
   ["missing span", (s) => s.spans.splice(1, 1)],

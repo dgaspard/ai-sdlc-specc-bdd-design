@@ -55,3 +55,14 @@ Feature: Finalize the visit bill
     When Dr Morgan Reed finalizes the bill for Milo's visit
     Then the bill is refused as "not assigned veterinarian"
     And no checkout is saved
+
+  Scenario Outline: First finalization requires a consistent Accepted reservation
+    Given the linked reservation for billing is <condition>
+    When Dr Avery Taylor finalizes the bill for Milo's visit
+    Then the bill is refused as "invalid state"
+    And no checkout is saved
+    And Customer receives no charge
+    Examples:
+      | condition                   |
+      | not Accepted                |
+      | linked to a different visit |

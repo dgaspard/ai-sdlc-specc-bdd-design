@@ -49,7 +49,9 @@ Entity ID attributes used below: `petclinic.customer.id`, `petclinic.pet.id`,
 4. **OBS-004** — Successful business operations use status `OK`. Expected business
    rejections (denial, decline, invalid slot, conflict, invalid state) use `UNSET`
    with an explicit outcome. Unexpected internal/dependency failures use `ERROR`,
-   outcome `failed`, and a stable `error.type`. HTTP instrumentation keeps its own
+   outcome `failed`, and a stable `error.type`. The specific exception is a successful
+   authorization followed by a failed account or reservation write: status `ERROR`,
+   outcome and `error.type` both `authorized_completion_failed`. HTTP instrumentation keeps its own
    status conventions. Payment timeouts are out of scope (D-11).
 5. **OBS-005** — Put opaque entity IDs on spans when known; never invent IDs for failures.
    Do not record names, phone numbers, addresses, emergency/secondary contacts,
@@ -86,16 +88,16 @@ entity is known at that point.
 | --- | --- | --- | --- |
 | OBS-012 | `petclinic.customer.check_eligibility` (Customer) | customer.id | `eligible`, `ineligible`, `not_found`, `failed` |
 | OBS-023 | `petclinic.reservation.request` (Reservation) | customer.id, pet.id, veterinarian.id, reservation.id when stored | `requested`, `denied_outstanding_balance`, `invalid_slot`, `past_start`, `pet_conflict`, `not_found`, `failed` |
-| OBS-024 | `petclinic.reservation.accept` (Reservation) | reservation.id, veterinarian.id, payment.attempt.id when attempted | `accepted`, `booking_payment_declined`, `slot_unavailable`, `pet_conflict`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
+| OBS-024 | `petclinic.reservation.accept` (Reservation) | reservation.id, veterinarian.id, payment.attempt.id when attempted | `accepted`, `past_start`, `booking_payment_declined`, `slot_unavailable`, `pet_conflict`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
 | OBS-025 | `petclinic.reservation.deny` (Reservation) | reservation.id, veterinarian.id | `denied`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
-| OBS-026 | `petclinic.reservation.cancel` (Reservation) | reservation.id, customer.id | `canceled`, `already_started`, `invalid_state`, `not_found`, `failed` |
-| OBS-027 | `petclinic.reservation.record_visit` (Reservation) | reservation.id, visit.id when created, veterinarian.id | `recorded`, `already_recorded`, `invalid_state`, `unknown_service`, `not_found`, `failed` |
+| OBS-026 | `petclinic.reservation.cancel` (Reservation) | reservation.id, customer.id | `canceled`, `already_started`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
+| OBS-027 | `petclinic.reservation.record_visit` (Reservation) | reservation.id, visit.id when created, veterinarian.id | `recorded`, `already_recorded`, `not_assigned_veterinarian`, `invalid_state`, `unknown_service`, `not_found`, `failed` |
 | OBS-028 | `petclinic.veterinarian_services.get_fees` (VeterinarianServices) | `petclinic.veterinarian_service.count` (integer) | `found`, `unknown_service`, `failed` |
 | OBS-029 | `petclinic.checkout.finalize_bill` (Checkout) | checkout.id when created, visit.id, reservation.id, veterinarian.id, `petclinic.checkout.remaining_amount_cents` | `finalized`, `already_finalized`, `not_assigned_veterinarian`, `unknown_service`, `invalid_state`, `not_found`, `failed` |
 | OBS-030 | `petclinic.checkout.apply_promotion` (Checkout) | checkout.id, visit.id, promotion.id when created, veterinarian.id, `petclinic.promotion.amount_cents`, `petclinic.promotion.applied_amount_cents` | `applied`, `already_applied`, `nothing_owed`, `not_found`, `failed` |
-| OBS-031 | `petclinic.checkout.pay` (Checkout) | checkout.id, visit.id, reservation.id, payment.attempt.id, `petclinic.checkout.replayed` (boolean) | `settled`, `declined`, `already_settled`, `idempotency_conflict`, `authorized_completion_failed`, `not_found`, `failed` |
+| OBS-031 | `petclinic.checkout.pay` (Checkout) | checkout.id, visit.id, reservation.id, payment.attempt.id, `petclinic.checkout.replayed` (boolean) | `settled`, `declined`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `authorized_completion_failed`, `not_found`, `failed` |
 | OBS-032 | `petclinic.payment.authorize` (client span in calling service) | payment.attempt.id, `petclinic.payment.purpose` (`booking_fee` or `visit_balance`), `petclinic.payment.provider` = `fake`, `petclinic.payment.amount_cents` | `authorized`, `declined`, `failed` |
-| OBS-033 | `petclinic.checkout.record_cash` (Checkout, D-32) | payment.attempt.id, veterinarian.id, reservation.id, visit.id when present, `petclinic.payment.purpose` | `recorded`, `already_recorded`, `nothing_owed`, `not_found`, `failed` |
+| OBS-033 | `petclinic.checkout.record_cash` (Checkout, D-32) | payment.attempt.id, veterinarian.id, reservation.id, visit.id when present, `petclinic.payment.purpose`, `petclinic.checkout.replayed` (boolean) | `recorded`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `not_found`, `failed` |
 | OBS-034 | `petclinic.customer.apply_account_change` (Customer) | customer.id, visit.id, `petclinic.account.change_type` (`charge`, `credit`, `discount`) | `applied`, `already_applied`, `invalid_amount`, `not_found`, `failed` |
 | OBS-035 | `petclinic.reservation.complete` (Reservation) | reservation.id, visit.id | `completed_settled`, `completed_outstanding`, `already_completed`, `invalid_state`, `not_found`, `failed` |
 
@@ -111,6 +113,23 @@ Notes:
 - `authorized_completion_failed` means payment succeeded but a later write failed and
   needs manual recovery (D-10). It must not be reported as `settled` or `declined`.
 - A replay reports the original outcome with `petclinic.checkout.replayed=true`.
+  Cash replays use `recorded` / `OK`, not `already_recorded`. Identical retries
+  reuse the original attempt, with no repeated credit or completion. Changed input
+  under the same key yields `idempotency_conflict` / `UNSET` before checking balance.
+  A new visit-payment key against a zero balance yields `already_settled` / `UNSET`;
+  a positive amount different from the balance yields `invalid_amount` / `UNSET`.
+  These rejections create no payment attempt, so its ID is omitted when unknown.
+  First cash recording has `replayed=false`. An already-paid booking fee retains
+  its original result even under a new key, per the existing booking-fee contract.
+- For veterinarian actions (accept, deny, record visit, finalize bill, promotion,
+  cash recording), `petclinic.veterinarian.id` identifies the acting veterinarian,
+  including assignment rejections. On reservation requests it identifies the
+  requested veterinarian. It is omitted when neither is known.
+- OBS-027 `unknown_service` rejects IDs absent from the seeded catalog with 422
+  before saving a visit. No new service dependency is introduced.
+- OBS-029 `invalid_state` rejects first finalization unless the linked reservation
+  is Accepted and its `visitId` matches the recorded visit. No checkout/account
+  mutation occurs. An existing checkout instead yields `already_finalized`.
 
 ## Required end-to-end evidence
 
@@ -201,8 +220,9 @@ the specification review; each will fail on creation until implementation exists
 | OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`. Client spans, 5xx `error.type`, and business-span parenting: planned in TEST-01 | Not implemented; failing tests |
 | OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Not implemented; failing test |
 
-Slice 6 matches the supplied frozen manifest at checkpoint `test-01-s5-s6`. Outcome-level gaps and contract discrepancies
-are recorded in [the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
+Slice 6 was frozen at checkpoint `test-01-s5-s6`. Subsequent contract gap decisions
+GAP-01–07 and their tests are awaiting a new human freeze; see
+[the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
 claim of exhaustive outcome coverage or a passing application. Helpers also check
 span uniqueness, completion, status, and SERVER parenting for the exercised cases;
 this does not close the broader OBS-003–009 test gaps above.

@@ -129,6 +129,9 @@ async function recordVisit(world, reservationId, vetName, body) {
 const visitBody = (over = {}) => ({
   performedServices: [seed.service("Wellness").id], clinicalNotes: "Routine examination", diagnoses: [], medications: [], ...over,
 });
+When("Dr Avery Taylor records a visit with an unknown performed service", async function () {
+  await doVisit(this, "Dr Avery Taylor", visitBody({ performedServices: ["ffffffff-ffff-4fff-8fff-ffffffffffff"] }));
+});
 async function complete(world, reservationId, financialOutcome) {
   return world.api("POST", `/internal/reservations/${reservationId}/complete`, {
     body: { financialOutcome }, token: serviceToken("checkout", { clinicNow: world.clinicNow }),

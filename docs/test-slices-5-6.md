@@ -52,16 +52,16 @@ sequentially and concurrently. Promotion checks entered versus applied amounts.
 | Rule | Outcomes with runtime tests |
 | --- | --- |
 | OBS-023 | requested, denied_outstanding_balance, invalid_slot, past_start, pet_conflict, not_found |
-| OBS-024 | accepted, booking_payment_declined, slot_unavailable, pet_conflict, not_assigned_veterinarian, invalid_state, not_found, failed |
+| OBS-024 | accepted, past_start, booking_payment_declined, slot_unavailable, pet_conflict, not_assigned_veterinarian, invalid_state, not_found, failed |
 | OBS-025 | denied, not_assigned_veterinarian, invalid_state, not_found |
-| OBS-026 | canceled, already_started, invalid_state, not_found |
-| OBS-027 | recorded, already_recorded, invalid_state, not_found |
+| OBS-026 | canceled, already_started, not_assigned_veterinarian, invalid_state, not_found |
+| OBS-027 | recorded, already_recorded, not_assigned_veterinarian, invalid_state, unknown_service, not_found |
 | OBS-028 | found, unknown_service |
-| OBS-029 | finalized, already_finalized, not_assigned_veterinarian, unknown_service, not_found, failed |
+| OBS-029 | finalized, already_finalized, not_assigned_veterinarian, unknown_service, invalid_state, not_found, failed |
 | OBS-030 | applied, already_applied, nothing_owed, not_found |
-| OBS-031 | settled, declined, already_settled, idempotency_conflict, authorized_completion_failed, not_found, failed |
+| OBS-031 | settled, declined, already_settled, invalid_amount, idempotency_conflict, authorized_completion_failed, not_found, failed |
 | OBS-032 | authorized, declined, failed; booking_fee and visit_balance |
-| OBS-033 | recorded (booking_fee and visit_balance), not_found |
+| OBS-033 | recorded (booking_fee and visit_balance), recorded replay, already_settled, invalid_amount, idempotency_conflict, not_found |
 | OBS-034 | applied, already_applied for charge/credit/discount; invalid_amount for credit/discount; not_found |
 | OBS-035 | completed_settled, completed_outstanding, already_completed, invalid_state, not_found |
 
@@ -71,42 +71,39 @@ service, fake provider failure, and authorization followed by failed completion.
 Internal storage faults need a deliberately specified fault boundary before tests
 can drive them; do not add implementation-specific backdoors just for coverage.
 
-## Contract gaps to settle before implementation
+## Contract gap decisions (2026-09-26)
 
-1. `updateCustomer`, `addPet`, and `getAvailability` exclude a role but omit 403
-   from their operation responses. The tests use the binding shared authentication
-   rule and validate the shared `Problem` schema for these three cases. Add the
-   missing OpenAPI responses during a deliberate contract revision.
-2. OBS-024 lacks `past_start`, although acceptance exposes that response. OBS-026
-   lacks `not_assigned_veterinarian`, although cancellation exposes it. OBS-031
-   lacks `invalid_amount`, although payment exposes it. Those business failures
-   already have BDD checks; their telemetry outcome is not guessed here.
-3. OBS-027 lists `unknown_service`, but visit recording has no documented 422
-   response. OBS-029 lists `invalid_state` without defining the invalid bill state.
-   Specify the trigger/response before adding those outcome cases.
-4. Cash telemetry lists `already_recorded` and `nothing_owed`, while the general
-   replay rule says to retain the original outcome. Define cash replay versus a
-   new request against a settled checkout before testing those telemetry outcomes.
-5. Define the span status for `authorized_completion_failed`: OBS-004's unexpected
-   failure rule requires outcome `failed`, but OBS-031 intentionally requires the
-   more specific outcome. The test asserts that specific outcome without guessing
-   its status. Likewise, clarify whether `veterinarian.id` on assignment rejection
-   names the caller or assignee; current tests use the rejecting request's caller.
+User-directed specification revision after checkpoint `test-01-s5-s6`.
+These decisions replace the open questions from the initial review.
 
-These are review findings, not silent contract amendments. Untested outcomes above
-remain coverage gaps. Privacy/exporter lifecycle/general storage-fault tests remain
-outside these slices.
+| Decision | Resolved contract |
+| --- | --- |
+| GAP-01: missing 403 | `updateCustomer`, `addPet`, and `getAvailability` now document the shared Forbidden response. Access tests validate their actual operation schemas; no fallback remains. A harness check requires 403 for every operation excluding a known role. |
+| GAP-02: telemetry outcomes | Add `past_start` to OBS-024, `not_assigned_veterinarian` to OBS-026 and OBS-027, and `invalid_amount` to OBS-031. These expected rejections use UNSET. |
+| GAP-03: unknown performed service | Visit recording rejects a performed-service ID absent from the seeded catalog with 422 `unknown_service`, stores no visit, and emits OBS-027 `unknown_service` / UNSET. Reservation uses its seed data; no additional runtime dependency. |
+| GAP-04: first bill finalization | The linked reservation must be Accepted and reference the visit being billed. Otherwise 409 `invalid_state`, OBS-029 `invalid_state` / UNSET, and no checkout or account change. If a checkout already exists, `already_finalized` takes precedence. |
+| GAP-05: cash replay | Same key and identical input returns the original attempt/result with `replayed=true`; OBS-033 remains `recorded` / OK. No extra credit, completion, or provider call. Changed input under the key returns 409 `idempotency_conflict` before balance checks. A new visit-payment key against zero balance returns 409 `already_settled`; an unequal positive amount returns 422 `invalid_amount`. Rejections use UNSET and create no attempt. OBS-033 uses those outcomes instead of `already_recorded` / `nothing_owed`. Existing booking-fee deduplication continues to return the original paid result even with a new key. |
+| GAP-06: authorized write failure | OBS-031 uses ERROR, outcome `authorized_completion_failed`, and `error.type=authorized_completion_failed`. The API remains 502 with manual recovery. OBS-032 still records successful authorization. This is the explicit exception to OBS-004's general `failed` outcome. |
+| GAP-07: veterinarian identity | For veterinarian actions, `petclinic.veterinarian.id` is the acting veterinarian, including assignment rejection. For reservation requests it is the requested veterinarian. Unknown IDs are not invented. |
+
+Cash recording now explicitly carries the boolean `petclinic.checkout.replayed`.
+The operation registry, observability table, OpenAPI descriptions, BDD examples,
+and assertion tests reflect these decisions. Protected files need another human
+review/freeze. Privacy/exporter lifecycle/general storage-fault tests remain
+outside these slices; those coverage gaps are not unresolved business decisions.
 
 ## Verification and handoff
 
 Run `npm test`. All suites run even if the guard fails. The runtime suite and new
 application assertions are intentionally red until the services exist.
 
-Last verification (2026-09-26): `npm test` with local port access; 44 harness
+Last verification after GAP-01–07 (2026-09-26): `npm test` with local port access; 45 harness
 checks and 131 schema checks passed. Runtime: 12 passed / 40 failed.
-Authentication: 1 passed / 227 failed (includes 218 new tests: one classification
-check and 217 runtime cases). Observability: 92 failed (80 new runtime cases).
-All 161 existing BDD scenarios remain red. New runtime failures report missing
+Authentication: 1 passed / 227 failed (includes 218 slice-5 tests: one classification
+check and 217 runtime cases). Observability: 104 failed (92 slice-6 runtime cases).
+All 166 BDD scenarios remain red, including five new examples from this revision.
+The BDD dry run resolves every step without undefined or ambiguous steps.
+New runtime failures report missing
 service `start` scripts, with no new import/syntax/fixture failures observed.
 The guard correctly reports unfrozen protected additions. `git diff --check` passes.
 

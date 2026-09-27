@@ -79,7 +79,7 @@
         "x-roles": [
           "veterinarian"
         ],
-        "description": "Prices performed services via VeterinarianServices, snapshots billed lines, charges the customer's account and credits the booking payment once. 409 already_finalized. 422 unknown_service. 403 not_assigned_veterinarian.",
+        "description": "Prices performed services via VeterinarianServices, snapshots billed lines, charges the customer's account and credits the booking payment once. 409 already_finalized. 422 unknown_service. 403 not_assigned_veterinarian. For first finalization, the linked reservation must be Accepted and its visitId must equal this visit ID; otherwise return 409 invalid_state without saving a checkout or changing the account. An existing checkout takes precedence and returns 409 already_finalized.",
         "x-features": [
           "spec/features/checkout/finalize-bill.feature"
         ],
@@ -420,7 +420,7 @@
         "x-roles": [
           "veterinarian"
         ],
-        "description": "Never calls the fake payment provider. Repeated key returns the original result and credits once.",
+        "description": "Never calls the fake payment provider. Repeated key returns the original result and credits once. An identical same-key retry returns the original attempt and result with replayed=true, even after settlement; no additional credit or completion is sent. Changed input under the same key returns 409 idempotency_conflict before checking current balance. A new key against zero remaining balance returns 409 already_settled. A positive amount different from the remaining balance returns 422 invalid_amount. No rejected request creates a payment attempt.",
         "x-features": [
           "spec/features/checkout/visit-payment.feature",
           "spec/features/checkout/payment-idempotency.feature"

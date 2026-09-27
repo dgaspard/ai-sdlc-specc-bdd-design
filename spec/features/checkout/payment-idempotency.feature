@@ -41,4 +41,17 @@ Feature: Duplicate payment protection
     Given Dr Avery Taylor recorded a "$50.00" cash payment with attempt key "cash-1"
     When the same cash recording is sent again with attempt key "cash-1"
     Then the same result is returned
+    And the second result is marked as a replay
+    And Customer received one credit
+
+  Scenario: A new cash attempt cannot pay a settled balance again
+    Given Dr Avery Taylor recorded a "$50.00" cash payment with attempt key "cash-1"
+    When Dr Avery Taylor records "$50.00" cash with attempt key "cash-2"
+    Then the request is refused as "already settled"
+    And Customer received one credit
+
+  Scenario: Changed cash input under the same key is a conflict even after settlement
+    Given Dr Avery Taylor recorded a "$50.00" cash payment with attempt key "cash-1"
+    When Dr Avery Taylor records "$40.00" cash with attempt key "cash-1"
+    Then the request is refused as an idempotency conflict
     And Customer received one credit

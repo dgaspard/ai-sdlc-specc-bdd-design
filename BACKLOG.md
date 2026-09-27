@@ -342,8 +342,15 @@ Done so far:
   Harness fixture/mutation checks pass; full runtime validation remains red.
   Stage: tests red; supplied protected manifest passes guard:check and includes
   these slices and the prior Checkout slice. Checkpoint tag: `test-01-s5-s6`.
-  Next: resolve the listed contract discrepancies, review/freeze any revisions, and perform the
-  green/mutation rehearsal before declaring the executable specification complete.
+  Contract gaps resolved in GAP-01–07 of the linked review: documented 403s,
+  missing telemetry outcomes, invalid visit/bill inputs, cash replay and rejection
+  precedence, authorized-completion failure status, and veterinarian identity.
+  Added BDD cases and trace assertions; these revisions await a new human freeze.
+  Verification: npm test passes 45 harness and 131 schema checks; application
+  assertions remain red because service implementations are absent. BDD dry run
+  resolves all 166 scenarios. Guard reports the intentional protected revisions.
+  Next: review/freeze the revisions and perform the green/mutation rehearsal
+  before declaring the executable specification complete.
 
 ### IMPL-01 — Legacy visit cancellation (retired)
 
