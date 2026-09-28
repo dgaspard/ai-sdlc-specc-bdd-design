@@ -23,15 +23,18 @@ see the [rehearsal report](docs/test-slices-5-6-rehearsal.md).
 The four JavaScript services are implemented with independent in-memory stores,
 HTTP APIs, authentication, and OpenTelemetry export. Reviewed and frozen SPEC-05
 adds complete self-registration, partial payments, clinical corrections, and
-catalog updates; there are now 219 service scenarios. The frontend has a runtime
-shell only; the UI remains FE-01 work. IMPL-02 validation and ENG-01 findings are
+catalog updates; there are now 219 service scenarios. The frontend implements the
+approved login, appointment, visit, billing, and payment journey. IMPL-02 validation and ENG-01 findings are
 recorded in the [JavaScript engineering review](docs/engineering-reviews/impl-02-javascript.md).
 
 TEST-02 now has nine frozen backend journeys using Playwright HTTP requests without
 launching a browser. These retain the existing workflows without extra UI/setup
 flows. IMPL-02 and the JavaScript
 [Engineering Discipline review](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-now pass, including the complete `npm test` aggregate.
+passed the complete `npm test` aggregate at tag `impl-02`.
+FE-01 adds approved, human-frozen design assets, three visual references,
+and five headless Chromium checks. Its implementation and validation are recorded in the
+[FE-01 handoff](docs/fe-01-handoff.md) and [design preview](docs/fe-01-design-preview.html).
 [BACKLOG.md](BACKLOG.md) tracks verification and task status. The earlier
 single-app version remains preserved at tag `1.0`.
 
@@ -51,7 +54,7 @@ Each runs as a separate local HTTP process with in-memory storage.
 ```text
 services/<name>/                   JavaScript services with executable setup/start scripts
 services/platform/                 Shared HTTP/auth/schema/telemetry infrastructure
-frontend/                          Runtime shell; browser UI remains FE-01
+frontend/                          Vanilla JavaScript clinic UI and HTTP server
 spec/                              Protected: features, contracts, seed data, tests, harness, fakes
 docs/specs/                        Protected: decisions, domain model, schema decisions
 docs/observability.md              Telemetry rules OBS-001..OBS-042 and coverage
@@ -76,11 +79,14 @@ npm run trace:payment               # capture a real-service checkout trace
 npm --prefix spec run guard:check    # verifies frozen protected files and skip/focus rules
 npm --prefix spec run test:bdd       # service scenarios only
 npm --prefix spec run test:workflows # real-service journeys using Playwright HTTP
+npm --prefix spec run test:browser   # five frontend checks in headless Chromium
 ```
 
 Full validation requires permission to bind local test ports. The service-BDD
 harness lifecycle correction is authorized and human-frozen; all 219 service
 scenarios and nine backend journeys pass in the complete aggregate run.
 The [engineering review](docs/engineering-reviews/impl-02-javascript.md) records
-the fixes, evidence, and in-memory limitations. FE-01's UI/browser journey and
-PERF-01 remain future work. Only a human reviews and freezes protected changes.
+the fixes, evidence, and in-memory limitations. The [frontend engineering review](docs/engineering-reviews/fe-01-javascript.md)
+records FE-01 evidence. PERF-01 remains planned. The browser suite requires the pinned
+Playwright Chromium installation (`cd spec` then `npx playwright install chromium`).
+Only a human reviews and freezes protected changes.

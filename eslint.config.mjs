@@ -1,5 +1,22 @@
 export default [
   {
+    files: ["frontend/*.js"],
+    ignores: ["frontend/server.js"],
+    languageOptions: {
+      globals: Object.fromEntries(
+        [
+          "document",
+          "Node",
+          "sessionStorage",
+          "history",
+          "location",
+          "addEventListener",
+          "crypto",
+        ].map((name) => [name, "readonly"]),
+      ),
+    },
+  },
+  {
     files: ["services/**/*.js", "frontend/**/*.js", "tools/*.mjs"],
     languageOptions: {
       ecmaVersion: "latest",

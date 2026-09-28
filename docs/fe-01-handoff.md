@@ -1,0 +1,100 @@
+# FE-01 handoff
+
+## Current implementation handoff
+
+The user approved the Cedar & Paw design and protected-folder structure and ran
+freeze/check. The agent confirmed GUARD PASS before implementing FE-01. The
+original draft wording remains in protected documents; approval and the frozen
+manifest establish the accepted baseline without editing it during the build.
+
+The vanilla JavaScript frontend now implements the approved narrow journey using
+only published service APIs and unchanged frozen design assets. Its first frozen
+browser run passed all five tests, including three visual comparisons, in 10.4s.
+Final verification: all nine aggregate suites pass, including five browser checks
+in 10.2 seconds; all nine supplemental engineering checks and lint/formatting pass.
+Connected payment trace verification passes. The status-announcement overlap was
+fixed by displaying success only after the destination page finishes loading.
+See the [FE-01 engineering review](engineering-reviews/fe-01-javascript.md).
+Checkpoint: `fe-01`. No frontend deletion or remote push was performed.
+Next task: agree PERF-01 thresholds and write its specifications before implementation.
+
+The material below records the earlier specification phase and its intentional
+red baseline. Its review/freeze steps are complete and are not current blockers.
+
+## Historical design/specification handoff
+
+Phase: specification. User accepted a fixed desktop, headless Chromium, vanilla
+JavaScript, retained design assets, narrow UI journey, and later frontend
+reconstruction after Checkout's language-swap experiment.
+
+Draft protected artifacts are in `spec/frontend/`; five executable browser checks
+are in `spec/tests/browser/journeys.spec.js`, with matching FE IDs in
+`spec/features/frontend/clinic-browser.feature`. They are intentionally not frozen yet. Do not
+implement application behavior until reviewed tests/baselines are established and
+the human freezes the complete specification set. Do not run guard:freeze as an agent.
+
+Concrete design: Cedar & Paw Veterinary, original SVG paw, evergreen/ivory, bundled
+Inter 400/600 (OFL license retained). `docs/fe-01-design-preview.html` is an inert
+review reference with `#login`, `#appointments`, and `#bill` variants. It has no API
+calls and no working login/payment controls. It is excluded from future rebuild
+inputs. The reviewed design instructions/CSS/fonts/images and approved screenshots
+will be retained; the application in `frontend/` will be regenerated.
+
+Preview verification: headless Chromium 140.0.7339.186 (revision 1193), installed
+Playwright 1.55.1, macOS 26.6.2 arm64, 1440×1000, scale 1, en-US, America/Chicago,
+light theme, reduced motion. All three preview renders load local fonts, have no
+page errors, and fit within the viewport without overflow. Images in
+`test-results/fe-01-design/` are review candidates, not frozen baselines.
+The draft environment and font hashes are recorded in
+`spec/frontend/visual-baselines/reference-environment.json`. Checked normal-text
+color pairs meet at least 4.5:1 contrast (lowest tested pair: muted text, 6.14:1).
+This is a design contrast check, not a full accessibility audit of an application.
+
+Next steps:
+
+1. Review design and screen wording; incorporate deliberate feedback.
+2. Review the drafted frontend feature descriptions and five browser checks,
+   one-worker setup/reset/teardown, configuration, scripts, and aggregate integration.
+   Service Cucumber profiles remain isolated. Checks use actual APIs and test-side clock changes.
+3. Record genuine red UI behavior against the runtime shell. Establish approved
+   independent visual references and environment record. Prove deliberate visual
+   and textual changes are caught; normal runs cannot update protected images.
+4. Human reviews and freezes. Then implement frontend, validate full suites, review
+   ENG-01, and checkpoint. Do not add registration/admin/mobile/extra bill flows.
+
+The unchanged backend validation run is recorded in `/tmp/fe01-design-validation.log`.
+The guard is expected to reject new protected design files until human review and
+freeze. This does not mark FE-01 implemented or the new browser checks passing.
+
+Visual calibration on the independent preview: repeat renders matched; changing
+`Sign in` to `Log in` produced 269 changed pixels, and shifting main content 8px
+produced 5,839. Changing the bill balance from $50.00 to $60.00 stayed within the
+100-pixel tolerance but failed the exact bill-summary amount expectation. All six
+summary amounts now have exact assertions. This is calibration of reference images
+and assertion logic, not evidence that unimplemented application behavior passes.
+Evidence: `test-results/fe-01-design/calibration.json` and the adjacent candidate
+and deliberately defective PNGs. The three clean references have been copied to
+`spec/frontend/visual-baselines/` as proposed baselines for human review and freeze;
+they are not approved yet. Defective images remain outside protected paths.
+
+The initial aggregate had five observability startup/health-check failures with
+unusually long elapsed times. Cause remains unconfirmed; the isolated unchanged
+observability suite passed all 113 checks in 151.6s on rerun
+(`/tmp/fe01-observability-rerun.log`). Final aggregate evidence is recorded in
+`/tmp/fe01-full-validation.log`.
+
+Final validation (2026-09-28): `npm test` ran all nine suites. Harness 45,
+schemas 157, runtime 52, authentication 242, observability 113, service BDD
+219 scenarios / 1,685 steps, and backend journeys 9 scenarios / 58 steps passed.
+Guard failed as expected for unfrozen protected drafts. All five browser tests
+started real services and Chromium, then failed at the missing `Sign in` heading
+served by the unchanged frontend runtime shell. This establishes the intentional
+red baseline; later assertions still require validation against the implementation.
+There were no browser installation, launch, fixture, or port-startup failures.
+SHA-256 checks confirmed all three proposed PNG references remained unchanged.
+`git diff --check` and JavaScript syntax/discovery checks passed. No tests skipped.
+
+Next action: human review of the complete design, tests, and proposed PNGs, then
+human `npm --prefix spec run guard:freeze`. Only after that checkpoint should an
+agent implement FE-01. No frontend behavior, freeze, commit, tag, or push was
+performed in this specification draft.

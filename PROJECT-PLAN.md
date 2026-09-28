@@ -59,8 +59,8 @@ access-control checks, and business-trace checks are present. The 166 service
 scenarios resolve their steps. The latest temporary-service rehearsal passed 310
 access and telemetry/workflow checks and caught 13 deliberate defects; its
 temporary implementations were removed afterward. The legacy application remains
-at tag `1.0`. The four JavaScript services now exist, with a frontend runtime shell
-but no UI. IMPL-02 validation and the JavaScript ENG-01 review pass; see the
+at tag `1.0`. The four JavaScript services and the FE-01 vanilla JavaScript frontend
+now exist. IMPL-02 validation and the JavaScript ENG-01 review pass; see the
 [JavaScript review record](docs/engineering-reviews/impl-02-javascript.md) for
 results, findings, and resolved service-BDD harness correction.
 
@@ -71,8 +71,9 @@ flows are added. Pet removal and archival are deferred to the separate DATA-01
 learning exercise. See BACKLOG for current verification and review status.
 IMPL-02's full validation and
 [ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-are complete for the JavaScript backend workspace. FE-01 UI/browser work and
-PERF-01 remain separate tasks before demo readiness. The original intentional red
+are complete for the JavaScript backend workspace. FE-01's UI, five browser checks,
+three visual comparisons, and frontend ENG-01 review also pass at checkpoint `fe-01`.
+PERF-01 remains before demo readiness. The original intentional red
 baseline is historical. The verified implementation checkpoint is tag `impl-02`.
 
 ## Working agreements and ownership
@@ -113,6 +114,7 @@ inspect its requests and invocation counts.
 | A-02 | Language-neutral runtime contract: every service starts with `services/<name>/start`, reads configuration only from environment variables (port, dependency URLs, `CLINIC_NOW`, telemetry endpoint), and exposes a health endpoint and a test-only reset endpoint. Static ports: frontend 3000, Customer 4001, Reservation 4002, VeterinarianServices 4003, Checkout 4004, payment fake 4010, OTLP collector 4318. A port-freeing script clears a port before a service starts or is rebuilt. Full contract: `spec/contracts/runtime-contract.md`. |
 | A-03 | Tests are black-box: they reach services only over HTTP, validate responses against the published schemas, and never import application code. Telemetry is exported over OTLP to a test collector so OBS rules work in any language. |
 | A-04 | The frontend is its own plain HTML/JS project. It calls services only through their published APIs and uses accessible labels for Playwright. |
+| A-11 | FE-01 uses vanilla JavaScript, a fixed desktop viewport, and a small headless Chromium suite. Preserve branding, layout, wording, and interactions across reconstruction with a small reviewed visual tolerance. Retain approved CSS, local fonts/images, design instructions, tests, and visual baselines under `spec/frontend/` and `spec/tests/browser/`; regenerate frontend application code. The separate frontend experiment follows the Checkout experiment (DEMO-04). |
 | A-05 | Final demo: all services built in JavaScript; Checkout rebuilt live in Python against unchanged tests; Playwright and performance rerun. A whole-backend Python rebuild is a recorded stretch. |
 | A-06 | Minimum performance test: key endpoints stay under a p95 latency budget (proposed 200 ms) at a small concurrent load (proposed 10 users for 30 s) with zero errors. Same thresholds for every language. |
 | A-07 | Protection of `spec/**`, `docs/specs/**`, `.github/**`, `.claude/**`, `AGENTS.md` (humans edit, agents read; build-phase tasks never touch them): `.claude/settings.json` deny rules plus a PreToolUse hook (edit tools and shell), `CODEOWNERS`, and a required `guard` workflow that checks the human-frozen `spec/protected.sha256` manifest and rejects skipped or focused tests. |
@@ -282,8 +284,9 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 TEST-01 is complete at tag `test-01`; SPEC-05 and TEST-02 are reviewed and frozen.
 IMPL-02 and the JavaScript
 [ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-review pass at checkpoint `impl-02`. Next, define and
-complete FE-01's browser UI/journey and PERF-01's agreed performance checks before
-reconstruction rehearsals. Repeat ENG-01 for every reconstruction.
+review pass at checkpoint `impl-02`. FE-01 is verified at checkpoint `fe-01`;
+approved design assets and browser/visual expectations remain frozen. Define and
+approve PERF-01 thresholds and executable performance checks next, then proceed
+to reconstruction rehearsals. Repeat ENG-01 for every reconstruction.
 Still needed from the presenter are the talk date, session length, and
 live rebuild time budget; those choices become relevant before DEMO-01.

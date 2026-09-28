@@ -242,12 +242,37 @@ file maps to at least one operation (`x-features`). Structural tests in
 
 ### FE-01 — Frontend project
 
-Status: UI planned; runtime shell implemented and verified under IMPL-02. Decision A-04.
+Status: verified. Phase: implementation. Stage: verified; user-approved design,
+browser checks, and visual references are human-frozen. Decision A-04.
+Checkpoint: `fe-01`.
 
-- Plain HTML/JS in `frontend/`, calling services directly through their published APIs
-  using CORS (runtime contract).
-- Accessible labels and roles so Playwright scenarios read like a user's actions.
-- Playwright workflow scenarios live in `spec/` and stay unchanged across the language swap.
+Accepted scope: vanilla JavaScript; login, customer appointment request, assigned
+vet acceptance and visit recording, bill finalization, and customer card payment.
+Keep wider business-rule coverage in backend suites. One fixed desktop viewport
+and headless Chromium; no mobile/browser matrix or extra product workflows.
+
+Preserve appearance and behavior across reconstruction without requiring identical
+source. Retain approved CSS, local fonts/license, logo/images, design instructions,
+tests, and approved visual references under `spec/`. Delete only frontend application
+code in a later authorized experiment after Checkout reconstruction (DEMO-04).
+
+Approved and frozen: [design contract](spec/frontend/design.md), [screen contract](spec/frontend/screens.md),
+[browser coverage plan](spec/tests/browser/README.md), and
+[visual-reference policy](spec/frontend/visual-baselines/README.md).
+Approved identity: Cedar & Paw Veterinary; evergreen/ivory, local Inter, original
+SVG paw mark, minimal imagery. [Static review preview](docs/fe-01-design-preview.html)
+supports `#login`, `#appointments`, and `#bill`; it is not the application.
+
+Five executable Playwright checks now accompany the frontend feature scenarios;
+`npm --prefix spec run test:browser` runs them and `npm test` includes them.
+Last verification: `npm test` passes all nine suites, including five browser checks
+and three visual comparisons in 10.2 seconds. All nine supplemental engineering
+checks, lint/formatting, and connected payment-trace verification pass. The status
+announcement race was fixed in the implementation without changing frozen tests.
+See [FE-01 handoff](docs/fe-01-handoff.md) for verification and calibration evidence.
+The [frontend ENG-01 review](docs/engineering-reviews/fe-01-javascript.md) passes.
+Next: PERF-01 thresholds/specifications, then reconstruction rehearsals. The browser
+timing is measured evidence, not a substitute for the planned performance gate.
 
 ### PERF-01 — Minimum performance test
 
@@ -269,6 +294,21 @@ Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
 - Pass [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
   for the JavaScript baseline and each Python reconstruction.
 - Stretch (recorded): rebuild the whole backend in Python.
+
+### DEMO-04 — Reconstruct the frontend from retained design assets
+
+Status: planned after Checkout's reconstruction experiment (DEMO-03) and a verified
+FE-01 checkpoint. Phase: experiment; no deletion or implementation authorized now.
+
+In an isolated workspace, retain protected design instructions, CSS, fonts/license,
+logo/images, browser tests, and approved visual baselines; retain the backend. Delete
+only `frontend/` application/build/startup code using an explicit reviewed manifest.
+Exclude previous frontend source/history and the static design-preview HTML from
+reconstruction inputs. Rebuild with vanilla JavaScript by default; select another
+framework or server language only for an intentionally chosen later comparison.
+Require the same appearance within the frozen tolerance, exact text/interactions,
+the same backend behavior, and ENG-01. Record elapsed time, interventions, failures,
+and retained scaffolding. No claim of identical source or newly invented branding.
 
 ### TEST-01 — Service-level executable tests (all red)
 

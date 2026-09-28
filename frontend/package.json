@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check server.js"
+    "check": "./setup"
   }
 }

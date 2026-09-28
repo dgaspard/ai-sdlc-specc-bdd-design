@@ -14,6 +14,7 @@ const SUITES = [
   { name: "Observability (OpenTelemetry)", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/observability/**/*.test.js"] },
   { name: "Service features (Cucumber)", cmd: "npx", args: ["cucumber-js"] },
   { name: "Backend journeys (Playwright HTTP)", cmd: "npx", args: ["cucumber-js", "--profile", "workflows"] },
+  { name: "Frontend journeys (headless Chromium)", cmd: "npx", args: ["playwright", "test", "--config", "tests/browser/playwright.config.js"] },
 ];
 
 const results = [];

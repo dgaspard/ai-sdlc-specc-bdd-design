@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cedar &amp; Paw — FE-01 design preview</title>
+  <link rel="stylesheet" href="../spec/frontend/styles/clinic.css">
+</head>
+<body>
+<!-- Inert review artifact. Select #login, #appointments, or #bill. No application APIs. -->
+<template id="login">
+  <main class="login">
+    <div class="login-panel">
+      <section class="login-intro" aria-label="Clinic introduction">
+        <div class="brand"><img src="../spec/frontend/assets/cedar-paw.svg" alt=""><div><strong>Cedar &amp; Paw</strong><span>VETERINARY</span></div></div>
+        <div><div class="eyebrow">CARE THAT FEELS PERSONAL</div><h1>Good care,<br>every step.</h1><p>Your pet's care, in one place.</p></div>
+        <p class="small">Demonstration clinic</p>
+      </section>
+      <section class="login-form" aria-labelledby="sign-in-heading">
+        <h2 id="sign-in-heading">Sign in</h2><p class="muted">Welcome back to Cedar &amp; Paw.</p>
+        <form>
+          <div class="field"><label for="username">Username</label><input id="username" autocomplete="username"></div>
+          <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password"></div>
+          <button class="wide" type="submit">Sign in</button>
+        </form>
+        <p class="login-note">For customers and veterinarians.</p>
+      </section>
+    </div>
+  </main>
+</template>
+<template id="sidebar">
+  <aside class="sidebar">
+    <div class="brand"><img src="../spec/frontend/assets/cedar-paw.svg" alt=""><div><strong>Cedar &amp; Paw</strong><span>VETERINARY</span></div></div>
+    <nav aria-label="Main"><a class="nav-link" aria-current="page" href="#appointments">Appointments</a></nav>
+    <div class="identity"><p>Jordan Rivera</p><p>Customer</p><a href="#login">Sign out</a></div>
+  </aside>
+</template>
+<template id="appointments">
+  <main class="main">
+    <div class="eyebrow muted">CUSTOMER PORTAL</div>
+    <header class="page-heading"><div><h1>Appointments</h1><p class="muted">Manage your pet's upcoming care.</p></div><button type="button">Request appointment</button></header>
+    <section class="panel table-panel" aria-label="Appointments">
+      <table><thead><tr><th>Pet</th><th>Date &amp; time</th><th>Veterinarian</th><th>Status</th><th>Details</th></tr></thead>
+      <tbody><tr><td><strong>Milo</strong></td><td>Oct 12, 2026<div class="detail">9:00 AM CDT</div></td><td>Dr Avery Taylor</td><td><span class="badge pending">Requested</span></td><td><a href="#bill" aria-label="View appointment for Milo on Oct 12, 2026">View appointment</a></td></tr></tbody></table>
+    </section>
+  </main>
+</template>
+<template id="bill">
+  <main class="main">
+    <div class="eyebrow muted">CUSTOMER PORTAL</div>
+    <header class="page-heading"><div><h1>Visit bill</h1><p class="muted">Milo · Oct 12, 2026 · Dr Avery Taylor</p></div><span class="badge pending">Balance due</span></header>
+    <div class="columns">
+      <div class="stack">
+        <section class="panel"><h2>Services provided</h2><div class="row"><span>Wellness</span><strong>$50.00</strong></div><p class="muted small rule">Your bill includes the services recorded for this visit.</p></section>
+        <section class="panel"><h2>Make a payment</h2><p class="muted small">Pay all or part of your remaining balance.</p><form>
+          <div class="field rule"><label for="amount">Payment amount</label><input id="amount" inputmode="decimal" value="50.00" aria-describedby="amount-help"><p class="detail" id="amount-help">USD · Up to $50.00</p></div>
+          <div class="field"><label for="method">Payment method</label><select id="method"><option>Demo card — approve</option><option>Demo card — decline</option></select></div>
+          <button type="submit">Pay now</button>
+        </form></section>
+      </div>
+      <section class="panel" aria-labelledby="summary-title"><h2 id="summary-title">Bill summary</h2>
+        <div class="row small"><span>Services</span><span>$50.00</span></div>
+        <div class="row small"><span>Booking fee</span><span>$20.00</span></div>
+        <div class="row rule"><strong>Total</strong><strong>$70.00</strong></div>
+        <div class="row small"><span>Payments received</span><span>$20.00</span></div>
+        <div class="row small"><span>Promotion</span><span>$0.00</span></div>
+        <div class="rule"><p class="small muted">Balance due</p><p class="balance">$50.00</p></div>
+        <p class="detail rule">Your $20.00 booking payment is already included in payments received.</p>
+      </section>
+    </div>
+  </main>
+</template>
+<div id="preview"></div>
+<script>
+  function render() {
+    const name = ['login', 'appointments', 'bill'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'login';
+    const root = document.getElementById('preview');
+    root.replaceChildren();
+    if (name === 'login') root.append(document.getElementById(name).content.cloneNode(true));
+    else {
+      const shell = document.createElement('div'); shell.className = 'app';
+      shell.append(document.getElementById('sidebar').content.cloneNode(true), document.getElementById(name).content.cloneNode(true)); root.append(shell);
+    }
+  }
+  addEventListener('hashchange', render);
+  document.addEventListener('submit', event => event.preventDefault());
+  render();
+</script>
+</body>
+</html>
