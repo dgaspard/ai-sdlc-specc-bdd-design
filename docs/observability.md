@@ -7,8 +7,9 @@ for the new four-service design ([SPEC-01](specs/business-decisions.md),
 [SPEC-02](specs/domain-model.md)). All rules are **proposed** until the specification
 review approves them; assigning an ID does not approve semantics. TEST-01 supplies
 protected assertions for scoped runtime, access, business-trace, and cross-process
-checks. The temporary-service rehearsal passed those checks, but application
-implementation status remains red. The legacy app and its OBS-011 contract are
+checks. The JavaScript implementation now passes all 113 scoped observability
+checks and the 52 runtime checks. See the [ENG-01 review](engineering-reviews/impl-02-javascript.md)
+for evidence and the separate aggregate service-BDD harness blocker. The legacy app and its OBS-011 contract are
 preserved at tag `1.0` and are not part of the new suite (D-24).
 
 ## OpenTelemetry conformance
@@ -192,18 +193,18 @@ uncovered rules.
 
 | Rule | Requirement | Authority | Test reference / planned title | Implementation status |
 | --- | --- | --- | --- | --- |
-| OBS-001 | Service identity | Proposed | [runtime-contract.test.js](../spec/tests/runtime/runtime-contract.test.js): `[RT-008] [OBS-001] <Service> exports traces as OTLP/HTTP protobuf named <service.name>` | Test present; application not implemented |
-| OBS-002 | W3C propagation and context isolation | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-002]` request/acceptance/finalization headers and concurrent reservation contexts | Scoped checks rehearsed; application not implemented |
-| OBS-003 | One business span per attempt | Proposed | No test; planned `[OBS-003] each attempt finishes exactly one business span` | Not implemented |
-| OBS-004 | Outcome/status mapping | Proposed | No test; planned `[OBS-004] outcomes map to agreed statuses` | Not implemented |
-| OBS-005 | IDs present, sensitive data excluded | Proposed | No test; planned `[OBS-005] telemetry includes known IDs without sensitive data` | Not implemented |
-| OBS-006 | Stable names and attribute keys | Proposed | No test; planned `[OBS-006] span names and attributes follow the contract` | Not implemented |
+| OBS-001 | Service identity | Proposed | [runtime-contract.test.js](../spec/tests/runtime/runtime-contract.test.js): `[RT-008] [OBS-001] <Service> exports traces as OTLP/HTTP protobuf named <service.name>` | Implemented; scoped checks pass |
+| OBS-002 | W3C propagation and context isolation | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-002]` request/acceptance/finalization headers and concurrent reservation contexts | Implemented; scoped checks pass |
+| OBS-003 | One business span per attempt | Proposed | No test; planned `[OBS-003] each attempt finishes exactly one business span` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-004 | Outcome/status mapping | Proposed | No test; planned `[OBS-004] outcomes map to agreed statuses` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-005 | IDs present, sensitive data excluded | Proposed | No test; planned `[OBS-005] telemetry includes known IDs without sensitive data` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-006 | Stable names and attribute keys | Proposed | No test; planned `[OBS-006] span names and attributes follow the contract` | No dedicated rule-wide test; broader coverage unverified |
 | OBS-007 | Structured correlated logs | Proposed | No test | Deferred; conditional on adding logs |
-| OBS-008 | Exporter lifecycle and failure isolation | Proposed | No test; planned `[OBS-008] exporter failures preserve business results` | Not implemented |
-| OBS-009 | Full sampling in demo/tests | Proposed | No test; planned `[OBS-009] demo configuration captures every exercised trace` | Not implemented |
+| OBS-008 | Exporter lifecycle and failure isolation | Proposed | No test; planned `[OBS-008] exporter failures preserve business results` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-009 | Full sampling in demo/tests | Proposed | No test; planned `[OBS-009] demo configuration captures every exercised trace` | No dedicated rule-wide test; broader coverage unverified |
 | OBS-010 | Bounded metric labels | Proposed | No test | Deferred; conditional on adding metrics |
 | OBS-011 | Legacy visit cancellation | Retired → OBS-026 | Legacy test at tag `1.0` only | Not applicable |
-| OBS-012 | Customer eligibility | Proposed | No test; planned `[OBS-012] eligibility emits the agreed outcomes` | Not implemented |
+| OBS-012 | Customer eligibility | Proposed | No test; planned `[OBS-012] eligibility emits the agreed outcomes` | No dedicated rule-wide test; broader coverage unverified |
 | OBS-013 | Legacy reservation create | Retired → OBS-023 | None | Not applicable |
 | OBS-014 | Legacy checkout execute | Retired → OBS-031 | None | Not applicable |
 | OBS-015 | Legacy payment authorize | Retired → OBS-032 | None | Not applicable |
@@ -211,29 +212,29 @@ uncovered rules.
 | OBS-017 | Legacy success evidence | Retired → OBS-036 | None | Not applicable |
 | OBS-018 | Legacy decline evidence | Retired → OBS-037 | None | Not applicable |
 | OBS-019 | Legacy replay evidence | Retired → OBS-038 | None | Not applicable |
-| OBS-020 | Dependency failure evidence | Proposed | No test; planned `[OBS-020] dependency failures finish spans without claiming success` | Not implemented |
-| OBS-021 | Privacy of captured telemetry | Proposed | No test; planned `[OBS-021] captured telemetry excludes sensitive fixture values` | Not implemented |
-| OBS-022 | Concurrent workflow isolation | Proposed | No test; planned `[OBS-022] concurrent workflows retain distinct contexts and correct IDs` | Not implemented |
-| OBS-023 | Reservation request | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-023] request emits <outcome>` | Scoped checks rehearsed; application not implemented |
-| OBS-024 | Reservation accept | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-024] accept emits <outcome>` | Not implemented; red |
-| OBS-025 | Reservation deny | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-025] deny emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-026 | Reservation cancel | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-026] cancel emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-027 | Visit record | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-027] record_visit emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-028 | Fee lookup | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-028] get_fees emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-029 | Bill finalization | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-029] finalize_bill emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-030 | Promotion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-030] apply_promotion emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-031 | Checkout pay | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-031] pay emits <outcome>` | Not implemented; red |
-| OBS-032 | Fake payment authorize | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-032] payment.authorize emits <outcome>`; both purposes | Not implemented; red |
-| OBS-033 | Cash recording | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-033] record_cash emits <outcome>`; both purposes | Not implemented; red; partial outcomes |
-| OBS-034 | Account change | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-034] apply_account_change emits <outcome>`; charge/credit/discount | Not implemented; red; partial outcomes |
-| OBS-035 | Reservation completion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-035] complete emits <outcome>` | Not implemented; red; partial outcomes |
-| OBS-036 | Checkout success evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-036] checkout success connects real services` | Not implemented; red |
-| OBS-037 | Checkout decline evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-037] checkout decline connects real services` | Not implemented; red |
-| OBS-038 | Replay evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-038] <concurrent/sequential> <declined/authorized> retries preserve outcome and authorize once` | Not implemented; red |
-| OBS-039 | Booking acceptance evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-039] booking <decline/acceptance>` | Not implemented; red |
-| OBS-040 | Promotion-to-zero evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-040] promotion to zero completes settled across real services without authorization` | Not implemented; red |
-| OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`; client-span, 5xx, and business-parent checks are exercised in TEST-01 | Scoped checks rehearsed; application not implemented |
-| OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Test present; application not implemented |
+| OBS-020 | Dependency failure evidence | Proposed | No test; planned `[OBS-020] dependency failures finish spans without claiming success` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-021 | Privacy of captured telemetry | Proposed | No test; planned `[OBS-021] captured telemetry excludes sensitive fixture values` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-022 | Concurrent workflow isolation | Proposed | No test; planned `[OBS-022] concurrent workflows retain distinct contexts and correct IDs` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-023 | Reservation request | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-023] request emits <outcome>` | Implemented; scoped checks pass |
+| OBS-024 | Reservation accept | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-024] accept emits <outcome>` | Implemented; scoped checks pass |
+| OBS-025 | Reservation deny | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-025] deny emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-026 | Reservation cancel | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-026] cancel emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-027 | Visit record | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-027] record_visit emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-028 | Fee lookup | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-028] get_fees emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-029 | Bill finalization | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-029] finalize_bill emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-030 | Promotion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-030] apply_promotion emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-031 | Checkout pay | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-031] pay emits <outcome>` | Implemented; scoped checks pass |
+| OBS-032 | Fake payment authorize | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-032] payment.authorize emits <outcome>`; both purposes | Implemented; scoped checks pass |
+| OBS-033 | Cash recording | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-033] record_cash emits <outcome>`; both purposes | Implemented; scoped checks pass; partial outcomes |
+| OBS-034 | Account change | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-034] apply_account_change emits <outcome>`; charge/credit/discount | Implemented; scoped checks pass; partial outcomes |
+| OBS-035 | Reservation completion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-035] complete emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
+| OBS-036 | Checkout success evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-036] checkout success connects real services` | Implemented; scoped checks pass |
+| OBS-037 | Checkout decline evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-037] checkout decline connects real services` | Implemented; scoped checks pass |
+| OBS-038 | Replay evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-038] <concurrent/sequential> <declined/authorized> retries preserve outcome and authorize once` | Implemented; scoped checks pass |
+| OBS-039 | Booking acceptance evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-039] booking <decline/acceptance>` | Implemented; scoped checks pass |
+| OBS-040 | Promotion-to-zero evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-040] promotion to zero completes settled across real services without authorization` | Implemented; scoped checks pass |
+| OBS-041 | HTTP semantic conventions | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-041] <Service> incoming request spans use stable HTTP semantic conventions`, `[OBS-041] <Service> spans use no deprecated HTTP attribute names`; client-span, 5xx, and business-parent checks are exercised in TEST-01 | Implemented; scoped checks pass |
+| OBS-042 | Resource attributes | Proposed | [otel-conventions.test.js](../spec/tests/observability/otel-conventions.test.js): `[OBS-042] <Service> resource identifies service, version, and SDK language` | Implemented; scoped checks pass |
 | OBS-043 | Customer registration | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-043] register emits <outcome>` | Tests cover registration and relationship validation rejection; unexpected-failure/privacy payload branches remain gaps |
 | OBS-044 | Completed clinical correction | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-044] correct_visit emits <outcome>` | Tests cover correction, assignment, state, and missing visit; unexpected failure remains a gap |
 | OBS-045 | Catalog update | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-045] update_service emits <outcome>` | Tests cover update and missing service; unexpected failure remains a gap |
@@ -244,8 +245,9 @@ by the rehearsal. The [2026-09-27 rehearsal](test-slices-5-6-rehearsal.md) passe
 all 92 slice-6 telemetry/workflow checks, alongside 218 access checks, and
 detected deliberate defects in propagation, outcomes, status, span uniqueness,
 parenting, replay, payment counts, and downstream account work. Temporary
-implementations were removed; the table's application implementation status
-therefore remains red. See also [the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
+implementations were removed after that historical rehearsal. The current JavaScript
+implementation subsequently passed all 113 scoped telemetry checks; the table now
+reflects that implementation run. See also [the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
 claim of exhaustive outcome coverage or a passing application. Helpers also check
 span uniqueness, completion, status, and SERVER parenting for the exercised cases;
 this does not close the broader OBS-003–009 test gaps above.

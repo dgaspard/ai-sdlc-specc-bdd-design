@@ -20,21 +20,22 @@ service scenarios are present. The latest access-control and telemetry rehearsal
 passed 310 checks against temporary services and detected 13 deliberate defects;
 see the [rehearsal report](docs/test-slices-5-6-rehearsal.md).
 
-The temporary implementations were removed. There is no application code yet:
-the frozen TEST-01 checkpoint passes the protected guard, harness, and schema suites.
-Reviewed and frozen SPEC-05 adds complete self-registration, partial payments,
-clinical corrections, and catalog updates. The guard passes;
-application-dependent suites fail because the services do not exist.
-The scenarios have step definitions; they are not undefined.
+The four JavaScript services are implemented with independent in-memory stores,
+HTTP APIs, authentication, and OpenTelemetry export. Reviewed and frozen SPEC-05
+adds complete self-registration, partial payments, clinical corrections, and
+catalog updates; there are now 219 service scenarios. The frontend has a runtime
+shell only; the UI remains FE-01 work. IMPL-02 validation and ENG-01 findings are
+recorded in the [JavaScript engineering review](docs/engineering-reviews/impl-02-javascript.md).
 
 TEST-02 now has nine frozen backend journeys using Playwright HTTP requests without
 launching a browser. These retain the existing workflows without extra UI/setup
-flows. The next checkpoint is implementation plus the
-[Engineering Discipline review](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap).
+flows. IMPL-02 and the JavaScript
+[Engineering Discipline review](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
+now pass, including the complete `npm test` aggregate.
 [BACKLOG.md](BACKLOG.md) tracks verification and task status. The earlier
 single-app version remains preserved at tag `1.0`.
 
-## Planned services
+## Services
 
 | Service | Owns |
 | --- | --- |
@@ -48,8 +49,9 @@ Each runs as a separate local HTTP process with in-memory storage.
 ## Where things live
 
 ```text
-services/<name>/                   One project per service (any language); README only for now
-frontend/                          Plain HTML/JS frontend; README only for now
+services/<name>/                   JavaScript services with executable setup/start scripts
+services/platform/                 Shared HTTP/auth/schema/telemetry infrastructure
+frontend/                          Runtime shell; browser UI remains FE-01
 spec/                              Protected: features, contracts, seed data, tests, harness, fakes
 docs/specs/                        Protected: decisions, domain model, schema decisions
 docs/observability.md              Telemetry rules OBS-001..OBS-042 and coverage
@@ -66,11 +68,19 @@ Node.js 22, 24, or 26+ (matching the package engine declarations).
 ```bash
 npm ci
 npm --prefix spec ci
+./services/customer/setup           # installs the shared, locked JavaScript dependencies
 npm test                            # runs every suite and prints an aggregate summary
+npm run check                       # implementation lint and formatting checks
+npm run test:engineering            # additional engineering regression evidence
+npm run trace:payment               # capture a real-service checkout trace
 npm --prefix spec run guard:check    # verifies frozen protected files and skip/focus rules
 npm --prefix spec run test:bdd       # service scenarios only
 npm --prefix spec run test:workflows # real-service journeys using Playwright HTTP
 ```
 
-An exit code of 1 from `npm test` is expected at this specification-only checkpoint.
-A finished application must pass every required suite; TEST-01 is not that milestone.
+Full validation requires permission to bind local test ports. The service-BDD
+harness lifecycle correction is authorized and human-frozen; all 219 service
+scenarios and nine backend journeys pass in the complete aggregate run.
+The [engineering review](docs/engineering-reviews/impl-02-javascript.md) records
+the fixes, evidence, and in-memory limitations. FE-01's UI/browser journey and
+PERF-01 remain future work. Only a human reviews and freezes protected changes.

@@ -16,6 +16,14 @@ import * as seed from "../../harness/seed.js";
 setDefaultTimeout(30_000);
 
 const stubs = new Map(); // project name -> StubServer (started once per run)
+let activeService = null;
+
+async function stopScenarioProcesses() {
+  await stopAll();
+  await Promise.all([...stubs.values()].map((stub) => stub.stop()));
+  stubs.clear();
+  activeService = null;
+}
 
 async function stubFor(name) {
   if (!stubs.has(name)) {
@@ -119,6 +127,13 @@ Before(async function ({ pickle }) {
   this.service = name;
   assertImplemented(name); // fails the scenario with "<Service> not implemented: ..."
 
+  // A dependency stub belongs to the Cucumber process. Close it before its
+  // service becomes the subject; freePort must never kill the test runner.
+  if (activeService !== null && activeService !== name) {
+    await stopScenarioProcesses();
+  }
+  activeService = name;
+
   await ensureRunning("collector");
   await resetProject("collector");
 
@@ -150,6 +165,5 @@ After(function ({ result }) {
 });
 
 AfterAll(async function () {
-  await stopAll();
-  await Promise.all([...stubs.values()].map((s) => s.stop()));
+  await stopScenarioProcesses();
 });

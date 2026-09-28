@@ -28,13 +28,16 @@ complete enterprise correctness or identical source code.
 Tag `spec-schema-complete` locks the business decisions, domain model, schemas,
 observability rules, and service feature files. The legacy single-app code, its
 tests, and its API contract were removed (D-24); they remain available at tag `1.0`.
-There is no application code. TEST-01 is complete: protected service steps,
+TEST-01 is complete: protected service steps,
 schema, access-control, and telemetry checks exist, and their temporary-service
 rehearsals are recorded below. The frozen TEST-01 baseline contains 166 service
 scenarios. SPEC-05/TEST-02 are now reviewed and frozen: 219 service scenarios and
-nine Playwright HTTP journeys resolve their steps and remain red because the
-application is absent. The guard, harness, and schema checks pass. The checkpoint
-is tagged `spec-05-test-02-frozen`; see the handoff below.
+nine Playwright HTTP journeys. That specification checkpoint is tagged
+`spec-05-test-02-frozen`. The four JavaScript services now exist; all 219 service
+scenarios pass in separate groups, along with runtime and observability checks.
+The harness lifecycle correction is authorized and human-frozen; the full
+aggregate passes and the JavaScript ENG-01 review is complete;
+see [IMPL-02](#impl-02--build-the-four-service-checkout-workflow) and its review.
 
 ## Ordered work
 
@@ -239,7 +242,7 @@ file maps to at least one operation (`x-features`). Structural tests in
 
 ### FE-01 — Frontend project
 
-Status: planned. Decision A-04.
+Status: UI planned; runtime shell implemented and verified under IMPL-02. Decision A-04.
 
 - Plain HTML/JS in `frontend/`, calling services directly through their published APIs
   using CORS (runtime contract).
@@ -388,7 +391,7 @@ The full-balance-only payment rule is superseded by the approved partial payment
 Only the human runs `guard:freeze` after reviewing the revised protected files.
 Keep the original `test-01` and `test-01-docs` tags intact.
 
-Handoff (2026-09-27): registration, partial payment, catalog update, and completed
+Historical specification handoff (2026-09-27): registration, partial payment, catalog update, and completed
 clinical correction contracts/features/steps are frozen, with nine backend
 journeys and OBS-043–045. Pet removal is excluded. No business questions remain.
 The human reviewed the specification changes and ran `guard:freeze`. `npm test`
@@ -401,10 +404,14 @@ or mutation rehearsal; do not claim implementation verification.
 Checkpoint: tag `spec-05-test-02-frozen`. Next: proceed to IMPL-02, coordinating
 the application build with FE-01 and PERF-01. Broader
 telemetry failure/privacy branches remain explicit gaps in the coverage table.
+Current implementation evidence superseding this red baseline is recorded under
+IMPL-02 and ENG-01; the frozen expectations are unchanged.
 
 ### TEST-02 — Cross-service workflow specifications and API tests
 
-Status: reviewed and frozen (2026-09-27). Phase: spec. Stage: tests red. Depends on TEST-01 and SPEC-05.
+Status: reviewed and frozen (2026-09-27); nine backend journeys pass against the
+JavaScript implementation. Phase: spec. Stage: verified for the backend journey
+scope. Depends on TEST-01 and SPEC-05. IMPL-02's aggregate gate remains separate.
 
 Scope: specify a small set of user journeys spanning the four services, then
 write protected workflow steps using Playwright's HTTP request API without
@@ -468,6 +475,18 @@ that later exercise to learn data engineering. Define retention, access, archiva
 and retrieval requirements then; no archival implementation, pet-removal endpoint,
 or related failing acceptance tests belong in the November TDD demo.
 
+### ARCH-05 — Evaluate Docker Compose isolation after the MVP
+
+Status: deferred until after the November MVP. Phase: architecture review.
+
+Evaluate whether Docker Compose should manage the PetClinic services, telemetry
+collector, and payment fake after the current host-process implementation is
+validated. Assess project-scoped startup/shutdown, health checks, isolated networks,
+port ownership, reproducibility, and whether the narrower container boundary gives
+humans safer control over AI-driven process management. Do not introduce Docker,
+Compose files, or a new runtime dependency before the current IMPL-02 checkpoint
+is complete and the architectural trade-off is explicitly reviewed.
+
 ### IMPL-01 — Legacy visit cancellation (retired)
 
 Status: retired by D-24. The legacy app was removed; its cancellation exercise is
@@ -476,13 +495,33 @@ preserved at tag `1.0`. Reservation cancellation is specified in
 
 ### IMPL-02 — Build the four-service checkout workflow
 
-Status: ready to start; TEST-02 expectations and tests are reviewed and frozen.
+Status: verified (2026-09-27); full aggregate and JavaScript ENG-01 pass.
+Phase: build. Stage: verified.
 Service specifications and TEST-01 are complete; coordinate the JavaScript build
 with FE-01 and the agreed PERF-01 checks.
 
-Before declaring this checkpoint ready, pass
-[ENG-01](#eng-01--review-implementation-quality-across-the-language-swap) and retain
-the JavaScript engineering review record alongside the test results.
+Handoff: the four JavaScript services and shared HTTP/authentication/OTLP runtime
+are checkpointed at tag `impl-02`. Local networking permission is available. All 52
+runtime checks and 219 service scenarios pass when service groups run separately;
+five additional engineering checks pass. The initial aggregate passed guard,
+harness, schemas, authentication, and nine backend journeys. Its implementation
+failures were corrected. The protected Cucumber lifecycle retained a stub
+in the runner when switching services; freeing that port terminated Cucumber.
+The [correction](docs/service-bdd-lifecycle-proposal.patch) is now authorized and
+human-frozen, and all 219 scenarios pass in one run. Final `npm test` exits zero:
+guard, 45 harness checks, 157 schemas, 52 runtime checks, 242 authentication checks,
+113 observability checks, 219 service scenarios, and nine backend journeys pass.
+RT-009 remains human-frozen and the guard passes. See the
+[engineering review](docs/engineering-reviews/impl-02-javascript.md) and
+[handoff](docs/impl-02-handoff.md) for final rerun evidence and next actions.
+Post-fix reruns also pass all 242 authentication checks, 113 observability checks,
+and nine Playwright HTTP journeys. Formatting/lint pass and the implementation
+dependency audit reports zero vulnerabilities. Checkpoint: tag `impl-02`.
+
+[ENG-01](#eng-01--review-implementation-quality-across-the-language-swap) is complete
+for this JavaScript backend workspace, with its review record retained alongside
+the test results at tag `impl-02`. Next: FE-01 and
+PERF-01 before reconstruction/demo readiness.
 
 Implement successful checkout, declined payment, and idempotent retries against
 the agreed expectations. Run real local service dependencies in integration tests;
@@ -507,9 +546,14 @@ Status: planned after a passing implementation checkpoint.
 
 ### ENG-01 — Review implementation quality across the language swap
 
-Status: planned; applies to the all-JavaScript implementation and each Python
-Checkout reconstruction. Phase: implementation and demo review. Depends on a
-runnable implementation. Fourth pillar: **Engineering Discipline**.
+Status: JavaScript review complete and passed (2026-09-27), including final
+aggregate validation after the authorized harness correction and human freeze.
+Python reviews remain planned.
+Applies to the all-JavaScript implementation and each Python Checkout
+reconstruction. Phase: implementation and demo review. Fourth pillar:
+**Engineering Discipline**. See the
+[JavaScript review record](docs/engineering-reviews/impl-02-javascript.md) for
+findings, fixes, test results, connected trace, and limitations.
 
 Purpose: passing BDD, API, observability, and browser checks establishes the
 behavior they cover. Review the implementation separately to determine whether
@@ -561,9 +605,9 @@ specification-first process; proposed checks under protected paths need explicit
 specification authorization and human review/freeze before implementation.
 Do not modify frozen tests merely to pass this gate.
 
-Next action: use this gate at IMPL-02 and every DEMO-01/DEMO-03/EXP-01 checkpoint;
-refine the checklist against the first working Checkout implementation. No review
-or language-tool result is claimed before that implementation exists.
+Next action: retain this JavaScript review as the baseline for reconstruction.
+Reuse this gate at every DEMO-01/DEMO-03/EXP-01 checkpoint, with equivalent Python
+code checks and payment/service-boundary review.
 
 ### EXP-01 — Measure service reconstruction
 

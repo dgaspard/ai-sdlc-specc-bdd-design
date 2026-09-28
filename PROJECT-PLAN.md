@@ -3,7 +3,7 @@
 > Current business direction: see [SPEC-01 decisions](docs/specs/business-decisions.md).
 > The user has specified four services, including VeterinarianServices, and checkout
 > after a documented visit. Earlier held/pay-to-confirm targets below are historical
-> proposals pending SPEC-02 revision, not approved requirements.
+> proposals superseded by the published contracts.
 
 ## Objective and scope
 
@@ -59,17 +59,21 @@ access-control checks, and business-trace checks are present. The 166 service
 scenarios resolve their steps. The latest temporary-service rehearsal passed 310
 access and telemetry/workflow checks and caught 13 deliberate defects; its
 temporary implementations were removed afterward. The legacy application remains
-at tag `1.0`. No application or frontend code exists.
+at tag `1.0`. The four JavaScript services now exist, with a frontend runtime shell
+but no UI. IMPL-02 validation and the JavaScript ENG-01 review pass; see the
+[JavaScript review record](docs/engineering-reviews/impl-02-javascript.md) for
+results, findings, and resolved service-BDD harness correction.
 
 SPEC-05 and TEST-02 are reviewed and frozen: complete self-registration information,
 partial per-visit payments, clinical-text corrections, catalog updates, and fast
 backend journeys using Playwright HTTP requests without a browser. No extra UI/setup
 flows are added. Pet removal and archival are deferred to the separate DATA-01
 learning exercise. See BACKLOG for current verification and review status.
-Next, build the application under IMPL-02, FE-01, and PERF-01, and complete
+IMPL-02's full validation and
 [ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-before the implementation checkpoint is ready. The intentional red application baseline is documented; it is
-not a specification failure.
+are complete for the JavaScript backend workspace. FE-01 UI/browser work and
+PERF-01 remain separate tasks before demo readiness. The original intentional red
+baseline is historical. The verified implementation checkpoint is tag `impl-02`.
 
 ## Working agreements and ownership
 
@@ -276,8 +280,10 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 ## Immediate next action
 
 TEST-01 is complete at tag `test-01`; SPEC-05 and TEST-02 are reviewed and frozen.
-Proceed to IMPL-02, coordinating FE-01 and PERF-01, then apply
+IMPL-02 and the JavaScript
 [ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-to the first working implementation and every subsequent reconstruction.
+review pass at checkpoint `impl-02`. Next, define and
+complete FE-01's browser UI/journey and PERF-01's agreed performance checks before
+reconstruction rehearsals. Repeat ENG-01 for every reconstruction.
 Still needed from the presenter are the talk date, session length, and
 live rebuild time budget; those choices become relevant before DEMO-01.

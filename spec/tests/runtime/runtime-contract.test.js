@@ -119,7 +119,20 @@ for (const [name, p] of Object.entries(PROJECTS)) {
           assert.equal(added.status, 201);
           const petId = (await added.json()).id;
           assert.equal((await set("2026-10-12T09:05:00-05:00")).status, 204);
-          assert.equal((await fetch(`http://localhost:${p.port}/pets/${petId}`, { headers: bearer(vet) })).status, 200);
+          // The original token was issued seven days earlier and must be expired.
+          assert.equal(
+            (await fetch(`http://localhost:${p.port}/pets/${petId}`, { headers: bearer(vet) })).status,
+            401,
+          );
+          // A newly issued token uses the advanced clinic clock.
+          const refreshed = await login("avery.taylor", "petclinic-demo");
+          assert.equal(refreshed.status, 200);
+          assert.equal(
+            (await fetch(`http://localhost:${p.port}/pets/${petId}`, {
+              headers: bearer(refreshed.body.token),
+            })).status,
+            200,
+          );
           // The clock itself is observable through the clinic-clock iat of a login token.
           const t1 = decodeJwt((await login("jordan.rivera", "petclinic-demo")).body.token).claims.iat;
           assert.equal(t1, Date.parse("2026-10-12T09:05:00-05:00") / 1000);
