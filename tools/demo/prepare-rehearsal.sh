@@ -15,6 +15,12 @@ tag="${2:-demo-01-baseline}"
 runs="${DEMO_RUNS_DIR:-$HOME/petclinic-demo-runs}"
 dest="$runs/$name"
 
+for cmd in claude python3.12 node; do
+  command -v "$cmd" >/dev/null || {
+    echo "Missing '$cmd' on PATH. Install it before preparing a demo workspace." >&2
+    exit 1
+  }
+done
 if [ -e "$dest" ]; then
   echo "Refusing to overwrite existing $dest" >&2
   exit 1

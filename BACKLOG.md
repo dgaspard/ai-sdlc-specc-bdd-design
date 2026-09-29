@@ -601,8 +601,16 @@ that restarting a process loses state and idempotency protection.
 Status: in progress (2026-09-28). Checkpoint tag `demo-01-baseline`. Rehearsal
 scripts, visible journey, and draft rebuild prompt in [tools/demo](tools/demo/README.md).
 Agent: Claude Code in a fresh session; workspace: disposable copy with no JavaScript
-Checkout history; prompt: prepared and reviewed. Pending: presenter review of the
-prompt, then rehearsal 1.
+Checkout history; prompt: prepared and approved (reading shared JavaScript runtime
+is allowed and disclosed; Python ENG-01 deferred until the demo is proven).
+
+| Run | Agent time | Result | Interventions | Record |
+| --- | ---: | --- | ---: | --- |
+| r1 (2026-09-28) | 25m 49s | 10/10 suites pass | 0 | [r1](docs/rehearsals/r1.md) |
+
+r1 surfaced spec gaps GAP-08–11 for human review and one unreproduced
+startup flake to watch. Next: rehearsals 2 and 3 (three consecutive clean runs
+are the live gate), then record the fallback.
 
 - Create a tagged working checkpoint and a bounded deletion script or documented steps.
 - Delete Checkout implementation only; retain contracts, features, tests, helpers,
