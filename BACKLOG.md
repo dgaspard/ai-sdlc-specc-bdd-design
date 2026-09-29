@@ -608,7 +608,7 @@ is allowed and disclosed; Python ENG-01 deferred until the demo is proven).
 | --- | ---: | --- | ---: | --- |
 | r1 (2026-09-28) | 25m 49s | 10/10 suites pass | 0 | [r1](docs/rehearsals/r1.md) |
 
-r1 surfaced spec gaps GAP-08–11 for human review and one unreproduced
+r1 surfaced spec gaps GAP-08–11 (now [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)) and one unreproduced
 startup flake to watch. Next: rehearsals 2 and 3 (three consecutive clean runs
 are the live gate), then record the fallback.
 
@@ -621,6 +621,27 @@ are the live gate), then record the fallback.
   for every reconstruction before calling the run demo-ready.
 - Rehearse timings, pin a supported runtime, preinstall browsers, and retain a
   recovery checkpoint and recorded fallback. No destructive deletion during planning.
+
+### SPEC-06 — Close Checkout specification gaps found in rehearsal
+
+Status: planned. Phase: spec (human review and freeze). Source: [rehearsal r1](docs/rehearsals/r1.md).
+Timing: after the MVP items (three clean DEMO-01 rehearsals, so the specs stay fixed
+across runs) and before the 2026-11-07 talk.
+
+The Python rebuild passed every test but reported behavior the contracts leave
+silent or inconsistent. For each gap: decide the intended behavior, then add or
+amend the contract, OBS rule, and scenario so a test pins it down.
+
+| Gap | Question to decide | Likely artifacts |
+| --- | --- | --- |
+| GAP-08 | Should `not_assigned_veterinarian` be a recorded outcome for applying a promotion and recording cash? | OBS-030, OBS-033 outcome lists; observability test; scenario |
+| GAP-09 | What does promotion/cash return when Reservation cannot record completion (502 `dependency_failed`)? | `checkout.openapi.json` responses; scenario |
+| GAP-10 | Is there an internal-error problem code, or is 500 `dependency_failed` intended? | common problem codes; runtime/contract note |
+| GAP-11 | Confirm the agent's guesses: $0 bill completes as settled; booking fee excluded from `paymentAttempts` but counted in `previouslyPaidAmount`; same-key retry after payment returns current state plus original attempt | business decision entry; scenarios |
+
+Done when: decisions recorded, protected changes human-reviewed and frozen, the
+JavaScript Checkout updated so `npm test` passes, and one fresh Python rehearsal
+passes against the new specs (earlier rehearsal evidence predates them).
 
 ## Experiment and presentation work
 
