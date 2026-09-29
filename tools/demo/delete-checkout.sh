@@ -6,6 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 if [ ! -f .demo/source-tag ]; then
   echo "This is not a disposable demo workspace (no .demo/source-tag). Aborting." >&2
+  latest=$(ls -td "${DEMO_RUNS_DIR:-$HOME/petclinic-demo-runs}"/*/ 2>/dev/null | head -1)
+  [ -n "$latest" ] && echo "Newest workspace: cd \"${latest%/}\"" >&2
   exit 1
 fi
 if [ ! -d services/checkout ]; then
