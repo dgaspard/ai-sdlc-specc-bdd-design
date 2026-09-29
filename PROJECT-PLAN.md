@@ -305,6 +305,12 @@ approved design assets and browser/visual expectations remain frozen. PERF-01 is
 human-frozen and verified at checkpoint `perf-01`; the full aggregate, including
 the guard and local performance suite, passes. Proceed to reconstruction
 rehearsals. Repeat ENG-01 for every reconstruction.
+Re-prioritized 2026-09-29 (ahead of schedule): after DEMO-01 rehearsals, build
+MVP-02A (administrator role and veterinarian roster, with SPEC-06 folded in) and
+PLAY-01 (Excella playbook, evidence, short recording) by 2026-10-14 for an Excella
+leadership visit. Target: rehearsals 2–3 by 10-02; admin specs frozen by 10-07;
+build verified by 10-10; playbook package by 10-13; fresh Python rehearsal against
+the new specs after 10-14, before the talks.
 Talk dates (2026-11-07, 2026-11-13), one-hour length, and the demo flow are
 set (A-12). Next: DEMO-01 rehearsals, which record rebuild duration and produce
 the pre-recorded fallback.

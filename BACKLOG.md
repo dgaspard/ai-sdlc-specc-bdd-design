@@ -519,9 +519,45 @@ Processes are reused between scenarios, with deterministic resets and one worker
 there are no browser launches, screenshots, or retries hiding failures. This does not authorize
 application implementation or introduce new business behavior.
 
+### MVP-02A — Administrator role and veterinarian roster (before 2026-10-14)
+
+Status: planned (re-prioritized 2026-09-29). Starts after DEMO-01 rehearsals 2–3.
+Phase: spec, then build. Target: verified by 2026-10-13 for the Excella leadership
+visit (PLAY-01). Purpose: prove the method on *adding* functionality to a tested
+system, the common enterprise case, not only rebuilding it.
+
+Scope:
+- Administrator role distinct from veterinarian (auth contract, users seed, tokens).
+- Admin can add and deactivate veterinarians (new API, domain contract changes).
+- Admin can view all appointments; veterinarian privileges narrow to their own work.
+- Frontend admin screen with accessible labels and a browser check.
+- Fold in [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)
+  (GAP-08–11) in the same spec review and freeze cycle.
+
+Sequence: business decisions (human answers) → contracts, features, OBS rules →
+protected tests red → human freeze → JavaScript build → `npm test` green → ENG-01.
+Record spec effort, agent time, interventions, and gaps found for PLAY-01.
+After it lands, rerun one fresh Python Checkout rehearsal before 2026-11-07.
+
+Out of scope (remain in MVP-02): office capacity, reassigning other veterinarians'
+appointments, departure policies for future appointments and history, multi-visit
+payments.
+
+### PLAY-01 — Excella playbook package for leadership (2026-10-14)
+
+Status: planned. Depends on DEMO-01 (r1–r3) and MVP-02A evidence.
+
+- Playbook document: roles (product/QA write features, architects program the
+  engineering agent, humans freeze), phase gates, guard, review, metrics, and when
+  the method fits or doesn't.
+- Evidence: rebuild rehearsal numbers and the MVP-02A feature addition (spec effort,
+  agent time, interventions, spec gaps surfaced).
+- Short recorded demo: a few-minute cut of the rebuild and the admin feature.
+
 ### MVP-02 — Clinic growth and administration after the November demo
 
-Status: deferred; possible 2027 workshop. Phase: spec before implementation.
+Status: deferred except the MVP-02A slice above; possible 2027 workshop. Phase: spec
+before implementation.
 
 Business case: the clinic is growing and hires additional veterinarians. Introduce
 an administrator role, veterinarian onboarding/removal and office capacity,
@@ -625,8 +661,8 @@ are the live gate), then record the fallback.
 ### SPEC-06 — Close Checkout specification gaps found in rehearsal
 
 Status: planned. Phase: spec (human review and freeze). Source: [rehearsal r1](docs/rehearsals/r1.md).
-Timing: after the MVP items (three clean DEMO-01 rehearsals, so the specs stay fixed
-across runs) and before the 2026-11-07 talk.
+Timing: after three clean DEMO-01 rehearsals (so the specs stay fixed across
+runs), reviewed and frozen together with MVP-02A, before 2026-10-14.
 
 The Python rebuild passed every test but reported behavior the contracts leave
 silent or inconsistent. For each gap: decide the intended behavior, then add or
