@@ -52,12 +52,16 @@ Change the pace with `DEMO_SLOWMO_MS=700 npm run demo:journey`.
 | 2. JavaScript "before" run | `npm run demo:journey` (in the workspace) | no |
 | 3. Delete Checkout (asks first) | `tools/demo/delete-checkout.sh` | yes, starts the clock |
 | 4. Rebuild in fresh Claude Code | `claude "$(cat tools/demo/rebuild-checkout-prompt.md)"` | yes |
-| 5. Verify and report | `tools/demo/finish-rehearsal.sh` | yes |
+| 5. Verify and report | `tools/demo/finish-rehearsal.sh` (rehearsals) or `--journey-only` (on stage) | yes |
 
 Workspaces go to `~/petclinic-demo-runs/<name>` (override with `DEMO_RUNS_DIR`),
 built from tag `demo-01-baseline`. Each has a fresh git history that never
 contained the JavaScript Checkout, and all dependencies are preinstalled. Step 5
 appends timings and the result to `.demo/run.log` in that workspace.
+
+Full verification (visible journey + `npm test`) took 9m28s in r1. On stage, use
+`--journey-only` (about 20 s) and show the agent's own passing `npm test` summary;
+rehearsals and the fallback recording keep the full run.
 
 Disclosed limits: the rebuild prompt is prepared and identical every run; the
 shared JavaScript `services/platform/` and project docs (including the JavaScript

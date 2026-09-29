@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 # After the rebuild: rerun the visible journey and the full aggregate, and report
 # elapsed time since deletion. Appends one line to .demo/run.log.
+#
+#   tools/demo/finish-rehearsal.sh                 # rehearsals: journey + npm test
+#   tools/demo/finish-rehearsal.sh --journey-only  # on stage: visible journey only
+#                                                  # (the agent already ran npm test)
 set -uo pipefail
+
+mode=full
+case "${1:-}" in
+  "") ;;
+  --journey-only) mode=journey-only ;;
+  *)
+    echo "Usage: $0 [--journey-only]" >&2
+    exit 2
+    ;;
+esac
 
 cd "$(dirname "$0")/../.."
 if [ ! -f .demo/deleted-at ]; then
@@ -16,17 +30,26 @@ deleted=$(cat .demo/deleted-at)
 
 npm run demo:journey
 journey=$?
-npm test
-aggregate=$?
+if [ "$mode" = full ]; then
+  npm test
+  aggregate=$?
+else
+  aggregate=skipped
+fi
 done_at=$(date +%s)
 
 fmt() { printf '%dm%02ds' $(($1 / 60)) $(($1 % 60)); }
-result=$([ $journey -eq 0 ] && [ $aggregate -eq 0 ] && echo PASS || echo FAIL)
-line="$(date '+%F %T') source=$(cat .demo/source-tag) rebuild=$(fmt $((rebuilt - deleted))) total=$(fmt $((done_at - deleted))) journey=$journey aggregate=$aggregate result=$result"
+if [ $journey -eq 0 ] && { [ "$aggregate" = skipped ] || [ "$aggregate" -eq 0 ]; }; then
+  result=PASS
+else
+  result=FAIL
+fi
+line="$(date '+%F %T') source=$(cat .demo/source-tag) mode=$mode rebuild=$(fmt $((rebuilt - deleted))) total=$(fmt $((done_at - deleted))) journey=$journey aggregate=$aggregate result=$result"
 echo "$line" >> .demo/run.log
 
 echo
 echo "Rebuild (deletion → agent done): $(fmt $((rebuilt - deleted)))"
 echo "Total including verification:    $(fmt $((done_at - deleted)))"
+[ "$mode" = journey-only ] && echo "Full aggregate: not rerun here (see the agent's npm test summary)"
 echo "Result: $result"
 [ "$result" = PASS ]
