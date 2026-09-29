@@ -20,8 +20,27 @@ follow. It uses `spec/tests/browser/playwright.config.js` unchanged except for:
 | Action delay | none | 400 ms (`DEMO_SLOWMO_MS`) |
 | Test timeout | 30 s | 180 s (slowed actions need more time) |
 | Output | `test-results/browser` | `test-results/demo` |
+| Screenshot baselines | `spec/frontend/visual-baselines/` | `tools/demo/visual-baselines-headed/` |
 
 Assertions, screenshot tolerances, fixtures, and the test file are the frozen ones.
+
+### Why separate screenshot baselines
+
+The visible Chromium smooths text edges differently from the headless shell used
+by `npm test` (first run: 824 differing pixels, all on text edges; layout, colors
+and content matched). The demo therefore compares against baselines captured from
+the visible browser, with the same frozen tolerance. The frozen headless suite
+still checks the original baselines on every `npm test`.
+
+Create or refresh them only on the presenter's Mac, then review the images before
+committing:
+
+```
+npm run demo:baselines
+```
+
+Regenerate only when the frozen baselines in `spec/frontend/visual-baselines/`
+change, or after a Chromium upgrade, never to make a failing demo pass.
 Change the pace with `DEMO_SLOWMO_MS=700 npm run demo:journey`.
 `DEMO_HEADLESS=1` runs the same demo without a window (for checks only).
 

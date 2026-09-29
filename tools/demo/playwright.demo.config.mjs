@@ -16,6 +16,13 @@ export default {
   testDir: path.join(root, "spec/tests/browser"),
   outputDir: path.join(root, "test-results/demo"),
   grep: /\[FE-002\]/,
+  // Visible Chromium smooths text differently from the headless shell, so the demo
+  // compares against presenter-reviewed baselines captured from the visible browser.
+  // Tolerance is inherited unchanged; the frozen suite still guards spec baselines.
+  snapshotPathTemplate: path.join(
+    root,
+    "tools/demo/visual-baselines-headed/{arg}{ext}",
+  ),
   // Slowed actions need more wall-clock time than the frozen 30 s budget.
   timeout: 180000,
   use: {
