@@ -315,7 +315,9 @@ Talks: Black Tech NOLA workshop 2026-11-07; NOAI 2026-11-13; one hour each (A-12
 - Fallback: pre-recorded screen capture of a successful rehearsal rebuild.
 - Visible run: `npm run demo:journey` ([tools/demo](tools/demo/README.md)) reuses the
   frozen browser config unchanged, adding only visible mode, a slowdown and a longer
-  timeout; no protected file changes. Pending: first visible run on the presenter's Mac.
+  timeout; no protected file changes. Visible Chromium needs its own screenshot
+  baselines (text smoothing only); the presenter reviewed and approved them
+  (2026-09-28), and the visible journey passes on the presenter's Mac.
 - Rerun all suites, Playwright, and performance; show the connected trace.
 - Pass [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
   for the JavaScript baseline and each Python reconstruction.
