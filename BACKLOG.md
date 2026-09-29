@@ -305,8 +305,16 @@ check in reconstruction (DEMO-03).
 
 Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
 
-- Show Playwright workflow and performance passing on the all-JavaScript build.
-- Delete `services/checkout/`; the agent rebuilds it in Python from unchanged specs and tests.
+Talks: Black Tech NOLA workshop 2026-11-07; NOAI 2026-11-13; one hour each (A-12).
+
+- Run the FE-002 browser journey headed and visibly on the all-JavaScript build
+  (login → book → vet accepts/records visit → bill → pay; no sign-up screen).
+- The agent prompts the presenter to delete `services/checkout/` (timed); the agent
+  rebuilds it in Python from unchanged specs and tests while the presenter talks.
+- Rerun the same headed journey; record and show elapsed rebuild time.
+- Fallback: pre-recorded screen capture of a successful rehearsal rebuild.
+- Open: a visible, slowed headed run needs a presenter option (e.g. an environment
+  variable for headed/slowMo) in the protected Playwright config; human review/freeze.
 - Rerun all suites, Playwright, and performance; show the connected trace.
 - Pass [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
   for the JavaScript baseline and each Python reconstruction.

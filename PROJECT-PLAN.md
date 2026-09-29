@@ -25,9 +25,21 @@ tests, then rerun the same Playwright workflow and performance check (A-05). Str
 a recorded rebuild of the whole backend in Python. The evidence supports this bounded example,
 not a claim that arbitrary enterprise systems can be reconstructed from tests.
 
-Use five relative weeks starting when this plan is adopted. The exact talk date,
-session length, available weekly effort, and live reconstruction time budget remain
-to be confirmed. The schedule is a planning target, not a delivery guarantee.
+Two one-hour talks: a workshop for Black Tech NOLA on 2026-11-07 and a talk for
+NOAI on 2026-11-13. Both are a general tour of the test types, with no slides
+during the rebuild: the presenter talks while the agent rebuilds Checkout in the
+background. There is no fixed rebuild time budget; the rebuild must fit inside the
+hour, and its elapsed time is recorded and shown. The schedule is a planning
+target, not a delivery guarantee.
+
+Demo flow (A-12, agreed 2026-09-28):
+1. Run the frozen FE-002 browser journey headed and visibly: customer logs in,
+   books, veterinarian accepts and records the visit, customer is billed and pays.
+   It starts at login; customers are seeded, and no sign-up screen is added.
+2. The agent prompts the presenter to delete `services/checkout/`; time the deletion.
+3. The agent rebuilds Checkout in Python from the unchanged specs and tests.
+4. Rerun the same headed journey, then the full aggregate, and show elapsed time.
+Fallback: a pre-recorded screen capture of a successful rehearsal rebuild.
 
 ### In scope
 
@@ -124,6 +136,7 @@ inspect its requests and invocation counts.
 | A-09 | Simple local authentication, no cloud dependency. Users are defined in `spec/seed-data/users.json` with plain-text demo passwords (clearly non-production). The Customer service exposes login and returns a JWT signed with HS256 (shared demo secret in an environment variable), lasting 8 hours of clinic time. Every service verifies tokens locally, so no service calls another to authenticate. Roles: `veterinarian` sees all data; `customer` sees only their own records (others return 404); `service` tokens, signed by the calling service, are the only way to call internal operations. Full rules: `spec/contracts/auth-contract.md`. |
 
 | A-10 | Traces are exported only as OTLP/HTTP **protobuf** (`OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`), in every language. It is the one format both the Node and Python SDKs support, so a single standard applies to any rebuild. The test collector (`spec/harness/collector`, port 4318) accepts only protobuf and rejects anything else with 415; RT-008 fails a service that exports the wrong format. JSON and gRPC are not used; traces only (no metrics or logs). Tests shorten batching with `OTEL_BSP_SCHEDULE_DELAY=100` and wait up to 5 seconds for spans. A terminal trace-tree printer (`npm --prefix spec run trace`) shows traces in the demo. |
+| A-12 | Two one-hour talks (Black Tech NOLA workshop 2026-11-07; NOAI 2026-11-13). Demo: headed FE-002 journey starting at login (no sign-up screen), timed deletion of `services/checkout/`, live Python rebuild of Checkout only while the presenter talks, then the same headed journey and full aggregate. No fixed time budget beyond fitting the hour; elapsed time is shown. Fallback: pre-recorded rehearsal rebuild. |
 
 These architecture tasks (ARCH-01..04, OTEL-01, AUTH-01, GUARD-01) take priority over designing the
 per-service API contracts (SPEC-04), because the contracts and tests must follow them.
@@ -238,8 +251,9 @@ Outcome and next action:
 
 ## Live-demo gate and fallback
 
-The presenter sets the live reconstruction time budget before Week 4. Proceed live
-only after three consecutive clean Checkout rehearsals meet that budget, pass all
+There is no fixed time budget (A-12); the rebuild must comfortably fit in the
+one-hour talk. Proceed live
+only after three consecutive clean Checkout rehearsals fit that window, pass all
 required checks, preserve frozen expectations, and need no unplanned human code
 repair. Disclose any prepared scaffolding and rehearsed prompt.
 
@@ -291,5 +305,6 @@ approved design assets and browser/visual expectations remain frozen. PERF-01 is
 human-frozen and verified at checkpoint `perf-01`; the full aggregate, including
 the guard and local performance suite, passes. Proceed to reconstruction
 rehearsals. Repeat ENG-01 for every reconstruction.
-Still needed from the presenter are the talk date, session length, and
-live rebuild time budget; those choices become relevant before DEMO-01.
+Talk dates (2026-11-07, 2026-11-13), one-hour length, and the demo flow are
+set (A-12). Next: DEMO-01 rehearsals, which record rebuild duration and produce
+the pre-recorded fallback.
