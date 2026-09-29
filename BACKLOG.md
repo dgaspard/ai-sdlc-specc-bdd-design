@@ -313,8 +313,9 @@ Talks: Black Tech NOLA workshop 2026-11-07; NOAI 2026-11-13; one hour each (A-12
   rebuilds it in Python from unchanged specs and tests while the presenter talks.
 - Rerun the same headed journey; record and show elapsed rebuild time.
 - Fallback: pre-recorded screen capture of a successful rehearsal rebuild.
-- Open: a visible, slowed headed run needs a presenter option (e.g. an environment
-  variable for headed/slowMo) in the protected Playwright config; human review/freeze.
+- Visible run: `npm run demo:journey` ([tools/demo](tools/demo/README.md)) reuses the
+  frozen browser config unchanged, adding only visible mode, a slowdown and a longer
+  timeout; no protected file changes. Pending: first visible run on the presenter's Mac.
 - Rerun all suites, Playwright, and performance; show the connected trace.
 - Pass [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
   for the JavaScript baseline and each Python reconstruction.
