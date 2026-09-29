@@ -73,7 +73,9 @@ IMPL-02's full validation and
 [ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
 are complete for the JavaScript backend workspace. FE-01's UI, five browser checks,
 three visual comparisons, and frontend ENG-01 review also pass at checkpoint `fe-01`.
-PERF-01 remains before demo readiness. The original intentional red
+PERF-01's local performance checks are human-frozen and pass at checkpoint `perf-01`.
+PERF-01 is a representative example of the performance test type, not a capacity
+study; it exists so later work can expand on it. The original intentional red
 baseline is historical. The verified implementation checkpoint is tag `impl-02`.
 
 ## Working agreements and ownership
@@ -116,7 +118,7 @@ inspect its requests and invocation counts.
 | A-04 | The frontend is its own plain HTML/JS project. It calls services only through their published APIs and uses accessible labels for Playwright. |
 | A-11 | FE-01 uses vanilla JavaScript, a fixed desktop viewport, and a small headless Chromium suite. Preserve branding, layout, wording, and interactions across reconstruction with a small reviewed visual tolerance. Retain approved CSS, local fonts/images, design instructions, tests, and visual baselines under `spec/frontend/` and `spec/tests/browser/`; regenerate frontend application code. The separate frontend experiment follows the Checkout experiment (DEMO-04). |
 | A-05 | Final demo: all services built in JavaScript; Checkout rebuilt live in Python against unchanged tests; Playwright and performance rerun. A whole-backend Python rebuild is a recorded stretch. |
-| A-06 | Minimum performance test: key endpoints stay under a p95 latency budget (proposed 200 ms) at a small concurrent load (proposed 10 users for 30 s) with zero errors. Same thresholds for every language. |
+| A-06 | Local performance defaults approved: five paced workers, 2 s warm-up and 10 s measured traffic; each key operation requires p95 below 200 ms, at least 20 samples, zero unexpected errors, and correct financial outcomes. Target roughly 20–30 s total. Same frozen workload/thresholds for every language. See PERF-01 for fixture and measurement details. |
 | A-07 | Protection of `spec/**`, `docs/specs/**`, `.github/**`, `.claude/**`, `AGENTS.md` (humans edit, agents read; build-phase tasks never touch them): `.claude/settings.json` deny rules plus a PreToolUse hook (edit tools and shell), `CODEOWNERS`, and a required `guard` workflow that checks the human-frozen `spec/protected.sha256` manifest and rejects skipped or focused tests. |
 | A-08 | Observability follows OpenTelemetry specifications. Each service uses the official OpenTelemetry SDK for its language (allowed dependency), exports over OTLP, propagates W3C Trace Context, sets standard resource attributes (`service.name`, `service.version`), and uses OpenTelemetry semantic conventions (reference v1.44.0, stable HTTP subset enforced; OBS-041, OBS-042) for HTTP spans and errors. Only business-specific attributes use the `petclinic.*` namespace. |
 | A-09 | Simple local authentication, no cloud dependency. Users are defined in `spec/seed-data/users.json` with plain-text demo passwords (clearly non-production). The Customer service exposes login and returns a JWT signed with HS256 (shared demo secret in an environment variable), lasting 8 hours of clinic time. Every service verifies tokens locally, so no service calls another to authenticate. Roles: `veterinarian` sees all data; `customer` sees only their own records (others return 404); `service` tokens, signed by the calling service, are the only way to call internal operations. Full rules: `spec/contracts/auth-contract.md`. |
@@ -285,8 +287,9 @@ TEST-01 is complete at tag `test-01`; SPEC-05 and TEST-02 are reviewed and froze
 IMPL-02 and the JavaScript
 [ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
 review pass at checkpoint `impl-02`. FE-01 is verified at checkpoint `fe-01`;
-approved design assets and browser/visual expectations remain frozen. Define and
-approve PERF-01 thresholds and executable performance checks next, then proceed
-to reconstruction rehearsals. Repeat ENG-01 for every reconstruction.
+approved design assets and browser/visual expectations remain frozen. PERF-01 is
+human-frozen and verified at checkpoint `perf-01`; the full aggregate, including
+the guard and local performance suite, passes. Proceed to reconstruction
+rehearsals. Repeat ENG-01 for every reconstruction.
 Still needed from the presenter are the talk date, session length, and
 live rebuild time budget; those choices become relevant before DEMO-01.

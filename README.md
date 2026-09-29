@@ -80,6 +80,7 @@ npm --prefix spec run guard:check    # verifies frozen protected files and skip/
 npm --prefix spec run test:bdd       # service scenarios only
 npm --prefix spec run test:workflows # real-service journeys using Playwright HTTP
 npm --prefix spec run test:browser   # five frontend checks in headless Chromium
+npm --prefix spec run test:performance # local HTTP load, latency and financial checks
 ```
 
 Full validation requires permission to bind local test ports. The service-BDD
@@ -87,6 +88,8 @@ harness lifecycle correction is authorized and human-frozen; all 219 service
 scenarios and nine backend journeys pass in the complete aggregate run.
 The [engineering review](docs/engineering-reviews/impl-02-javascript.md) records
 the fixes, evidence, and in-memory limitations. The [frontend engineering review](docs/engineering-reviews/fe-01-javascript.md)
-records FE-01 evidence. PERF-01 remains planned. The browser suite requires the pinned
+records FE-01 evidence. PERF-01's local performance checks are human-frozen and
+pass; see its [handoff](docs/perf-01-handoff.md).
+The browser suite requires the pinned
 Playwright Chromium installation (`cd spec` then `npx playwright install chromium`).
 Only a human reviews and freezes protected changes.

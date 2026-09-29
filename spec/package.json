@@ -11,6 +11,7 @@
     "test:bdd": "cucumber-js",
     "test:workflows": "cucumber-js --profile workflows",
     "test:browser": "playwright test --config tests/browser/playwright.config.js",
+    "test:performance": "node --test --test-concurrency=1 tests/performance/*.test.js",
     "test:harness": "node --test --test-concurrency=1 \"tests/harness/**/*.test.js\"",
     "trace": "node harness/show-trace.js",
     "test:observability": "node --test --test-concurrency=1 \"tests/observability/**/*.test.js\"",

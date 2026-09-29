@@ -15,6 +15,7 @@ const SUITES = [
   { name: "Service features (Cucumber)", cmd: "npx", args: ["cucumber-js"] },
   { name: "Backend journeys (Playwright HTTP)", cmd: "npx", args: ["cucumber-js", "--profile", "workflows"] },
   { name: "Frontend journeys (headless Chromium)", cmd: "npx", args: ["playwright", "test", "--config", "tests/browser/playwright.config.js"] },
+  { name: "Local performance", cmd: "node", args: ["--test", "--test-concurrency=1", "tests/performance/*.test.js"] },
 ];
 
 const results = [];

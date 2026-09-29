@@ -276,13 +276,30 @@ timing is measured evidence, not a substitute for the planned performance gate.
 
 ### PERF-01 — Minimum performance test
 
-Status: planned. Decision A-06.
+Status: verified (2026-09-28); human-frozen; full aggregate passes. Decision A-06.
+Phase: spec. Stage: verified. Checkpoint: tag `perf-01`.
 
-- Language-neutral HTTP load test against key endpoints (reservation request,
-  acceptance, bill finalization, visit payment).
-- Proposed budget: p95 under 200 ms, 10 concurrent users for 30 seconds, zero errors.
-  Confirm thresholds before the test is frozen.
-- Run against the JavaScript build and the Python rebuild with the same thresholds.
+Purpose: one representative performance test so the project covers every major
+enterprise test type. It is a base for later expansion and experiments, not a
+capacity study; the 200 ms budget is intentionally generous.
+
+- Five paced concurrent workers, two-second warm-up, ten-second measurement window;
+  target roughly 20–30 seconds total, including setup and cleanup.
+- Each worker books independent future appointments and settles prepared historical
+  visits, avoiding clock changes or scheduling conflicts during measurement.
+- Request, acceptance, finalization, and payment each require p95 below 200 ms,
+  at least 20 samples, zero unexpected errors, and correct financial outcomes.
+- Same frozen workload and thresholds for JavaScript and Python on the same host;
+  real services and fake payments, telemetry enabled, no browser.
+- `npm --prefix spec run test:performance`; included in `npm test`.
+
+Specification and workload details: [PERF-01 contract](spec/tests/performance/README.md).
+Initial baseline: 100 samples per operation, p95 6.5–16.9 ms; full performance command
+17.4 seconds. Deliberate slow HTTP responses and incorrect financial outcomes were
+rejected. See [PERF-01 handoff](docs/perf-01-handoff.md) for evidence and next steps.
+The human reviewed and ran `guard:freeze` and `guard:check`; `npm test` passes all
+ten suites, including the guard and local performance. Next: use the unchanged
+check in reconstruction (DEMO-03).
 
 ### DEMO-03 — Language swap demonstration
 
