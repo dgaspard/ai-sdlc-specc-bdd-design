@@ -598,7 +598,11 @@ that restarting a process loses state and idempotency protection.
 
 ### DEMO-01 — Rehearse deletion and reconstruction
 
-Status: planned after a passing implementation checkpoint.
+Status: in progress (2026-09-28). Checkpoint tag `demo-01-baseline`. Rehearsal
+scripts, visible journey, and draft rebuild prompt in [tools/demo](tools/demo/README.md).
+Agent: Claude Code in a fresh session; workspace: disposable copy with no JavaScript
+Checkout history; prompt: prepared and reviewed. Pending: presenter review of the
+prompt, then rehearsal 1.
 
 - Create a tagged working checkpoint and a bounded deletion script or documented steps.
 - Delete Checkout implementation only; retain contracts, features, tests, helpers,

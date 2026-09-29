@@ -44,5 +44,22 @@ change, or after a Chromium upgrade, never to make a failing demo pass.
 Change the pace with `DEMO_SLOWMO_MS=700 npm run demo:journey`.
 `DEMO_HEADLESS=1` runs the same demo without a window (for checks only).
 
-Demo order: run this before deleting `services/checkout/`, then again after the
-Python rebuild, then `npm test` for the full aggregate.
+## Rehearsal and on-stage flow
+
+| Step | Command | Timed |
+| --- | --- | --- |
+| 1. Prepare a disposable workspace | `tools/demo/prepare-rehearsal.sh [name]` (from the main repo) | no |
+| 2. JavaScript "before" run | `npm run demo:journey` (in the workspace) | no |
+| 3. Delete Checkout (asks first) | `tools/demo/delete-checkout.sh` | yes, starts the clock |
+| 4. Rebuild in fresh Claude Code | `claude "$(cat tools/demo/rebuild-checkout-prompt.md)"` | yes |
+| 5. Verify and report | `tools/demo/finish-rehearsal.sh` | yes |
+
+Workspaces go to `~/petclinic-demo-runs/<name>` (override with `DEMO_RUNS_DIR`),
+built from tag `demo-01-baseline`. Each has a fresh git history that never
+contained the JavaScript Checkout, and all dependencies are preinstalled. Step 5
+appends timings and the result to `.demo/run.log` in that workspace.
+
+Disclosed limits: the rebuild prompt is prepared and identical every run; the
+shared JavaScript `services/platform/` and project docs (including the JavaScript
+engineering review) remain readable; Claude Code's own settings keep it inside the
+workspace, but the main repo still exists on the same machine.
