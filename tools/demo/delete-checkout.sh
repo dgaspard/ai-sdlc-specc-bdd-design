@@ -1,7 +1,23 @@
 #!/usr/bin/env bash
-# On-stage step: ask the presenter, then delete the JavaScript Checkout (timed).
-# Run inside a workspace created by prepare-rehearsal.sh, never in the main repo.
+# On-stage step: ask the presenter, then delete the current Checkout (timed).
+# Run inside a demo workspace (prepare-rehearsal.sh or fork-workspace.sh), never
+# in the main repo.
+#
+#   tools/demo/delete-checkout.sh [python|javascript]   # language to rebuild in (default python)
 set -euo pipefail
+
+target="${1:-python}"
+case "$target" in
+  python) prompt=tools/demo/rebuild-checkout-prompt.md ;;
+  javascript | js)
+    target=javascript
+    prompt=tools/demo/rebuild-checkout-prompt-js.md
+    ;;
+  *)
+    echo "Usage: $0 [python|javascript]" >&2
+    exit 2
+    ;;
+esac
 
 cd "$(dirname "$0")/../.."
 if [ ! -f .demo/source-tag ]; then
@@ -14,9 +30,21 @@ if [ ! -d services/checkout ]; then
   echo "services/checkout is already gone." >&2
   exit 1
 fi
+if [ ! -f "$prompt" ]; then
+  echo "Missing $prompt in this workspace." >&2
+  exit 1
+fi
 
-echo "About to delete services/checkout/ (the JavaScript Checkout service)."
-echo "Contracts, features, tests, and the other services stay."
+if [ -f services/checkout/requirements.txt ]; then
+  current=Python
+elif [ -f services/checkout/package.json ]; then
+  current=JavaScript
+else
+  current=unknown-language
+fi
+
+echo "About to delete services/checkout/ (the $current Checkout service)."
+echo "It will be rebuilt in $target. Contracts, features, tests, and the other services stay."
 read -r -p "Delete it now? [y/N] " answer
 case "$answer" in
   y | Y | yes | YES) ;;
@@ -34,8 +62,9 @@ sed -i '' '/^services\/checkout\/$/d' .git/info/exclude 2>/dev/null ||
 end=$(date +%s)
 
 echo "$end" > .demo/deleted-at
+echo "$current->$target" > .demo/direction
 echo "Deleted in $((end - start)) s at $(date '+%H:%M:%S')."
 echo
 echo "Start the rebuild in a fresh Claude Code session:"
-echo "  claude \"\$(cat tools/demo/rebuild-checkout-prompt.md)\""
+echo "  claude \"\$(cat $prompt)\""
 echo "When it reports done:  tools/demo/finish-rehearsal.sh"

@@ -746,6 +746,45 @@ Next action: retain this JavaScript review as the baseline for reconstruction.
 Reuse this gate at every DEMO-01/DEMO-03/EXP-01 checkpoint, with equivalent Python
 code checks and payment/service-boundary review.
 
+### ENG-02 — Independent, calibrated engineering review
+
+Status: planned (2026-09-29). Build in parallel with DEMO-01 rehearsals 2–3; run it
+before MVP-02A starts. Phase: review tooling (unprotected `tools/review/`), then
+apply. Supersedes ENG-01's self-review as the demo-readiness and playbook gate.
+
+Why: ENG-01 was written by the same agent that built the code, largely as a
+narrative checklist, and was never tested. The Python rebuild (r1) has no review.
+Passing tests say nothing about behavior the tests don't cover.
+
+1. **Automated gates (tool-judged, same for every language):**
+   - Duplicate-code detection across services (e.g. jscpd, which reads JS and Python).
+   - Import-boundary check: no service imports another service's code or a store;
+     shared infrastructure (`services/platform/`) is allowed and listed.
+   - Security scanning: Semgrep (both languages) plus Bandit for Python; secret scan.
+   - Dependency audit: `npm audit` and `pip-audit`.
+   - Connected-trace capture (`npm run trace:payment`) against every build,
+     including Python.
+2. **Observability rule audit:** list every OBS rule without a test and have the
+   reviewer check each against the code, recording followed / not followed / N/A.
+3. **Independent reviewer agent:** a fresh session that never saw the build,
+   driven by a written checklist prompt (`tools/review/review-prompt.md`) covering
+   service boundaries, payment safety, inter-service auth (including hand-written
+   token signing/verification), privacy in telemetry and errors, and structure.
+   Every finding cites file and line. A human signs off security and boundary findings.
+4. **Threat-model note:** record known architectural risks, starting with the single
+   shared HS256 secret (any compromised service can forge user tokens); disclose
+   as a demo limitation.
+5. **Calibration:** a set of planted defects applied to a scratch copy (copied
+   business logic across services, payment reference leaked into a span, token
+   check that skips signature or uses non-constant-time compare, cross-service
+   store access, missing OBS attribute on an untested rule). The review passes
+   calibration when it catches every planted defect; record the catch rate.
+
+Apply to: the JavaScript baseline (`impl-02`), r1 Python, r2 JavaScript, r3 Python.
+Record under `docs/engineering-reviews/` with gate output, findings, sign-off, and
+calibration score. Feeds PLAY-01: "architects program the engineering agent" is
+shown concretely by these gates and the reviewer prompt.
+
 ### EXP-01 — Measure service reconstruction
 
 Status: planned; depends on a verified IMPL-02 checkpoint.

@@ -44,7 +44,7 @@ if [ $journey -eq 0 ] && { [ "$aggregate" = skipped ] || [ "$aggregate" -eq 0 ];
 else
   result=FAIL
 fi
-line="$(date '+%F %T') source=$(cat .demo/source-tag) mode=$mode rebuild=$(fmt $((rebuilt - deleted))) total=$(fmt $((done_at - deleted))) journey=$journey aggregate=$aggregate result=$result"
+line="$(date '+%F %T') source=$(cat .demo/source-tag) direction=$(cat .demo/direction 2>/dev/null || echo unknown) mode=$mode rebuild=$(fmt $((rebuilt - deleted))) total=$(fmt $((done_at - deleted))) journey=$journey aggregate=$aggregate result=$result"
 echo "$line" >> .demo/run.log
 
 echo

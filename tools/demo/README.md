@@ -59,6 +59,17 @@ built from tag `demo-01-baseline`. Each has a fresh git history that never
 contained the JavaScript Checkout, and all dependencies are preinstalled. Step 5
 appends timings and the result to `.demo/run.log` in that workspace.
 
+### Chained rehearsals (language round trip)
+
+`tools/demo/fork-workspace.sh r1 r2` copies a finished workspace (leaving the
+original as its record), refreshes `tools/demo` from the main repo, and rebuilds a
+copied Python virtual environment. Then `delete-checkout.sh javascript` or
+`delete-checkout.sh python` picks the target language and matching prompt
+(`rebuild-checkout-prompt-js.md` or `rebuild-checkout-prompt.md`). The direction is
+logged in `.demo/run.log`. The JavaScript prompt allows the shared
+`services/platform/` runtime, as in the original build, so JavaScript rebuild times
+are not directly comparable with Python ones.
+
 Full verification (visible journey + `npm test`) took 9m28s in r1. On stage, use
 `--journey-only` (about 20 s) and show the agent's own passing `npm test` summary;
 rehearsals and the fallback recording keep the full run.
