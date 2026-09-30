@@ -532,7 +532,14 @@ Scope:
 - Admin can view all appointments; veterinarian privileges narrow to their own work.
 - Frontend admin screen with accessible labels and a browser check.
 - Fold in [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)
-  (GAP-08–11) in the same spec review and freeze cycle.
+  (GAP-09–15) in the same spec review and freeze cycle.
+
+Veterinarian and administrator test scenarios to add (found in rehearsals):
+
+| Gap | Question to decide | Likely artifacts |
+| --- | --- | --- |
+| GAP-08 | A veterinarian who did not perform the visit applies a promotion or records cash and gets 403 `not_assigned_veterinarian`, but that outcome is missing from the OBS-030 / OBS-033 closed outcome lists. Found independently by r1 (Python) and r2 (JavaScript); no test covers it. | OBS-030/OBS-033 outcome lists; observability test; Checkout scenarios |
+| GAP-08a | After the role split, may an administrator apply a promotion or record cash on any visit, or only the assigned veterinarian? What outcome is recorded when an admin is refused? | auth contract; Checkout scenarios; OBS outcomes |
 
 Sequence: business decisions (human answers) → contracts, features, OBS rules →
 protected tests red → human freeze → JavaScript build → `npm test` green → ENG-01.
@@ -643,6 +650,7 @@ is allowed and disclosed; Python ENG-01 deferred until the demo is proven).
 | Run | Agent time | Result | Interventions | Record |
 | --- | ---: | --- | ---: | --- |
 | r1 (2026-09-28) | 25m 49s | 10/10 suites + visible journey pass; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
+| r2 (2026-09-29), Python → JavaScript | pending | 10/10 suites pass (agent); finish script pending | 0 | [r2](docs/rehearsals/r2.md) |
 
 r1 surfaced spec gaps GAP-08–11 (now [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)) and one unreproduced
 startup flake to watch. Next: rehearsals 2 and 3 (three consecutive clean runs
@@ -660,7 +668,8 @@ are the live gate), then record the fallback.
 
 ### SPEC-06 — Close Checkout specification gaps found in rehearsal
 
-Status: planned. Phase: spec (human review and freeze). Source: [rehearsal r1](docs/rehearsals/r1.md).
+Status: planned. Phase: spec (human review and freeze). Sources:
+[rehearsal r1](docs/rehearsals/r1.md), [rehearsal r2](docs/rehearsals/r2.md).
 Timing: after three clean DEMO-01 rehearsals (so the specs stay fixed across
 runs), reviewed and frozen together with MVP-02A, before 2026-10-14.
 
@@ -670,10 +679,14 @@ amend the contract, OBS rule, and scenario so a test pins it down.
 
 | Gap | Question to decide | Likely artifacts |
 | --- | --- | --- |
-| GAP-08 | Should `not_assigned_veterinarian` be a recorded outcome for applying a promotion and recording cash? | OBS-030, OBS-033 outcome lists; observability test; scenario |
+| GAP-08 | Moved to [MVP-02A vet/admin scenarios](#mvp-02a--administrator-role-and-veterinarian-roster-before-2026-10-14) (veterinarian authorization). | — |
 | GAP-09 | What does promotion/cash return when Reservation cannot record completion (502 `dependency_failed`)? | `checkout.openapi.json` responses; scenario |
 | GAP-10 | Is there an internal-error problem code, or is 500 `dependency_failed` intended? | common problem codes; runtime/contract note |
-| GAP-11 | Confirm the agent's guesses: $0 bill completes as settled; booking fee excluded from `paymentAttempts` but counted in `previouslyPaidAmount`; same-key retry after payment returns current state plus original attempt | business decision entry; scenarios |
+| GAP-11 | Confirm the agent's guesses: $0 bill completes as settled; booking fee excluded from `paymentAttempts` but counted in `previouslyPaidAmount` (r1 Python and r2 JavaScript chose this independently); same-key retry after payment returns current state plus original attempt | business decision entry; scenarios |
+| GAP-12 | Idempotency key scopes (r2): booking fee keyed per reservation; card and cash keyed per checkout. Is reusing one key across booking and visit payment, or across card and cash, two separate requests or a conflict? | D-12 clarification; scenarios for cross-scope key reuse |
+| GAP-13 | Card approved but follow-up fails: the same-key retry returns the same 502 `authorized_completion_failed` without re-charging or retrying the follow-up. Covered only by unprotected engineering checks today; should a frozen scenario pin it? | scenario; possibly OBS rule |
+| GAP-14 | Completion and account-change repeats (r2): Checkout skips re-sending an identical completion and treats Reservation `already_completed` / Customer `already_applied` as success. Intended? | contract note; scenarios with downstream "already done" replies |
+| GAP-15 | A $0 promotion is stored but sends no discount to Customer (r2). Intended, and should it appear in the bill and trace? | scenario; OBS-030 attribute note |
 
 Done when: decisions recorded, protected changes human-reviewed and frozen, the
 JavaScript Checkout updated so `npm test` passes, and one fresh Python rehearsal
