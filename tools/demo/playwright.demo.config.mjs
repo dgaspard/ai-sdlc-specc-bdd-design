@@ -9,7 +9,7 @@ const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
-const slowMo = Number(process.env.DEMO_SLOWMO_MS ?? 400);
+const slowMo = Number(process.env.DEMO_SLOWMO_MS ?? 1000);
 
 export default {
   ...base,

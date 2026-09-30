@@ -17,7 +17,7 @@ follow. It uses `spec/tests/browser/playwright.config.js` unchanged except for:
 | --- | --- | --- |
 | Tests | all FE checks | FE-002 only |
 | Browser | headless | visible |
-| Action delay | none | 400 ms (`DEMO_SLOWMO_MS`) |
+| Action delay | none | 1000 ms (`DEMO_SLOWMO_MS`) |
 | Test timeout | 30 s | 180 s (slowed actions need more time) |
 | Output | `test-results/browser` | `test-results/demo` |
 | Screenshot baselines | `spec/frontend/visual-baselines/` | `tools/demo/visual-baselines-headed/` |
@@ -41,7 +41,13 @@ npm run demo:baselines
 
 Regenerate only when the frozen baselines in `spec/frontend/visual-baselines/`
 change, or after a Chromium upgrade, never to make a failing demo pass.
-Change the pace with `DEMO_SLOWMO_MS=700 npm run demo:journey`.
+Change the pace with `DEMO_SLOWMO_MS=1500 npm run demo:journey` (the delay is added
+before every click and entry; page loads and checks are not slowed).
+
+Presenter-paced mode: `npm run demo:journey:step` opens the Playwright Inspector,
+pauses before each browser action, and highlights the test line. Press **Step over**
+(F10) to advance one action or **Resume** (F8) to run to the end. It shows the test
+code beside the browser, which is useful when explaining what the test checks.
 `DEMO_HEADLESS=1` runs the same demo without a window (for checks only).
 
 ## Rehearsal and on-stage flow

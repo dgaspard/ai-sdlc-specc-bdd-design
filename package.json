@@ -8,6 +8,7 @@
     "test:engineering": "node --test --test-concurrency=1 tools/*.test.mjs",
     "trace:payment": "node tools/capture-payment-trace.mjs",
     "demo:journey": "spec/node_modules/.bin/playwright test --config tools/demo/playwright.demo.config.mjs",
+    "demo:journey:step": "spec/node_modules/.bin/playwright test --config tools/demo/playwright.demo.config.mjs --debug",
     "demo:baselines": "spec/node_modules/.bin/playwright test --config tools/demo/playwright.demo.config.mjs --update-snapshots=all",
     "lint": "services/platform/node_modules/.bin/eslint services frontend tools eslint.config.mjs",
     "format:check": "services/platform/node_modules/.bin/prettier --check 'services/**/*.js' 'services/**/package.json' 'frontend/*.js' 'frontend/package.json' 'tools/**/*.mjs' eslint.config.mjs package.json",
