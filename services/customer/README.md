@@ -14,4 +14,4 @@ locked dependencies, then `./start` with the runtime contract's environment.
 The frozen harness supplies configuration when running `npm test` from the
 repository root. See [shared infrastructure](../platform/README.md) for setup,
 in-memory limitations, and reconstruction boundaries. Current verification and
-engineering-review status is tracked in [IMPL-02](../../BACKLOG.md#impl-02--build-the-four-service-checkout-workflow).
+engineering-review status is tracked in [IMPL-02](../../docs/history/backlog-completed.md#impl-02--build-the-four-service-checkout-workflow).

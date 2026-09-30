@@ -241,13 +241,13 @@ uncovered rules.
 
 Slice 6 was frozen at checkpoint `test-01-s5-s6`. The supplied working-tree
 manifest now passes the guard for the GAP-01–07 revisions and was not changed
-by the rehearsal. The [2026-09-27 rehearsal](test-slices-5-6-rehearsal.md) passed
+by the rehearsal. The [2026-09-27 rehearsal](history/test-slices-5-6-rehearsal.md) passed
 all 92 slice-6 telemetry/workflow checks, alongside 218 access checks, and
 detected deliberate defects in propagation, outcomes, status, span uniqueness,
 parenting, replay, payment counts, and downstream account work. Temporary
 implementations were removed after that historical rehearsal. The current JavaScript
 implementation subsequently passed all 113 scoped telemetry checks; the table now
-reflects that implementation run. See also [the Slice 5–6 review](test-slices-5-6.md). A rule with a test is not a
+reflects that implementation run. See also [the Slice 5–6 review](history/test-slices-5-6.md). A rule with a test is not a
 claim of exhaustive outcome coverage or a passing application. Helpers also check
 span uniqueness, completion, status, and SERVER parenting for the exercised cases;
 this does not close the broader OBS-003–009 test gaps above.

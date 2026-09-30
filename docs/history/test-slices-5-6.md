@@ -9,7 +9,7 @@ Recent commits reviewed: `aba9d82` (Reservation steps), `a6f2cd2` (freeze), and
 
 ## Slice 5: access control
 
-[access-control.test.js](../spec/tests/auth/access-control.test.js) enumerates all
+[access-control.test.js](../../spec/tests/auth/access-control.test.js) enumerates all
 34 protected operations from the four OpenAPI documents and their `x-roles`.
 It checks missing, malformed, bad-signature, unsigned (`alg: none`), and expired
 tokens; every excluded known role; and ownership where applicable. Anonymous
@@ -24,15 +24,15 @@ empty list, not 404. Catalog/calendar operations have no customer-owned record.
 A classification assertion fails when a new customer-accessible operation is not
 assigned an ownership, collection, or public-catalog test policy.
 
-Shared support: [access-cases.js](../spec/tests/support/access-cases.js) and
-[service-fixture.js](../spec/tests/support/service-fixture.js). Every request body
+Shared support: [access-cases.js](../../spec/tests/support/access-cases.js) and
+[service-fixture.js](../../spec/tests/support/service-fixture.js). Every request body
 and documented response is schema checked. Dependencies are contract-checked stubs.
 
 ## Slice 6: telemetry
 
-[business-traces.test.js](../spec/tests/observability/business-traces.test.js)
+[business-traces.test.js](../../spec/tests/observability/business-traces.test.js)
 exercises a real service with dependency stubs and the real payment fake.
-[business-workflows.test.js](../spec/tests/observability/business-workflows.test.js)
+[business-workflows.test.js](../../spec/tests/observability/business-workflows.test.js)
 exercises all four real services for OBS-036–040, because stubs cannot prove
 cross-process business spans. It adds no workflow feature files.
 
@@ -110,7 +110,7 @@ New runtime failures report missing
 service `start` scripts, with no new import/syntax/fixture failures observed.
 The guard correctly reports unfrozen protected additions. `git diff --check` passes.
 
-[assertion-slices.test.js](../spec/tests/harness/assertion-slices.test.js) validates
+[assertion-slices.test.js](../../spec/tests/harness/assertion-slices.test.js) validates
 request fixtures, programmed dependency responses, and alignment of the span/outcome
 registry with the observability document. Synthetic positive controls and deliberate
 mutations verify detection of missing/duplicate spans, wrong outcomes/statuses/replay
@@ -126,6 +126,6 @@ broader observability coverage gaps described above.
 
 Checkpoint `test-01-s5-s6`: the supplied protected manifest now includes these
 additions and the preceding Checkout slice; `guard:check` passes. The assistant
-did not regenerate the manifest. Per [AGENTS.md](../AGENTS.md), “Only a human runs
+did not regenerate the manifest. Per [AGENTS.md](../../AGENTS.md), “Only a human runs
 `npm --prefix spec run guard:freeze`, after reviewing a spec change.” Future
 contract/test revisions require another human freeze.

@@ -18,7 +18,7 @@ Tag `test-01` marks completion of service-level executable specification work.
 Business decisions D-01–D-38, domain schemas, per-service API contracts, and 166
 service scenarios are present. The latest access-control and telemetry rehearsal
 passed 310 checks against temporary services and detected 13 deliberate defects;
-see the [rehearsal report](docs/test-slices-5-6-rehearsal.md).
+see the [rehearsal report](docs/history/test-slices-5-6-rehearsal.md).
 
 The four JavaScript services are implemented with independent in-memory stores,
 HTTP APIs, authentication, and OpenTelemetry export. Reviewed and frozen SPEC-05
@@ -30,11 +30,11 @@ recorded in the [JavaScript engineering review](docs/engineering-reviews/impl-02
 TEST-02 now has nine frozen backend journeys using Playwright HTTP requests without
 launching a browser. These retain the existing workflows without extra UI/setup
 flows. IMPL-02 and the JavaScript
-[Engineering Discipline review](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
+[Engineering Discipline review](docs/history/backlog-completed.md#eng-01--review-implementation-quality-across-the-language-swap)
 passed the complete `npm test` aggregate at tag `impl-02`.
 FE-01 adds approved, human-frozen design assets, three visual references,
 and five headless Chromium checks. Its implementation and validation are recorded in the
-[FE-01 handoff](docs/fe-01-handoff.md) and [design preview](docs/fe-01-design-preview.html).
+[FE-01 handoff](docs/handoffs/fe-01.md) and [design preview](docs/design/fe-01-design-preview.html).
 [BACKLOG.md](BACKLOG.md) tracks verification and task status. The earlier
 single-app version remains preserved at tag `1.0`.
 
@@ -89,7 +89,7 @@ scenarios and nine backend journeys pass in the complete aggregate run.
 The [engineering review](docs/engineering-reviews/impl-02-javascript.md) records
 the fixes, evidence, and in-memory limitations. The [frontend engineering review](docs/engineering-reviews/fe-01-javascript.md)
 records FE-01 evidence. PERF-01's local performance checks are human-frozen and
-pass; see its [handoff](docs/perf-01-handoff.md).
+pass; see its [handoff](docs/handoffs/perf-01.md).
 The browser suite requires the pinned
 Playwright Chromium installation (`cd spec` then `npx playwright install chromium`).
 Only a human reviews and freezes protected changes.

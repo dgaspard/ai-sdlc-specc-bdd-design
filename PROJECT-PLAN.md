@@ -14,7 +14,9 @@ service that interoperates with existing services.
 The fourth pillar is **Engineering Discipline**: passing behavioral specifications,
 API contracts, and observability checks is followed by an implementation review of
 service boundaries, payment safety, and maintainability. The required gate is
-[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap).
+[ENG-02](BACKLOG.md#eng-02--independent-calibrated-engineering-review), which
+supersedes the self-review in
+[ENG-01](docs/history/backlog-completed.md#eng-01--review-implementation-quality-across-the-language-swap).
 Apply it after code generation at the all-JavaScript implementation checkpoint
 and every Python Checkout reconstruction. Record test results separately from
 review findings; both the automated checks and engineering review must pass.
@@ -64,31 +66,10 @@ No new feature beyond the core demonstration is required to prove the hypothesis
 
 ## Current position
 
-The specification phase through TEST-01 is complete at tag `test-01` (commit
-`9d7b08e`): decisions D-01–D-38, the domain model, per-service and payment
-contracts, OBS-001–OBS-042, protected service steps, schema assertions,
-access-control checks, and business-trace checks are present. The 166 service
-scenarios resolve their steps. The latest temporary-service rehearsal passed 310
-access and telemetry/workflow checks and caught 13 deliberate defects; its
-temporary implementations were removed afterward. The legacy application remains
-at tag `1.0`. The four JavaScript services and the FE-01 vanilla JavaScript frontend
-now exist. IMPL-02 validation and the JavaScript ENG-01 review pass; see the
-[JavaScript review record](docs/engineering-reviews/impl-02-javascript.md) for
-results, findings, and resolved service-BDD harness correction.
-
-SPEC-05 and TEST-02 are reviewed and frozen: complete self-registration information,
-partial per-visit payments, clinical-text corrections, catalog updates, and fast
-backend journeys using Playwright HTTP requests without a browser. No extra UI/setup
-flows are added. Pet removal and archival are deferred to the separate DATA-01
-learning exercise. See BACKLOG for current verification and review status.
-IMPL-02's full validation and
-[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-are complete for the JavaScript backend workspace. FE-01's UI, five browser checks,
-three visual comparisons, and frontend ENG-01 review also pass at checkpoint `fe-01`.
-PERF-01's local performance checks are human-frozen and pass at checkpoint `perf-01`.
-PERF-01 is a representative example of the performance test type, not a capacity
-study; it exists so later work can expand on it. The original intentional red
-baseline is historical. The verified implementation checkpoint is tag `impl-02`.
+Status is tracked in [BACKLOG.md](BACKLOG.md) (Now / Next / Done); this plan does
+not repeat it. As of 2026-09-29 the specification, architecture, JavaScript
+implementation, frontend, and performance milestones are complete (weeks 1–3),
+and reconstruction rehearsals are under way (week 4), ahead of schedule.
 
 ## Working agreements and ownership
 
@@ -244,7 +225,7 @@ Time budget / elapsed time:
 Test iterations and suite results:
 Human interventions / specification corrections:
 Independent evaluation and diff review:
-ENG-01 review record, code-check commands/results, findings and dispositions:
+ENG-02 review record, automated gate results, findings and dispositions:
 Evidence paths:
 Outcome and next action:
 ```
@@ -258,9 +239,9 @@ required checks, preserve frozen expectations, and need no unplanned human code
 repair. Disclose any prepared scaffolding and rehearsed prompt.
 
 Each rehearsal must also pass
-[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap):
-inspect the complete diff and connected trace, run the language-appropriate code
-checks, and resolve payment-safety and service-boundary findings. Retain a review
+[ENG-02](BACKLOG.md#eng-02--independent-calibrated-engineering-review):
+automated gates, the connected trace, an independent review with human sign-off
+on security and boundary findings, and a calibrated reviewer. Retain a review
 record for the JavaScript baseline and each Python reconstruction. This is a
 demo-readiness gate, not a production-readiness claim.
 
@@ -295,22 +276,17 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 | Python environment fails at the venue | Preinstall runtime and dependencies; pin versions; keep a recording |
 | Performance results vary by machine | Modest thresholds; same machine for both runs; report actual numbers |
 
-## Immediate next action
+## Revised schedule (2026-09-29)
 
-TEST-01 is complete at tag `test-01`; SPEC-05 and TEST-02 are reviewed and frozen.
-IMPL-02 and the JavaScript
-[ENG-01](BACKLOG.md#eng-01--review-implementation-quality-across-the-language-swap)
-review pass at checkpoint `impl-02`. FE-01 is verified at checkpoint `fe-01`;
-approved design assets and browser/visual expectations remain frozen. PERF-01 is
-human-frozen and verified at checkpoint `perf-01`; the full aggregate, including
-the guard and local performance suite, passes. Proceed to reconstruction
-rehearsals. Repeat ENG-01 for every reconstruction.
-Re-prioritized 2026-09-29 (ahead of schedule): after DEMO-01 rehearsals, build
-MVP-02A (administrator role and veterinarian roster, with SPEC-06 folded in) and
-PLAY-01 (Excella playbook, evidence, short recording) by 2026-10-14 for an Excella
-leadership visit. Target: rehearsals 2–3 by 10-02; admin specs frozen by 10-07;
-build verified by 10-10; playbook package by 10-13; fresh Python rehearsal against
-the new specs after 10-14, before the talks.
-Talk dates (2026-11-07, 2026-11-13), one-hour length, and the demo flow are
-set (A-12). Next: DEMO-01 rehearsals, which record rebuild duration and produce
-the pre-recorded fallback.
+Ahead of schedule, so the plan adds MVP-02A (administrator role and veterinarian
+roster, with SPEC-06 folded in), ENG-02 (independent, calibrated review), and
+PLAY-01 (Excella playbook, evidence, short recording) for the 2026-10-14 Excella
+leadership visit.
+
+| By | Milestone |
+| --- | --- |
+| 2026-10-02 | DEMO-01 rehearsals complete; fallback recorded |
+| 2026-10-07 | MVP-02A and SPEC-06 decisions, specs, and red tests frozen; ENG-02 tooling built |
+| 2026-10-10 | MVP-02A JavaScript build green; ENG-02 passes |
+| 2026-10-13 | PLAY-01 package ready |
+| before 2026-11-07 | Fresh Python rehearsal against the new specs; DEMO-02 narrative and final recording |

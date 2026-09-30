@@ -1,769 +1,59 @@
 # Product and demonstration backlog
 
-> Current business direction: see [SPEC-01 decisions](docs/specs/business-decisions.md).
-> Four services are specified, including VeterinarianServices. Acceptance collects
-> the booking fee; checkout follows a documented visit. Held/pay-to-confirm
-> proposals from early planning are superseded by the published contracts.
+Task status lives here; the plan, decisions, and milestones live in
+[PROJECT-PLAN.md](PROJECT-PLAN.md). Follow [the development workflow](docs/development-workflow.md)
+for every item. Finished items keep their full history in
+[docs/history/backlog-completed.md](docs/history/backlog-completed.md).
 
 ## Purpose and agreed direction
 
-For the November talk, demonstrate that business behavior (BDD), service/API
-contracts, and observability contracts can guide an agent to implement and
-reconstruct software. Passing checks establish the specified behavior, not
-complete enterprise correctness or identical source code.
+Demonstrate that business behavior (BDD), service/API contracts, and observability
+contracts can guide an agent to implement, reconstruct, and extend software.
+Passing checks establish the specified behavior, not complete enterprise
+correctness or identical source code.
 
 - Preserve Git tag `1.0` (commit `897c9e4`) as the original baseline.
 - Keep storage in memory. Restart recovery and durable transactions are out of scope.
-- Evolve toward Customer, Reservation, VeterinarianServices, and Checkout services in one repository,
-  running as separate local processes communicating over HTTP.
-- Use a deterministic fake payment provider; test our integration behavior, not
-  third-party internals. No real charges or payment credentials.
-- Design API/service contracts, observability rules, and BDD feature files before
-  implementation. Review the specification set with the user, then create executable
-  checks, prove the expected failures, and implement against those checks.
-- No service implementation is authorized merely by adding an item here.
-
-## Current baseline
-
-Tag `spec-schema-complete` locks the business decisions, domain model, schemas,
-observability rules, and service feature files. The legacy single-app code, its
-tests, and its API contract were removed (D-24); they remain available at tag `1.0`.
-TEST-01 is complete: protected service steps,
-schema, access-control, and telemetry checks exist, and their temporary-service
-rehearsals are recorded below. The frozen TEST-01 baseline contains 166 service
-scenarios. SPEC-05/TEST-02 are now reviewed and frozen: 219 service scenarios and
-nine Playwright HTTP journeys. That specification checkpoint is tagged
-`spec-05-test-02-frozen`. The four JavaScript services now exist; all 219 service
-scenarios pass in separate groups, along with runtime and observability checks.
-The harness lifecycle correction is authorized and human-frozen; the full
-aggregate passes and the JavaScript ENG-01 review is complete;
-see [IMPL-02](#impl-02--build-the-four-service-checkout-workflow) and its review.
-
-## Ordered work
-
-The [five-week project plan](PROJECT-PLAN.md) sequences these tasks and defines
-milestone exit criteria. Task status remains recorded here.
-
-Follow [the development workflow](docs/development-workflow.md) for every item.
-As an item becomes active, record its stage, specification links, accepted
-decisions, verification results, and next action using the handoff fields there.
-
-### SPEC-01 — Agree service boundaries and business decisions
-
-Status: core business decisions recorded and carried into the frozen service
-specifications. Decisions D-01–D-38 are in
-[SPEC-01](docs/specs/business-decisions.md); later contract clarifications GAP-01–07
-are recorded in the [TEST-01 review](docs/test-slices-5-6.md).
-
-| Service | Owns | Calls |
-| --- | --- | --- |
-| Customer | Customer/pet profiles, account entries, booking eligibility | None |
-| Reservation | Calendar, reservation lifecycle, clinical Visit storage | Customer; Checkout for booking payment |
-| VeterinarianServices | Service catalog and USD fees | None |
-| Checkout | Bills, promotions, booking and visit payments, cash | Customer, Reservation, VeterinarianServices, fake payment provider |
-
-Settled rules include owner = customer, independent in-memory stores, requested
-and accepted reservations without expiry, a non-refundable $20 fee at acceptance,
-post-visit completion as CompletedSettled or CompletedOutstanding, and sequential
-and concurrent payment replay. Failed booking payment leaves the request open;
-failed post-visit payment leaves an outstanding balance. Published contracts
-specify unknown entities, conflicts, and failures after successful authorization.
-Automatic payment recovery, timeout handling, refunds, and durable idempotency
-remain outside the demo scope. Do not reopen historical follow-up lists as new
-requirements; consult the current domain model and API contracts first.
-
-### SPEC-02 — Publish the three specification layers
-
-Status: service features, domain schemas, and API contracts complete; cross-service
-workflow features and browser tests remain under TEST-02.
-
-The [domain model](docs/specs/domain-model.md),
-[schema decisions](docs/specs/schema-decisions.md), and
-[contract index](spec/contracts/README.md) define the reviewed service surfaces.
-Schema questions Q-01–Q-05 are approved. Customer and Pet expose profiles/account
-data; Reservation owns and serves clinical records (D-38). Integer USD cents,
-price snapshots, payment limits (revised for partial payments by SPEC-05), promotion limits, and state transitions
-are expressed in the published contracts and service features.
-
-SPEC-04 delivered the per-service and fake-payment contracts. TEST-01 supplied
-executable service steps, schema assertions, access checks, and business trace
-checks; all 166 service scenarios resolve their steps. The current OBS registry
-runs through OBS-042, with retired IDs and uncovered rules explicitly identified.
-Completion of these service artifacts does not imply that workflow features,
-the frontend, or the application exist.
-
-### SPEC-03 — Trace observability rules to executable tests
-
-Status: stable-ID registry and coverage mapping established; scoped business-trace
-checks validated in TEST-01. Broader rule coverage remains incomplete.
-
-Follow the [traceability specification](docs/specs/observability-traceability.md)
-and maintain the rule → test → implementation table in
-[observability.md](docs/observability.md). Existing checks cover service identity,
-HTTP/resource conventions, W3C propagation, business outcomes OBS-023–035, and
-cross-process evidence OBS-036–040. The latest rehearsal passed 92 business
-telemetry/workflow checks; temporary implementations were then removed.
-
-Privacy, exporter failure/lifecycle, eligibility tracing, and broader fault and
-concurrency coverage remain explicit gaps. Conditional logs and metrics remain
-deferred. Supporting assertions under other IDs are not complete coverage of a
-broader rule. OBS-011 is retired; the legacy cancellation example stays at tag
-`1.0` and the current cancellation contract is OBS-026.
-
-### ARCH-01 — Repository layout with separate projects
-
-Status: done. Decision A-01. Phase: spec (human-directed).
-
-Result: `spec/` holds features, contracts, seed data, cucumber config, and test tooling
-(its own Node project); `services/<name>/` and `frontend/` contain README files only.
-Root `npm test` runs the spec project. `npm --prefix spec ci` verified locally
-(168 packages, 0 vulnerabilities).
-
-- Create `services/<name>/` for each of the four services, `frontend/`, and `spec/`.
-- Move `features/` and `contracts/` under `spec/` and update Cucumber and doc paths.
-- Each service project has its own dependency file and `start` script and can be
-  deleted without affecting any other project.
-- Acceptance: deleting one service folder leaves every other project buildable.
-
-### ARCH-02 — Language-neutral runtime contract
-
-Status: done. Decision A-02. Phase: spec.
-
-Result: [`spec/contracts/runtime-contract.md`](spec/contracts/runtime-contract.md) defines
-`setup`/`start` scripts, static ports, environment variables (OpenTelemetry standard names
-where they exist), frozen `CLINIC_NOW` clock, `GET /health`, `POST /test/reset` behind
-`PETCLINIC_TEST_ENDPOINTS=enabled`, and seed files read from `SEED_DATA_DIR`. Added
-`spec/seed-data/services.json` (fixed catalog IDs) and `spec/harness/free-port.sh`.
-Reference runtimes: Node 22+ (24.21.0 in use), Python 3.12.
-
-Browser access: CORS from `FRONTEND_ORIGIN` (default `http://localhost:3000`); no frontend proxy.
-
-### ARCH-03 — Black-box test harness
-
-Status: done. Decision A-03. Phase: spec.
-
-Result: `spec/harness/` (config, process control, stub server, schema validator,
-free-port), `spec/fakes/payment/` with its contract `spec/contracts/payment-provider.openapi.json`,
-runtime-contract tests (RT-001..RT-007), domain-example schema tests, Cucumber
-lifecycle (`spec/tests/support/world.js`), and `spec/run-all.js` reporting every suite.
-
-Baseline (`npm test`):
-- Runtime contract: fake payment provider passes; all four services and the frontend
-  fail with "<Project> not implemented: <folder>/start not found".
-- Service features: 150 of 150 scenarios fail with the same not-implemented message.
-- Schema contracts: 9 of 9 pass after fixing two defects the harness found in
-  `domain.openapi.json` (Read schemas rejected their own fields; declined payments could
-  carry an authorization reference).
-
-### ARCH-04 — Cross-process telemetry capture
-
-Status: done. Decisions A-03, A-10. Phase: spec.
-
-- OTLP/HTTP test collector in `spec/harness/collector/` (port 4318): protobuf only, rejects
-  other formats with 415 and records them; `GET /test/spans`, `POST /test/reset`.
-- Vendored OTLP .proto files (opentelemetry-proto, latest release v1.10.0) decoded with protobufjs.
-- `spec/harness/traces.js` (wait for spans, find span, parent/child across services, trace tree)
-  and `spec/harness/show-trace.js` for the demo.
-- Runtime contract: OTLP protobuf env vars, traces only, `OTEL_BSP_SCHEDULE_DELAY=100`, and
-  RT-008 [OBS-001]: each service exports protobuf traces under its `service.name`.
-- Collector self-check tests in `spec/tests/harness/`.
-- Dependency: protobufjs ^8.8.0 (dev, spec project).
-
-Baseline (`npm test`): harness self-checks pass (collector accepts protobuf, rejects JSON
-with 415); schema contracts pass; runtime contract: fake payment and collector pass, the
-four services (including RT-008) and the frontend fail as not implemented; 150/150
-service scenarios fail as not implemented.
-
-### OTEL-01 — OpenTelemetry specification conformance
-
-Status: done. Decision A-08. Phase: spec.
-
-Result: semantic conventions reference v1.44.0 (stable HTTP subset enforced);
-auto-instrumentation allowed, not required. New rules OBS-041 (HTTP span names and
-attributes, deprecated names forbidden, business spans parented by the SERVER span) and
-OBS-042 (`service.name`, `service.version`, `telemetry.sdk.language`). Checks in
-`spec/harness/semconv.js`; tests in `spec/tests/observability/otel-conventions.test.js`
-(12 failing: services not implemented) and helper self-checks in `spec/tests/harness/`.
-Client-span, 5xx `error.type`, business-span parenting, and W3C propagation (OBS-002)
-tests move to TEST-01, after SPEC-04 defines endpoints.
-
-### AUTH-01 — Simple local authentication and data access
-
-Status: done (specification and failing tests). Decision A-09. Phase: spec.
-
-Result: [`spec/contracts/auth-contract.md`](spec/contracts/auth-contract.md) and
-`auth.openapi.json`: JWT HS256 with the shared demo secret, 8-hour user tokens on the clinic
-clock, identical 401 for unknown user or wrong password, `service` role tokens (5 minutes)
-for internal operations, 401/403/404 rules, open endpoints. Seed data: `customers.json`
-(Jordan Rivera with Milo and Luna, Sam Lee with Rex) and `users.json` (two veterinarians,
-two customers, password `petclinic-demo`). Veterinarians create new customers; only seeded
-users log in.
-
-Tests: seed-data schema and reference checks (pass); `spec/tests/auth/login.test.js`
-AUTH-001..AUTH-004 (fail: Customer not implemented); `login.feature` and access scenarios
-in `customer-profile.feature`. Token rejection and per-endpoint access rules are tested in
-TEST-01 once SPEC-04 defines the endpoints and marks internal ones.
-
-### GUARD-01 — Protect specs and tests from agent modification
-
-Status: local protection done; remote branch ruleset and code-owner configuration
-remain to be verified/configured. Decision A-07. Phase: spec.
-
-Protected paths (`spec/guard/protected-paths.json`): `spec/`, `docs/specs/`, `.claude/`,
-`.github/`, `AGENTS.md`. Humans edit them; agents read them.
-
-- Build agent: `.claude/settings.json` deny rules plus `.claude/hooks/protect-paths.mjs`
-  (edit tools and shell commands; blocks `guard:freeze`). The reason is shown to the user.
-- Fingerprints: `spec/protected.sha256`, checked by `npm --prefix spec run guard:check`
-  (first suite in `npm test`), refrozen only by a human with `guard:freeze`.
-- Skip scan: rejects `.skip`/`.only`/`.todo` and `@skip`/`@wip`/`@ignore`/`@only` tags.
-- GitHub: `.github/CODEOWNERS` and `.github/workflows/guard.yml` (guard job required; full
-  suite informational). The GitHub remote now exists. Verify/configure its branch
-  ruleset requiring PR, the guard check, and code-owner review; confirm the
-  CODEOWNERS username. This documentation update does not claim remote enforcement.
-- Self-checks: `spec/tests/harness/guard.test.js` and `protect-hook.test.js`.
-
-### SPEC-04 — Per-service API contracts
-
-Status: done. Phase: spec. Index: [`spec/contracts/README.md`](spec/contracts/README.md).
-
-Decisions: plain REST paths, no version prefix or pagination; RFC 9457 problem details
-with a stable `code`; 400 malformed, 401/403/404 per auth contract, 409 state conflicts,
-422 business-rule rejections, 502 dependency failures; balance denial is 201 with the
-saved Denied reservation; `/internal/` operations are service-only; the acting user comes
-from the token, never the body; one OpenAPI file per service reusing domain schemas by
-`$ref`; `Idempotency-Key` required on booking-fee, accept, card, and cash payment operations.
-
-Result: `customer` (12 operations, includes login), `reservation` (12), `veterinarian-services`
-(3, read-only), `checkout` (8) contracts plus `common.openapi.json`. Customer serves
-`CustomerRead`/`PetRead`, which no longer embed reservations, visits, or history (D-38). Every feature
-file maps to at least one operation (`x-features`). Structural tests in
-`spec/tests/contract/api-contracts.test.js` pass (131 schema checks in total).
-
-### FE-01 — Frontend project
-
-Status: verified. Phase: implementation. Stage: verified; user-approved design,
-browser checks, and visual references are human-frozen. Decision A-04.
-Checkpoint: `fe-01`.
-
-Accepted scope: vanilla JavaScript; login, customer appointment request, assigned
-vet acceptance and visit recording, bill finalization, and customer card payment.
-Keep wider business-rule coverage in backend suites. One fixed desktop viewport
-and headless Chromium; no mobile/browser matrix or extra product workflows.
-
-Preserve appearance and behavior across reconstruction without requiring identical
-source. Retain approved CSS, local fonts/license, logo/images, design instructions,
-tests, and approved visual references under `spec/`. Delete only frontend application
-code in a later authorized experiment after Checkout reconstruction (DEMO-04).
-
-Approved and frozen: [design contract](spec/frontend/design.md), [screen contract](spec/frontend/screens.md),
-[browser coverage plan](spec/tests/browser/README.md), and
-[visual-reference policy](spec/frontend/visual-baselines/README.md).
-Approved identity: Cedar & Paw Veterinary; evergreen/ivory, local Inter, original
-SVG paw mark, minimal imagery. [Static review preview](docs/fe-01-design-preview.html)
-supports `#login`, `#appointments`, and `#bill`; it is not the application.
-
-Five executable Playwright checks now accompany the frontend feature scenarios;
-`npm --prefix spec run test:browser` runs them and `npm test` includes them.
-Last verification: `npm test` passes all nine suites, including five browser checks
-and three visual comparisons in 10.2 seconds. All nine supplemental engineering
-checks, lint/formatting, and connected payment-trace verification pass. The status
-announcement race was fixed in the implementation without changing frozen tests.
-See [FE-01 handoff](docs/fe-01-handoff.md) for verification and calibration evidence.
-The [frontend ENG-01 review](docs/engineering-reviews/fe-01-javascript.md) passes.
-Next: PERF-01 thresholds/specifications, then reconstruction rehearsals. The browser
-timing is measured evidence, not a substitute for the planned performance gate.
-
-### PERF-01 — Minimum performance test
-
-Status: verified (2026-09-28); human-frozen; full aggregate passes. Decision A-06.
-Phase: spec. Stage: verified. Checkpoint: tag `perf-01`.
-
-Purpose: one representative performance test so the project covers every major
-enterprise test type. It is a base for later expansion and experiments, not a
-capacity study; the 200 ms budget is intentionally generous.
-
-- Five paced concurrent workers, two-second warm-up, ten-second measurement window;
-  target roughly 20–30 seconds total, including setup and cleanup.
-- Each worker books independent future appointments and settles prepared historical
-  visits, avoiding clock changes or scheduling conflicts during measurement.
-- Request, acceptance, finalization, and payment each require p95 below 200 ms,
-  at least 20 samples, zero unexpected errors, and correct financial outcomes.
-- Same frozen workload and thresholds for JavaScript and Python on the same host;
-  real services and fake payments, telemetry enabled, no browser.
-- `npm --prefix spec run test:performance`; included in `npm test`.
-
-Specification and workload details: [PERF-01 contract](spec/tests/performance/README.md).
-Initial baseline: 100 samples per operation, p95 6.5–16.9 ms; full performance command
-17.4 seconds. Deliberate slow HTTP responses and incorrect financial outcomes were
-rejected. See [PERF-01 handoff](docs/perf-01-handoff.md) for evidence and next steps.
-The human reviewed and ran `guard:freeze` and `guard:check`; `npm test` passes all
-ten suites, including the guard and local performance. Next: use the unchanged
-check in reconstruction (DEMO-03).
-
-### DEMO-03 — Language swap demonstration
-
-Status: planned; depends on IMPL-02, FE-01, PERF-01. Decision A-05.
-
-Talks: Black Tech NOLA workshop 2026-11-07; NOAI 2026-11-13; one hour each (A-12).
-
-- Run the FE-002 browser journey headed and visibly on the all-JavaScript build
-  (login → book → vet accepts/records visit → bill → pay; no sign-up screen).
-- The agent prompts the presenter to delete `services/checkout/` (timed); the agent
-  rebuilds it in Python from unchanged specs and tests while the presenter talks.
-- Rerun the same headed journey; record and show elapsed rebuild time.
-- Fallback: pre-recorded screen capture of a successful rehearsal rebuild.
-- Visible run: `npm run demo:journey` ([tools/demo](tools/demo/README.md)) reuses the
-  frozen browser config unchanged, adding only visible mode, a slowdown and a longer
-  timeout; no protected file changes. Visible Chromium needs its own screenshot
-  baselines (text smoothing only); the presenter reviewed and approved them
-  (2026-09-28), and the visible journey passes on the presenter's Mac.
-- Rerun all suites, Playwright, and performance; show the connected trace.
-- Pass [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
-  for the JavaScript baseline and each Python reconstruction.
-- Stretch (recorded): rebuild the whole backend in Python.
-
-### DEMO-04 — Reconstruct the frontend from retained design assets
-
-Status: planned after Checkout's reconstruction experiment (DEMO-03) and a verified
-FE-01 checkpoint. Phase: experiment; no deletion or implementation authorized now.
-
-In an isolated workspace, retain protected design instructions, CSS, fonts/license,
-logo/images, browser tests, and approved visual baselines; retain the backend. Delete
-only `frontend/` application/build/startup code using an explicit reviewed manifest.
-Exclude previous frontend source/history and the static design-preview HTML from
-reconstruction inputs. Rebuild with vanilla JavaScript by default; select another
-framework or server language only for an intentionally chosen later comparison.
-Require the same appearance within the frozen tolerance, exact text/interactions,
-the same backend behavior, and ENG-01. Record elapsed time, interventions, failures,
-and retained scaffolding. No claim of identical source or newly invented branding.
-
-### TEST-01 — Service-level executable tests (all red)
-
-Status: done (2026-09-27). Phase: spec. Stage: tests red.
-Checkpoint tag: `test-01`.
-
-Completion means the service-level executable specifications and their
-green/mutation rehearsals are complete. It does not mean the application passes:
-temporary implementations have been removed and missing-service failures are
-intentional. Workflow features/browser tests and broader observability coverage
-gaps remain outside this task.
-
-Decisions: test clock `POST /test/clock` (RT-009) instead of restarts, so in-memory data
-survives a clock change; "Given" state only through published APIs with stubs for
-dependencies (no seed backdoors); one step file per service plus shared steps (clock,
-login, "refused as <reason>" → problem `code`); access control generated from every
-contract operation's `x-roles` (401 missing/bad-signature/`alg: none`/expired, 403 wrong
-role, 404 another customer's record); OBS-023..040 in dedicated observability tests,
-OBS-002 via `traceparent` recorded by stubs; stubs assert internal calls carry a
-`service`-role token and never the user's token (negative check), and internal
-operations reject user tokens with 403. Workflow features and Playwright are TEST-02.
-
-Done so far:
-- Part 1: test clock (runtime contract, harness, RT-009). Tag `test-01-clock`.
-- Slice 1: shared helpers (`clinic-time.js`, `money.js`, `seed.js`), Cucumber world `api()`
-  that validates every response against the service contract, `tokenFor()`/`actAs()`
-  (real login against Customer; identical locally signed tokens elsewhere), shared steps,
-  and VeterinarianServices steps. Validated against a throwaway spike service (9/9 green),
-  then with two deliberate faults (wrong fee: 3 scenarios fail; extra field: 2 fail with
-  "Contract violation"). Spike deleted; baseline: 9/9 fail as not implemented.
-- Slice 2: Customer steps for profile, pets, account, eligibility, login, and access
-  scenarios (45 scenarios). Internal operations are called with service-role tokens.
-  Validated against a throwaway spike (45/45 green; AUTH-001..004 10/10 green), then with
-  three deliberate faults: clamping an over-credit (1 fails), customers reading others'
-  profiles (1 fails), login leaking the password (fails widely via the `User` schema).
-  Spike deleted; baseline: 45/45 fail as not implemented.
-- Slice 3: Reservation steps (73 scenarios incl. outlines) with Customer and Checkout stubs:
-  default stub answers per scenario, assertions on what Reservation sent (amounts, method,
-  Idempotency-Key, service-role token signed with the shared secret and never the user's
-  token). States are reached only through the API; `BeforeStep` records Given/When/Then so
-  `the reservation is "<state>"` sets up in a Given and asserts in a Then. Validated against
-  a throwaway spike (73/73 green), then five faults: no slot lock during acceptance (race),
-  forwarding the vet's token to Checkout, denial amount without the thousands comma, weekend
-  slots, past slots offered; each caught by the scenario owning that rule. Spike deleted;
-  baseline: 73/73 fail as not implemented.
-- Slice 4: Checkout steps (34 scenarios) with Customer, Reservation, and VeterinarianServices
-  stubs plus the real fake payment provider, whose call log proves whether a card was charged.
-  Assertions cover amounts, billed-line snapshots, account changes, completion requests, and
-  service-role tokens (`sub: checkout`). The spike found one step bug (a regex group count),
-  fixed before review. Validated against a throwaway spike (34/34 green), then five faults:
-  no idempotency (5 fail), concurrent duplicates racing (1), booking fee collected twice (7),
-  promotion driving the balance negative (1), reporting settled when completion fails (1).
-  Spike deleted; baseline: 161/161 service scenarios fail as not implemented.
-- Slices 5–6 completed: contract-generated access assertions for all 34 protected
-  operations; business trace assertions for OBS-023–040 and stub-header propagation
-  for OBS-002. Real-service trace tests cover cross-process evidence, replay,
-  booking acceptance/decline, and promotion to zero. Application services remain absent.
-  See [review, outcome coverage, and contract gaps](docs/test-slices-5-6.md).
-  Harness fixture/mutation checks pass; full runtime validation remains red.
-  Stage: tests red; supplied protected manifest passes guard:check and includes
-  these slices and the prior Checkout slice. Checkpoint tag: `test-01-s5-s6`.
-  Contract gaps resolved in GAP-01–07 of the linked review: documented 403s,
-  missing telemetry outcomes, invalid visit/bill inputs, cash replay and rejection
-  precedence, authorized-completion failure status, and veterinarian identity.
-  Added BDD cases and trace assertions; the freeze is included in `test-01`.
-  Historical verification before that freeze: npm test passes 45 harness and 131 schema checks; application
-  assertions remain red because service implementations are absent. BDD dry run
-  resolved all 166 scenarios; the guard then reported the unfrozen revisions.
-  Those revisions are now frozen and the guard passes.
-  Latest verification (2026-09-27): supplied working-tree manifest passes the
-  guard and was preserved unchanged. The [green/mutation rehearsal](docs/test-slices-5-6-rehearsal.md)
-  passed all 310 slice-5/6 checks (218 access, 92 telemetry/workflow), detected
-  13 deliberate implementation defects, and passed all 10 distinct mutation
-  targets after restoration. Temporary implementations were removed; final
-  `npm test` again passes guard, 45 harness and 131 schema checks, with application
-  suites intentionally red because services are absent. No protected files changed.
-  Next: define TEST-02 workflow features and browser tests.
-  The TEST-01 specification handoff and first green/mutation rehearsal are complete;
-  broader privacy/exporter/fault coverage gaps remain outside these slices.
-
-### SPEC-05 — Revise the November MVP domain and contracts
-
-Status: reviewed and frozen (2026-09-27). Phase: spec. Stage: tests red.
-
-User-directed changes after `test-01-docs`: keep exactly two seeded veterinarians,
-their independent offices, assigned-veterinarian acceptance/denial/cancellation,
-customers canceling only their own appointments before the start, multiple services
-per visit, and the non-refundable $20 booking fee paid before acceptance.
-
-Add customer self-registration with a preferred veterinarian and at least one pet;
-allow correction of completed clinical records and veterinarian updates to service
-types. Revise the domain, API/auth contracts, features, access fixtures, schema
-checks, and affected telemetry expectations before building application code.
-Add service-level failing tests and cross-service journeys under TEST-02. This is
-the same specification-first process used for the original requirements; a prior
-freeze remains a historical checkpoint, not a prohibition on reviewed evolution.
-
-Approved correction scope: assigned-veterinarian changes to clinical notes,
-diagnoses, medications, and follow-up notes only; preserve services and finalized
-bills. Draft service features and PATCH contracts now cover this scope and
-catalog name/fee updates. Cross-service assertions must additionally prove that
-clinical corrections and catalog updates leave finalized bills and debt unchanged.
-
-Accepted scope clarification (2026-09-27): require all customer information at
-registration, including insurance, saved mock payment details, and secondary
-contact, plus a veterinarian and at least one pet. Keep one registration flow;
-do not introduce additional setup flows for collecting those details later.
-Allow multiple smaller payments against one visit, mixing card payments and
-veterinarian-recorded cash. Failed payments leave debt unchanged; any outstanding
-customer balance continues to block new appointment requests. Each payment targets
-one visit. Pet removal and archival are excluded from this demo.
-
-Workflow scope confirmed: retain the existing backend journeys and TEST-02 tests;
-avoid additional UI/setup flows for visits, bill payment, or appointment times.
-The draft includes coordinated registration/payment schemas, features, fixtures,
-and telemetry revisions. Self-registration requires complete information; the
-existing veterinarian-assisted profile endpoint retains its frozen input shape.
-The full-balance-only payment rule is superseded by the approved partial payments.
-
-Only the human runs `guard:freeze` after reviewing the revised protected files.
-Keep the original `test-01` and `test-01-docs` tags intact.
-
-Historical specification handoff (2026-09-27): registration, partial payment, catalog update, and completed
-clinical correction contracts/features/steps are frozen, with nine backend
-journeys and OBS-043–045. Pet removal is excluded. No business questions remain.
-The human reviewed the specification changes and ran `guard:freeze`. `npm test`
-passes the guard, harness, and schema suites; runtime, authentication,
-observability, service BDD (219 scenarios), and workflow BDD (nine scenarios) are
-red because the application services are absent. Cucumber resolves all 219
-service scenarios/1685 steps and nine workflow scenarios/58 steps, with no
-undefined or ambiguous steps. The new checks have not had a working-implementation
-or mutation rehearsal; do not claim implementation verification.
-Checkpoint: tag `spec-05-test-02-frozen`. Next: proceed to IMPL-02, coordinating
-the application build with FE-01 and PERF-01. Broader
-telemetry failure/privacy branches remain explicit gaps in the coverage table.
-Current implementation evidence superseding this red baseline is recorded under
-IMPL-02 and ENG-01; the frozen expectations are unchanged.
-
-### TEST-02 — Cross-service workflow specifications and API tests
-
-Status: reviewed and frozen (2026-09-27); nine backend journeys pass against the
-JavaScript implementation. Phase: spec. Stage: verified for the backend journey
-scope. Depends on TEST-01 and SPEC-05. IMPL-02's aggregate gate remains separate.
-
-Scope: specify a small set of user journeys spanning the four services, then
-write protected workflow steps using Playwright's HTTP request API without
-launching a browser. The fast backend suite does not depend on a frontend design.
-Add a small headless browser suite with FE-01 once user interactions are specified.
-The existing HTTP telemetry workflows prove selected integration assertions;
-they do not replace workflow feature files or browser acceptance tests.
-
-Draft journey selection for review:
-
-- Request and accept an appointment, collect the booking fee, record the visit,
-  finalize the bill, and settle the remaining balance.
-- Mix partial card payment, decline, and veterinarian-recorded cash; block another
-  pet's booking until customer debt is cleared.
-- Replay a partial payment after settlement without duplicate authorization or credit.
-- Apply a promotion after partial payment without overcrediting or another authorization.
-- Preserve finalized bills and debt through clinical corrections and catalog changes.
-- Reject one of two competing payments before overcollection.
-- Retain the booking fee on customer cancellation and reuse released capacity.
-- Accept simultaneous bookings for different pets with the two veterinarians.
-- Register a customer with complete information and request their first appointment.
-
-Acceptance criteria: reviewed features live under `spec/features/workflows/`;
-steps exercise actual local services with only the payment provider faked;
-state, money, payment invocation counts, and the existing trace suites agree.
-Keep detailed edge cases in the service suites. Register the HTTP journey suite in the aggregate
-runner, record a meaningful red baseline, and have the human review/freeze the
-protected changes. Tests must stay unchanged for the JavaScript-to-Python demo.
-Browser interaction tests remain with FE-01 once its existing UI is designed;
-do not add extra UI/setup flows for this task.
-
-References: D-28/D-35, service features, `spec/contracts/`, OBS-036–040,
-A-04/A-05, and `docs/development-workflow.md`.
-Next action: carry the frozen expectations into IMPL-02. Run with
-`npm --prefix spec run test:workflows`; the aggregate `npm test` includes it.
-Processes are reused between scenarios, with deterministic resets and one worker;
-there are no browser launches, screenshots, or retries hiding failures. This does not authorize
-application implementation or introduce new business behavior.
-
-### MVP-02A — Administrator role and veterinarian roster (before 2026-10-14)
-
-Status: planned (re-prioritized 2026-09-29). Starts after DEMO-01 rehearsals 2–3.
-Phase: spec, then build. Target: verified by 2026-10-13 for the Excella leadership
-visit (PLAY-01). Purpose: prove the method on *adding* functionality to a tested
-system, the common enterprise case, not only rebuilding it.
-
-Scope:
-- Administrator role distinct from veterinarian (auth contract, users seed, tokens).
-- Admin can add and deactivate veterinarians (new API, domain contract changes).
-- Admin can view all appointments; veterinarian privileges narrow to their own work.
-- Frontend admin screen with accessible labels and a browser check.
-- Fold in [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)
-  (GAP-09–15) in the same spec review and freeze cycle.
-
-Veterinarian and administrator test scenarios to add (found in rehearsals):
-
-| Gap | Question to decide | Likely artifacts |
-| --- | --- | --- |
-| GAP-08 | A veterinarian who did not perform the visit applies a promotion or records cash and gets 403 `not_assigned_veterinarian`, but that outcome is missing from the OBS-030 / OBS-033 closed outcome lists. Found independently by r1 (Python) and r2 (JavaScript); no test covers it. | OBS-030/OBS-033 outcome lists; observability test; Checkout scenarios |
-| GAP-08a | After the role split, may an administrator apply a promotion or record cash on any visit, or only the assigned veterinarian? What outcome is recorded when an admin is refused? | auth contract; Checkout scenarios; OBS outcomes |
-
-Sequence: business decisions (human answers) → contracts, features, OBS rules →
-protected tests red → human freeze → JavaScript build → `npm test` green → ENG-01.
-Record spec effort, agent time, interventions, and gaps found for PLAY-01.
-After it lands, rerun one fresh Python Checkout rehearsal before 2026-11-07.
-
-Out of scope (remain in MVP-02): office capacity, reassigning other veterinarians'
-appointments, departure policies for future appointments and history, multi-visit
-payments.
-
-### PLAY-01 — Excella playbook package for leadership (2026-10-14)
-
-Status: planned. Depends on DEMO-01 (r1–r3) and MVP-02A evidence.
-
-- Playbook document: roles (product/QA write features, architects program the
-  engineering agent, humans freeze), phase gates, guard, review, metrics, and when
-  the method fits or doesn't.
-- Evidence: rebuild rehearsal numbers and the MVP-02A feature addition (spec effort,
-  agent time, interventions, spec gaps surfaced).
-- Short recorded demo: a few-minute cut of the rebuild and the admin feature.
-
-### MVP-02 — Clinic growth and administration after the November demo
-
-Status: deferred except the MVP-02A slice above; possible 2027 workshop. Phase: spec
-before implementation.
-
-Business case: the clinic is growing and hires additional veterinarians. Introduce
-an administrator role, veterinarian onboarding/removal and office capacity,
-administration of other veterinarians' appointments, and policies for future
-appointments and historical records when a veterinarian leaves. This is a separate
-exercise in evolving a tested product with AI, not required for the November demo.
-Payments allocated across multiple visits are also deferred; each MVP payment
-targets one visit. Pet removal and archival are excluded from the November demo
-and tracked separately below.
-
-### DATA-01 — Personal historical-data and archival learning demo
-
-Status: deferred until explicitly requested. Phase: research/spec before implementation.
-
-Explore pet removal, preservation of historical data, data governance, archival,
-retrieval, reporting, and enterprise data-archiving practices in a separate personal
-learning exercise. The user intentionally welcomes greater architectural depth in
-that later exercise to learn data engineering. Define retention, access, archival,
-and retrieval requirements then; no archival implementation, pet-removal endpoint,
-or related failing acceptance tests belong in the November TDD demo.
-
-### ARCH-05 — Evaluate Docker Compose isolation after the MVP
-
-Status: deferred until after the November MVP. Phase: architecture review.
-
-Evaluate whether Docker Compose should manage the PetClinic services, telemetry
-collector, and payment fake after the current host-process implementation is
-validated. Assess project-scoped startup/shutdown, health checks, isolated networks,
-port ownership, reproducibility, and whether the narrower container boundary gives
-humans safer control over AI-driven process management. Do not introduce Docker,
-Compose files, or a new runtime dependency before the current IMPL-02 checkpoint
-is complete and the architectural trade-off is explicitly reviewed.
-
-### IMPL-01 — Legacy visit cancellation (retired)
-
-Status: retired by D-24. The legacy app was removed; its cancellation exercise is
-preserved at tag `1.0`. Reservation cancellation is specified in
-`spec/features/reservation/cancel-reservation.feature` and is built under IMPL-02.
-
-### IMPL-02 — Build the four-service checkout workflow
-
-Status: verified (2026-09-27); full aggregate and JavaScript ENG-01 pass.
-Phase: build. Stage: verified.
-Service specifications and TEST-01 are complete; coordinate the JavaScript build
-with FE-01 and the agreed PERF-01 checks.
-
-Handoff: the four JavaScript services and shared HTTP/authentication/OTLP runtime
-are checkpointed at tag `impl-02`. Local networking permission is available. All 52
-runtime checks and 219 service scenarios pass when service groups run separately;
-five additional engineering checks pass. The initial aggregate passed guard,
-harness, schemas, authentication, and nine backend journeys. Its implementation
-failures were corrected. The protected Cucumber lifecycle retained a stub
-in the runner when switching services; freeing that port terminated Cucumber.
-The [correction](docs/service-bdd-lifecycle-proposal.patch) is now authorized and
-human-frozen, and all 219 scenarios pass in one run. Final `npm test` exits zero:
-guard, 45 harness checks, 157 schemas, 52 runtime checks, 242 authentication checks,
-113 observability checks, 219 service scenarios, and nine backend journeys pass.
-RT-009 remains human-frozen and the guard passes. See the
-[engineering review](docs/engineering-reviews/impl-02-javascript.md) and
-[handoff](docs/impl-02-handoff.md) for final rerun evidence and next actions.
-Post-fix reruns also pass all 242 authentication checks, 113 observability checks,
-and nine Playwright HTTP journeys. Formatting/lint pass and the implementation
-dependency audit reports zero vulnerabilities. Checkpoint: tag `impl-02`.
-
-[ENG-01](#eng-01--review-implementation-quality-across-the-language-swap) is complete
-for this JavaScript backend workspace, with its review record retained alongside
-the test results at tag `impl-02`. Next: FE-01 and
-PERF-01 before reconstruction/demo readiness.
-
-Implement successful checkout, declined payment, and idempotent retries against
-the agreed expectations. Run real local service dependencies in integration tests;
-fake only the payment boundary. Keep stores independent and in memory. Document
-that restarting a process loses state and idempotency protection.
+- Four services (Customer, Reservation, VeterinarianServices, Checkout) in one
+  repository, running as separate local processes communicating over HTTP.
+- Deterministic fake payment provider; no real charges or payment credentials.
+- Specify contracts, observability rules, and BDD features before implementation;
+  the human reviews and freezes; then build against the frozen checks.
+- No implementation is authorized merely by adding an item here.
+
+## Key dates
+
+| Date | Event |
+| --- | --- |
+| 2026-10-14 | Excella leadership visit, DC (PLAY-01, MVP-02A) |
+| 2026-11-07 | Black Tech NOLA workshop, one hour |
+| 2026-11-13 | NOAI talk, one hour |
+
+## Now
 
 ### DEMO-01 — Rehearse deletion and reconstruction
 
-Status: in progress (2026-09-28). Checkpoint tag `demo-01-baseline`. Rehearsal
-scripts, visible journey, and draft rebuild prompt in [tools/demo](tools/demo/README.md).
-Agent: Claude Code in a fresh session; workspace: disposable copy with no JavaScript
-Checkout history; prompt: prepared and approved (reading shared JavaScript runtime
-is allowed and disclosed; Python ENG-01 deferred until the demo is proven).
+Status: in progress. Checkpoint tag `demo-01-baseline`. Tools, prompts, and the
+visible journey are in [tools/demo](tools/demo/README.md). Agent: Claude Code in a
+fresh session; disposable workspace with no prior Checkout history; prepared prompt
+(reading the shared JavaScript runtime is allowed and disclosed).
 
-| Run | Agent time | Result | Interventions | Record |
-| --- | ---: | --- | ---: | --- |
-| r1 (2026-09-28) | 25m 49s | 10/10 suites + visible journey pass; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
-| r2 (2026-09-29), Python → JavaScript | ≤32m23s | 10/10 suites + visible journey pass; verification 8m13s | 0 | [r2](docs/rehearsals/r2.md) |
+| Run | Direction | Rebuild time | Result | Interventions | Record |
+| --- | --- | ---: | --- | ---: | --- |
+| r1 (2026-09-28) | JavaScript → Python | 25m 49s (agent) | 10/10 suites + visible journey; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
+| r2 (2026-09-29) | Python → JavaScript | ≤32m23s | 10/10 suites + visible journey; verification 8m13s | 0 | [r2](docs/rehearsals/r2.md) |
+| r3 | JavaScript → Python (recorded fallback) | — | — | — | — |
 
-r1 surfaced spec gaps GAP-08–11 (now [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)) and one unreproduced
-startup flake to watch. Next: rehearsals 2 and 3 (three consecutive clean runs
-are the live gate), then record the fallback.
-
-- Create a tagged working checkpoint and a bounded deletion script or documented steps.
-- Delete Checkout implementation only; retain contracts, features, tests, helpers,
-  Customer, Reservation, and the fake payment provider.
-- Rebuild in a fresh agent context to reduce reliance on remembered implementation.
-- Review specification/test diffs and verify all suites plus the visible workflow.
-- Complete [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
-  for every reconstruction before calling the run demo-ready.
-- Rehearse timings, pin a supported runtime, preinstall browsers, and retain a
-  recovery checkpoint and recorded fallback. No destructive deletion during planning.
-
-### SPEC-06 — Close Checkout specification gaps found in rehearsal
-
-Status: planned. Phase: spec (human review and freeze). Sources:
-[rehearsal r1](docs/rehearsals/r1.md), [rehearsal r2](docs/rehearsals/r2.md).
-Timing: after three clean DEMO-01 rehearsals (so the specs stay fixed across
-runs), reviewed and frozen together with MVP-02A, before 2026-10-14.
-
-The Python rebuild passed every test but reported behavior the contracts leave
-silent or inconsistent. For each gap: decide the intended behavior, then add or
-amend the contract, OBS rule, and scenario so a test pins it down.
-
-| Gap | Question to decide | Likely artifacts |
-| --- | --- | --- |
-| GAP-08 | Moved to [MVP-02A vet/admin scenarios](#mvp-02a--administrator-role-and-veterinarian-roster-before-2026-10-14) (veterinarian authorization). | — |
-| GAP-09 | What does promotion/cash return when Reservation cannot record completion (502 `dependency_failed`)? | `checkout.openapi.json` responses; scenario |
-| GAP-10 | Is there an internal-error problem code, or is 500 `dependency_failed` intended? | common problem codes; runtime/contract note |
-| GAP-11 | Confirm the agent's guesses: $0 bill completes as settled; booking fee excluded from `paymentAttempts` but counted in `previouslyPaidAmount` (r1 Python and r2 JavaScript chose this independently); same-key retry after payment returns current state plus original attempt | business decision entry; scenarios |
-| GAP-12 | Idempotency key scopes (r2): booking fee keyed per reservation; card and cash keyed per checkout. Is reusing one key across booking and visit payment, or across card and cash, two separate requests or a conflict? | D-12 clarification; scenarios for cross-scope key reuse |
-| GAP-13 | Card approved but follow-up fails: the same-key retry returns the same 502 `authorized_completion_failed` without re-charging or retrying the follow-up. Covered only by unprotected engineering checks today; should a frozen scenario pin it? | scenario; possibly OBS rule |
-| GAP-14 | Completion and account-change repeats (r2): Checkout skips re-sending an identical completion and treats Reservation `already_completed` / Customer `already_applied` as success. Intended? | contract note; scenarios with downstream "already done" replies |
-| GAP-15 | A $0 promotion is stored but sends no discount to Customer (r2). Intended, and should it appear in the bill and trace? | scenario; OBS-030 attribute note |
-
-Done when: decisions recorded, protected changes human-reviewed and frozen, the
-JavaScript Checkout updated so `npm test` passes, and one fresh Python rehearsal
-passes against the new specs (earlier rehearsal evidence predates them).
-
-## Experiment and presentation work
-
-### ENG-01 — Review implementation quality across the language swap
-
-Status: JavaScript review complete and passed (2026-09-27), including final
-aggregate validation after the authorized harness correction and human freeze.
-Python reviews remain planned.
-Applies to the all-JavaScript implementation and each Python Checkout
-reconstruction. Phase: implementation and demo review. Fourth pillar:
-**Engineering Discipline**. See the
-[JavaScript review record](docs/engineering-reviews/impl-02-javascript.md) for
-findings, fixes, test results, connected trace, and limitations.
-
-Purpose: passing BDD, API, observability, and browser checks establishes the
-behavior they cover. Review the implementation separately to determine whether
-its boundaries, payment handling, and structure are sound enough to maintain.
-Apply the same review criteria to both languages. An agent must perform this
-review after generating code and fixing test failures, before declaring the
-implementation or reconstruction checkpoint ready.
-
-Review tasks:
-
-- **Inspect the complete implementation diff.** Identify Checkout behavior,
-  dependencies, startup configuration, and telemetry. Confirm the rebuilt service
-  has not changed protected specifications, tests, or surviving services to pass.
-- **Check service ownership.** Checkout uses published APIs, owns its state, and
-  neither reads another service's store nor copies its business logic. Keep the
-  payment fake outside Checkout.
-- **Trace one payment from request to outcome.** Locate the idempotency check,
-  provider call, recorded result, and Reservation/Customer updates. Verify
-  sequential and concurrent retries cause no duplicate provider calls or credits.
-- **Review money and state transitions.** Use integer cents; require the $20
-  booking fee before acceptance. A booking decline leaves the request Requested.
-  Partial and full visit payments produce the specified CompletedOutstanding or
-  CompletedSettled state without overcollection or cross-visit allocation.
-- **Inspect partial failures.** Provider success followed by downstream failure
-  must be reported accurately in the response and trace. A retry must not silently
-  charge again. Record limitations outside the agreed in-memory demo scope.
-- **Review access and telemetry.** Inspect service-token use, ownership checks,
-  trace propagation, and sensitive customer/payment information in spans or errors.
-- **Review code structure.** Look for hardcoded scenario values, duplicate payment
-  paths, unnecessary coupling, and control flow that obscures payment outcomes.
-- **Run language-appropriate code checks.** Add and run formatting, lint, and
-  useful static checks. Record exact commands, versions, and results for JavaScript
-  and Python; equivalent criteria do not require identical tools.
-- **Verify and record the result.** Run frozen suites, backend journeys, and the
-  same browser journey once available; inspect the diff and a connected trace.
-  Record findings, fixes, remaining limitations, and the final commit/workspace.
-
-Acceptance criteria: frozen behavioral suites and configured code checks pass;
-the review record separates test results from code-review findings. Resolve
-payment-safety and service-boundary concerns before demo readiness. Record each
-other finding's disposition and remaining limitations. Judge JavaScript and Python
-by the same criteria; green tests alone do not establish production readiness.
-
-Record each review under `docs/engineering-reviews/` with checkpoint/language,
-reviewed diff and files, test/check commands and results, payment/trace evidence,
-findings with fixes and dispositions, limitations, and a pass/blocked decision.
-Add targeted regression checks for concrete uncovered behavior through the normal
-specification-first process; proposed checks under protected paths need explicit
-specification authorization and human review/freeze before implementation.
-Do not modify frozen tests merely to pass this gate.
-
-Next action: retain this JavaScript review as the baseline for reconstruction.
-Reuse this gate at every DEMO-01/DEMO-03/EXP-01 checkpoint, with equivalent Python
-code checks and payment/service-boundary review.
+Next: r3 with screen recording. Live gate (A-12): three consecutive clean runs that
+fit the hour; if it must mean three Python runs, add r4. Watch for r1's
+unreproduced startup hang. On stage use `finish-rehearsal.sh --journey-only`.
 
 ### ENG-02 — Independent, calibrated engineering review
 
-Status: planned (2026-09-29). Build in parallel with DEMO-01 rehearsals 2–3; run it
-before MVP-02A starts. Phase: review tooling (unprotected `tools/review/`), then
-apply. Supersedes ENG-01's self-review as the demo-readiness and playbook gate.
+Status: planned (2026-09-29). Build in parallel with DEMO-01; run before MVP-02A.
+Phase: review tooling (unprotected `tools/review/`), then apply. Supersedes
+[ENG-01](docs/history/backlog-completed.md#eng-01--review-implementation-quality-across-the-language-swap)'s
+self-review as the demo-readiness and playbook gate, reusing its checklist.
 
 Why: ENG-01 was written by the same agent that built the code, largely as a
 narrative checklist, and was never tested. The Python rebuild (r1) has no review.
@@ -772,7 +62,8 @@ Passing tests say nothing about behavior the tests don't cover.
 1. **Automated gates (tool-judged, same for every language):**
    - Duplicate-code detection across services (e.g. jscpd, which reads JS and Python).
    - Import-boundary check: no service imports another service's code or a store;
-     shared infrastructure (`services/platform/`) is allowed and listed.
+     shared infrastructure (`services/platform/`) is allowed and listed. Replaces
+     `tools/ownership.test.mjs`; the other `tools/*.test.mjs` checks move to `tools/review/`.
    - Security scanning: Semgrep (both languages) plus Bandit for Python; secret scan.
    - Dependency audit: `npm audit` and `pip-audit`.
    - Connected-trace capture (`npm run trace:payment`) against every build,
@@ -795,37 +86,174 @@ Passing tests say nothing about behavior the tests don't cover.
 
 Apply to: the JavaScript baseline (`impl-02`), r1 Python, r2 JavaScript, r3 Python.
 Record under `docs/engineering-reviews/` with gate output, findings, sign-off, and
-calibration score. Feeds PLAY-01: "architects program the engineering agent" is
-shown concretely by these gates and the reviewer prompt.
+calibration score. Feeds PLAY-01.
+
+## Next — before 2026-10-14
+
+### SPEC-06 — Close Checkout specification gaps found in rehearsal
+
+Status: planned. Phase: spec (human review and freeze). Sources:
+[rehearsal r1](docs/rehearsals/r1.md), [rehearsal r2](docs/rehearsals/r2.md).
+Timing: after DEMO-01, reviewed and frozen together with MVP-02A.
+
+The rebuilds passed every test but reported behavior the contracts leave silent or
+inconsistent. For each gap: decide the intended behavior, then add or amend the
+contract, OBS rule, and scenario so a test pins it down.
+
+| Gap | Question to decide | Likely artifacts |
+| --- | --- | --- |
+| GAP-08 | Moved to [MVP-02A](#mvp-02a--administrator-role-and-veterinarian-roster) (veterinarian authorization). | — |
+| GAP-09 | What does promotion/cash return when Reservation cannot record completion (502 `dependency_failed`)? | `checkout.openapi.json` responses; scenario |
+| GAP-10 | Is there an internal-error problem code, or is 500 `dependency_failed` intended? | common problem codes; runtime/contract note |
+| GAP-11 | Confirm the agents' guesses: $0 bill completes as settled; booking fee excluded from `paymentAttempts` but counted in `previouslyPaidAmount` (r1 Python and r2 JavaScript chose this independently); same-key retry after payment returns current state plus original attempt | business decision entry; scenarios |
+| GAP-12 | Idempotency key scopes (r2): booking fee keyed per reservation; card and cash keyed per checkout. Is reusing one key across booking and visit payment, or across card and cash, two separate requests or a conflict? | D-12 clarification; scenarios for cross-scope key reuse |
+| GAP-13 | Card approved but follow-up fails: the same-key retry returns the same 502 `authorized_completion_failed` without re-charging or retrying the follow-up. Covered only by unprotected engineering checks today; should a frozen scenario pin it? | scenario; possibly OBS rule |
+| GAP-14 | Completion and account-change repeats (r2): Checkout skips re-sending an identical completion and treats Reservation `already_completed` / Customer `already_applied` as success. Intended? | contract note; scenarios with downstream "already done" replies |
+| GAP-15 | A $0 promotion is stored but sends no discount to Customer (r2). Intended, and should it appear in the bill and trace? | scenario; OBS-030 attribute note |
+
+Done when: decisions recorded, protected changes human-reviewed and frozen, the
+JavaScript Checkout updated so `npm test` passes, and one fresh Python rehearsal
+passes against the new specs (earlier rehearsal evidence predates them).
+
+### MVP-02A — Administrator role and veterinarian roster
+
+Status: planned (re-prioritized 2026-09-29). Starts after DEMO-01. Phase: spec,
+then build. Target: verified by 2026-10-13 for PLAY-01. Purpose: prove the method on
+*adding* functionality to a tested system, the common enterprise case.
+
+Scope:
+- Administrator role distinct from veterinarian (auth contract, users seed, tokens).
+- Admin can add and deactivate veterinarians (new API, domain contract changes).
+- Admin can view all appointments; veterinarian privileges narrow to their own work.
+- Frontend admin screen with accessible labels and a browser check.
+- Fold in [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)
+  (GAP-09–15) in the same spec review and freeze cycle.
+
+Veterinarian and administrator test scenarios to add (found in rehearsals):
+
+| Gap | Question to decide | Likely artifacts |
+| --- | --- | --- |
+| GAP-08 | A veterinarian who did not perform the visit applies a promotion or records cash and gets 403 `not_assigned_veterinarian`, but that outcome is missing from the OBS-030 / OBS-033 closed outcome lists. Found independently by r1 (Python) and r2 (JavaScript); no test covers it. | OBS-030/OBS-033 outcome lists; observability test; Checkout scenarios |
+| GAP-08a | After the role split, may an administrator apply a promotion or record cash on any visit, or only the assigned veterinarian? What outcome is recorded when an admin is refused? | auth contract; Checkout scenarios; OBS outcomes |
+
+Sequence: business decisions (human answers) → contracts, features, OBS rules →
+protected tests red → human freeze → JavaScript build → `npm test` green → ENG-02.
+Record spec effort, agent time, interventions, and gaps found for PLAY-01.
+After it lands, rerun one fresh Python Checkout rehearsal before 2026-11-07.
+
+Out of scope (remain in MVP-02): office capacity, reassigning other veterinarians'
+appointments, departure policies for future appointments and history, multi-visit
+payments.
+
+### PLAY-01 — Excella playbook package for leadership
+
+Status: planned. Due 2026-10-13. Depends on DEMO-01, ENG-02, and MVP-02A evidence.
+
+- Playbook document: roles (product/QA write features, architects program the
+  engineering agent, humans freeze), phase gates, guard, review, metrics, and when
+  the method fits or doesn't.
+- Evidence: rebuild rehearsal numbers, the MVP-02A feature addition (spec effort,
+  agent time, interventions, spec gaps surfaced), and the ENG-02 calibration score.
+- Short recorded demo: a few-minute cut of the rebuild and the admin feature.
+
+## Next — before the talks (2026-11-07)
 
 ### EXP-01 — Measure service reconstruction
 
-Status: planned; depends on a verified IMPL-02 checkpoint.
+Status: in progress through DEMO-01 records. Follow the experiment protocol and
+run-record template in `PROJECT-PLAN.md`: at least three fresh Checkout
+reconstructions with frozen expectations, no access to deleted source/history,
+recorded failures, timings, interventions, and specification changes. Apply ENG-02
+to each; keep code-review findings separate from behavioral results. Two-service
+reconstruction and a prose-versus-executable comparison are stretch experiments.
 
-Follow the experiment protocol and run-record template in `PROJECT-PLAN.md`.
-Perform at least three fresh Checkout reconstructions with frozen expectations,
-no access to deleted source/history, and independent evaluation of published
-requirements. Record failures, timings, interventions, and specification changes.
-Apply [ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)
-to each reconstruction; record code-check results and review findings separately
-from behavioral test outcomes using the same criteria as the JavaScript baseline.
-Two-service reconstruction and a prose-versus-executable comparison are stretch
-experiments, not prerequisites for the primary demo.
+### DEMO-03 — Language swap demonstration
+
+Status: planned. Decisions A-05, A-12. The on-stage flow:
+
+- Run the FE-002 journey visibly (`npm run demo:journey`) on the all-JavaScript build
+  (login → book → vet accepts/records visit → bill → pay; no sign-up screen).
+- Timed delete of `services/checkout/`; the agent rebuilds it in Python from the
+  unchanged specs and tests while the presenter talks.
+- Rerun the visible journey (`finish-rehearsal.sh --journey-only`); show the agent's
+  `npm test` summary, the elapsed time, and the connected trace.
+- Fallback: the recorded r3 rehearsal. Stretch (recorded): whole backend in Python.
 
 ### DEMO-02 — Prepare presentation and recovery
 
-Status: planned; depends on DEMO-01 and EXP-01 evidence.
+Status: planned; depends on DEMO-01 and EXP-01 evidence. Working draft:
+[talk notes](docs/talk-notes.md). Narrative for the ~25-minute rebuild wait,
+labeled fallback recording, recovery checkpoint, disclosed scaffolding and
+limitations, and final rehearsal results. Freeze core scope the week before
+2026-11-07.
 
-Confirm the talk duration and reconstruction time budget. Require three consecutive
-rehearsals within budget and all required checks green for a live rebuild. Prepare
-a clearly labeled recording, separate recovery checkpoint, and narrative explaining
-retained scaffolding, limitations, and observed results. Freeze core scope in Week 5.
+## Open follow-ups on completed work
 
-## Optional feature candidates
+- **GUARD-01 remote:** configure and verify the GitHub branch ruleset (PR required,
+  guard check required, code-owner review) and confirm the CODEOWNERS username.
+- **SPEC-03 coverage:** privacy, exporter failure/lifecycle, eligibility tracing, and
+  broader fault/concurrency OBS rules remain untested; ENG-02's rule audit reviews them.
+
+## Done
+
+Full history: [docs/history/backlog-completed.md](docs/history/backlog-completed.md).
+
+| Item | Result | Checkpoint |
+| --- | --- | --- |
+| [SPEC-01](docs/history/backlog-completed.md#spec-01--agree-service-boundaries-and-business-decisions) | Service boundaries; decisions D-01–D-38 ([record](docs/specs/business-decisions.md)) | `spec-schema-complete` |
+| [SPEC-02](docs/history/backlog-completed.md#spec-02--publish-the-three-specification-layers) | Domain model, schemas, service features | `spec-schema-complete` |
+| [SPEC-03](docs/history/backlog-completed.md#spec-03--trace-observability-rules-to-executable-tests) | OBS registry and coverage table (gaps above) | `test-01` |
+| [ARCH-01](docs/history/backlog-completed.md#arch-01--repository-layout-with-separate-projects) | Repository layout, separate projects | `arch` |
+| [ARCH-02](docs/history/backlog-completed.md#arch-02--language-neutral-runtime-contract) | Language-neutral runtime contract | `arch-02` |
+| [ARCH-03](docs/history/backlog-completed.md#arch-03--black-box-test-harness) | Black-box harness, payment fake | `arch-03` |
+| [ARCH-04](docs/history/backlog-completed.md#arch-04--cross-process-telemetry-capture) | OTLP test collector, trace helpers | `arch-04` |
+| [OTEL-01](docs/history/backlog-completed.md#otel-01--opentelemetry-specification-conformance) | Semantic conventions OBS-041/042 | `otel-01` |
+| [AUTH-01](docs/history/backlog-completed.md#auth-01--simple-local-authentication-and-data-access) | Local JWT auth and access rules | `auth-01` |
+| [GUARD-01](docs/history/backlog-completed.md#guard-01--protect-specs-and-tests-from-agent-modification) | Local spec/test protection (remote follow-up above) | `guard-01` |
+| [SPEC-04](docs/history/backlog-completed.md#spec-04--per-service-api-contracts) | Per-service API contracts | `spec-04` |
+| [TEST-01](docs/history/backlog-completed.md#test-01--service-level-executable-tests-all-red) | Service-level executable tests, mutation-rehearsed | `test-01` |
+| [SPEC-05](docs/history/backlog-completed.md#spec-05--revise-the-november-mvp-domain-and-contracts) | November MVP revisions (registration, partial payments) | `spec-05-test-02-frozen` |
+| [TEST-02](docs/history/backlog-completed.md#test-02--cross-service-workflow-specifications-and-api-tests) | Nine cross-service backend journeys | `spec-05-test-02-frozen` |
+| [IMPL-02](docs/history/backlog-completed.md#impl-02--build-the-four-service-checkout-workflow) | Four JavaScript services ([handoff](docs/handoffs/impl-02.md)) | `impl-02` |
+| [ENG-01](docs/history/backlog-completed.md#eng-01--review-implementation-quality-across-the-language-swap) | JavaScript self-review ([record](docs/engineering-reviews/impl-02-javascript.md)); superseded by ENG-02 | `impl-02` |
+| [FE-01](docs/history/backlog-completed.md#fe-01--frontend-project) | Frontend, five browser checks ([handoff](docs/handoffs/fe-01.md)) | `fe-01` |
+| [PERF-01](docs/history/backlog-completed.md#perf-01--minimum-performance-test) | Local performance test ([handoff](docs/handoffs/perf-01.md)) | `perf-01` |
+| [IMPL-01](docs/history/backlog-completed.md#impl-01--legacy-visit-cancellation-retired) | Retired by D-24 | `1.0` |
+
+## Deferred
+
+### MVP-02 — Clinic growth and administration
+
+Status: deferred except the MVP-02A slice; possible 2027 workshop. Office capacity,
+reassigning other veterinarians' appointments, departure policies for future
+appointments and historical records, and payments allocated across multiple visits.
+
+### DEMO-04 — Reconstruct the frontend from retained design assets
+
+Status: planned after DEMO-03. In an isolated workspace, keep the protected design
+instructions, CSS, fonts/license, logo, browser tests, and visual baselines plus the
+backend; delete only `frontend/` application code via a reviewed manifest; exclude
+prior frontend source/history and the static design preview; rebuild in vanilla
+JavaScript. Require the frozen appearance tolerance, identical text/interactions,
+and ENG-02. Record time, interventions, failures, and retained scaffolding.
+
+### DATA-01 — Personal historical-data and archival learning demo
+
+Status: deferred until explicitly requested. Pet removal, historical-data
+preservation, governance, archival, retrieval, and reporting as a separate learning
+exercise with deeper architecture. Nothing for it belongs in the November demo.
+
+### ARCH-05 — Evaluate Docker Compose isolation
+
+Status: deferred until after the November talks. Evaluate Compose for the services,
+collector, and payment fake: startup/shutdown, health checks, isolated networks,
+port ownership, reproducibility, and safer human control over AI-driven process
+management. No Docker files before an explicit review.
+
+### Optional feature candidates
 
 - Reschedule appointments: preserve ID, reject date conflicts, record success/conflict.
 - Filter upcoming visits: define date range boundaries, ordering, and query outcomes.
-- Register patients: define validation and identifiers; avoid owner details in telemetry.
 - Complete visits: define allowed transitions and trace previous/new states.
 - Recover payment-success/confirmation-failure cases using an agreed retry or refund policy.
 
@@ -833,5 +261,6 @@ retained scaffolding, limitations, and observed results. Freeze core scope in We
 
 Reviewed requirements are implemented without weakening their checks; all BDD,
 contract, and observability suites pass; the browser workflow works; trace evidence
-is captured; known in-memory limitations are documented. Documentation of a proposed
-feature or an intentionally failing baseline does not mean that feature is complete.
+is captured; ENG-02 passes; known in-memory limitations are documented.
+Documentation of a proposed feature or an intentionally failing baseline does not
+mean that feature is complete.

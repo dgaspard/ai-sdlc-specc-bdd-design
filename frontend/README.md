@@ -14,7 +14,7 @@ provides the four service URLs from the runtime environment.
 FE-01's approved Cedar & Paw design, screen behavior, and retained assets live in
 [`spec/frontend/`](../spec/frontend/design.md). The browser coverage plan is in
 [`spec/tests/browser/`](../spec/tests/browser/README.md). Human approval and freeze
-are recorded in the [handoff](../docs/fe-01-handoff.md), despite original draft
+are recorded in the [handoff](../docs/handoffs/fe-01.md), despite original draft
 wording retained inside the frozen documents. The application implements login,
 appointment request/assigned-vet acceptance, visit recording, bill finalization,
 and customer payments. Run `npm --prefix spec run test:browser` from the repo root

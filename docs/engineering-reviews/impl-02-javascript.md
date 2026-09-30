@@ -53,7 +53,7 @@ final validation. The reviewed protected-file diff is retained alongside it.
    owned by Cucumber itself. The aggregate loses its runner before printing the
    scenario summary. Proposed correction: stop managed child processes and close
    owned stubs on service switches, retaining reuse within a service. The
-   [reviewed patch](../service-bdd-lifecycle-proposal.patch) changed no assertions.
+   reviewed patch (applied and frozen; removed from `docs/` 2026-09-29, retrievable from commit `25ca13e`) changed no assertions.
    The user authorized it with “continue” after the specific correction was
    presented. It is applied and the combined run passes all 219 scenarios.
    The human-frozen manifest includes the correction and the guard passes.
@@ -93,7 +93,7 @@ published HTTP APIs. The payment fake remains in protected `spec/fakes/payment`.
 
 The runtime reads published OpenAPI schemas; it does not import test behavior or
 fake payment code. Reservation's read-only seeded service-ID validation follows
-GAP-03 in `docs/test-slices-5-6.md`; catalog fees and immutable bill snapshots are
+GAP-03 in `docs/history/test-slices-5-6.md`; catalog fees and immutable bill snapshots are
 owned by VeterinarianServices and Checkout respectively. Shared JavaScript
 infrastructure stays with the surviving services during Python reconstruction,
 and Python must supply its own runtime and official SDK.

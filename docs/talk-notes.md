@@ -2,6 +2,17 @@
 
 Running list of talking points for the "how we built this" review. Not a specification.
 
+> **Status:** working draft for [DEMO-02](../BACKLOG.md#demo-02--prepare-presentation-and-recovery).
+> Written before the rebuild demo was designed. To update before the talks:
+> - Add the A-12 demo flow (visible journey → timed delete → live Python rebuild
+>   while talking → visible journey) and what to say during the ~25-minute wait.
+> - Add rehearsal evidence ([r1](rehearsals/r1.md), [r2](rehearsals/r2.md), r3): times,
+>   zero interventions, and spec gaps the agent surfaced (GAP-08–15).
+> - Add the engineering-review story (ENG-02: automated gates, independent reviewer,
+>   calibration) and known limits (shared HS256 secret, in-memory state).
+> - "Red baseline" below is historical; the live moment is now "delete Checkout, tests
+>   go red, agent rebuilds, tests go green".
+
 ## Workflow slides
 
 1. **Business decisions** — D-01..D-38 in `docs/specs/business-decisions.md`; the human answers, the agent asks.

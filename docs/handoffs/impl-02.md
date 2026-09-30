@@ -1,7 +1,7 @@
 # IMPL-02 implementation handoff
 
 Status: **verified**. The complete `npm test` aggregate exits zero and the
-[JavaScript ENG-01 review](engineering-reviews/impl-02-javascript.md) passes.
+[JavaScript ENG-01 review](../engineering-reviews/impl-02-javascript.md) passes.
 Implementation checkpoint: tag `impl-02` on `main`, following `eng-01-plan`.
 The tag includes the verified JavaScript implementation and ENG-01 review.
 
