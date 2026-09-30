@@ -122,6 +122,7 @@ then build. Target: verified by 2026-10-13 for PLAY-01. Purpose: prove the metho
 *adding* functionality to a tested system, the common enterprise case.
 
 Scope:
+
 - Administrator role distinct from veterinarian (auth contract, users seed, tokens).
 - Admin can add and deactivate veterinarians (new API, domain contract changes).
 - Admin can view all appointments; veterinarian privileges narrow to their own work.

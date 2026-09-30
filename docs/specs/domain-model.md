@@ -396,8 +396,7 @@ direct access to another service's in-memory store. No database change is needed
 Service feature files live in `spec/features/<service>/` (D-35) and follow D-28: each
 asserts only its own service's state plus the requests it sends to other services.
 Workflow features spanning services will live in `spec/features/workflows/` after the
-service contract tests exist. Earlier drafts are archived in
-`docs/specs/archive/draft-features-v1/`.
+service contract tests exist. Earlier drafts are in git history (tag `spec-schema-complete`).
 
 - Customer: `customer-profile`, `pets`, `account-balance`, `booking-eligibility`
 - Reservation: `calendar-availability`, `request-reservation`, `accept-deny-reservation`,

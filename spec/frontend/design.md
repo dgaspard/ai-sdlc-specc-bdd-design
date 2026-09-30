@@ -76,7 +76,7 @@ to pass. Tests must run without importing frontend source. Disclose the retained
 CSS/assets and requirements in the demonstration; this experiment does not claim
 that the visual design was invented again from nothing.
 
-`docs/fe-01-design-preview.html` is an inert design-review artifact, not the
+`docs/design/fe-01-design-preview.html` is an inert design-review artifact, not the
 application or an executable specification. Exclude it and prior frontend source,
 history, build output, and screenshots of failed rebuilds from the agent's initial
 reconstruction inputs. Approved protected baselines remain available. A different

@@ -8,7 +8,7 @@ unchanged and do not establish UI correctness.
 Red baseline on 2026-09-28: all five tests launched successfully and failed at the
 missing `Sign in` heading against the frontend runtime shell. Proposed PNGs stayed
 unchanged. Later assertions await a working implementation; see
-`docs/fe-01-handoff.md` at the repository root for full validation evidence.
+`docs/handoffs/fe-01.md` at the repository root for full validation evidence.
 
 Use the pinned `@playwright/test` already in spec. One headless Chromium worker;
 reuse the browser and service processes across tests, reset service state and use
