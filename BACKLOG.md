@@ -650,7 +650,7 @@ is allowed and disclosed; Python ENG-01 deferred until the demo is proven).
 | Run | Agent time | Result | Interventions | Record |
 | --- | ---: | --- | ---: | --- |
 | r1 (2026-09-28) | 25m 49s | 10/10 suites + visible journey pass; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
-| r2 (2026-09-29), Python → JavaScript | pending | 10/10 suites pass (agent); finish script pending | 0 | [r2](docs/rehearsals/r2.md) |
+| r2 (2026-09-29), Python → JavaScript | ≤32m23s | 10/10 suites + visible journey pass; verification 8m13s | 0 | [r2](docs/rehearsals/r2.md) |
 
 r1 surfaced spec gaps GAP-08–11 (now [SPEC-06](#spec-06--close-checkout-specification-gaps-found-in-rehearsal)) and one unreproduced
 startup flake to watch. Next: rehearsals 2 and 3 (three consecutive clean runs
