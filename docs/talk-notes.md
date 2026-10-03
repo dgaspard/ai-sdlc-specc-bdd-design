@@ -65,9 +65,9 @@ things they genuinely couldn't before.
 is dead, or that any of this removes the organizational change AI forces.
 Those stay open problems and come back at the end.
 
-*(Re-verify every number above against current sources before this goes on
-stage — they're from an earlier research pass in this project, not
-re-checked at final-draft time.)*
+*(These numbers are from an earlier research pass, not re-checked at this
+draft's time — deliberately deferred: pull fresh, current stats in
+November, close to the talks, so they're the most accurate they can be.)*
 
 ## The thesis (tell them the ending now)
 
