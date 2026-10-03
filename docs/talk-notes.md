@@ -93,6 +93,13 @@ to be a meaningful test instead of a trick: specs written and frozen before
 code, contracts an agent can read but not edit, tests that only ever talk to
 the system from the outside. That's where the real lessons are.
 
+**Honest boundary, say it plainly once:** this demo keeps everything in
+memory, shares one secret across services, and proves exactly one bounded
+reconstruction — it is not a claim that any enterprise system can be
+rebuilt this way, and it says nothing yet about real compliance
+requirements or multi-team scale. Naming that out loud costs ten seconds
+and buys more credibility than it spends.
+
 **Live demo flow:** run the before-journey and show the JS implementation
 briefly, kick off the delete-and-rebuild in the background, then talk
 through the lessons below while it runs. Save the rerun — Python journey,
