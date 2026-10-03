@@ -1,8 +1,22 @@
-# SEC-01 security spike tooling
+# Security checks and the SEC-01 spike
 
-Not protected, not part of `npm test`. Supports the SEC-01 backlog item:
-calibrate automated security gates against AI-generated code, before ENG-02
-relies on them.
+Not protected, not part of `npm test` (except `portable/`, which
+`.github/CODEOWNERS` requires review on — see `portable/README.md`).
+
+```
+tools/security/
+  portable/            # generic checks — see portable/README.md for the
+                        # portable-vs-project-specific test to apply
+  project-specific/    # this app's own config/findings
+  calibration-defects.md
+  run-sec01-spike.sh
+```
+
+Supports the SEC-01 backlog item: calibrate automated security gates against
+AI-generated code, before ENG-02 relies on them. The spike script is a thin
+orchestrator around `portable/run-*.sh` — the same scripts a real CI job
+would call — so the spike measures exactly what a future required check
+would measure, not a parallel implementation of it.
 
 ## Why this needs to run outside a network-restricted sandbox
 

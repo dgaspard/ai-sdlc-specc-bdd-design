@@ -86,11 +86,13 @@ Why: ENG-01 was written by the same agent that built the code, largely as a
 narrative checklist, and was never tested. The Python rebuild (r1) has no review.
 Passing tests say nothing about behavior the tests don't cover.
 
-**Target architecture (2026-10-03 design decision):** build the reference
-implementation in this repo now (there is no Excella platform team yet to own a
-shared version), but author it as a liftable, versioned unit from day one, split
-by portability — the same split that cut the auth-suite redundancy, applied to
-*review* instead of tests:
+**Target architecture (2026-10-03 design decision, physically implemented for
+security checks per A-15 — `tools/review/` should adopt the same
+`portable/`/`project-specific/` folder split once it's built):** build the
+reference implementation in this repo now (there is no Excella platform team
+yet to own a shared version), but author it as a liftable, versioned unit from
+day one, split by portability — the same split that cut the auth-suite
+redundancy, applied to *review* instead of tests:
 
 - **Portable (candidate for a future org-level, centrally curated GitHub Actions
   check, run from every repo's CI, not forked and maintained per repo):**
@@ -155,8 +157,13 @@ spike (target: 2 days), run in parallel with DEMO-01/ENG-02, before MVP-02A
 build. Not a shipped feature — a research exploration whose output is a
 written recommendation, feeding ENG-02's security gate and PLAY-01's playbook.
 
-Tooling is ready in `tools/security/` (`run-sec01-spike.sh`,
-`calibration-defects.md`, `README.md`) and a fill-in template exists at
+Tooling is ready in `tools/security/`, split per A-15 into `portable/`
+(generic checks: `run-sast.sh`, `run-dependency-audit.sh`,
+`run-secret-scan.sh`, two custom Semgrep rules — CODEOWNERS-protected) and
+`project-specific/` (this app's real CORS policy, auth-coverage notes), plus
+`run-sec01-spike.sh` (orchestrates the portable scripts against both real
+builds and a calibration copy), `calibration-defects.md` (now cross-
+referencing each defect's classification), and a fill-in template at
 `docs/engineering-reviews/sec-01-spike.md`. It has not been executed yet:
 Semgrep/Bandit/pip-audit/detect-secrets/`npm audit` all need real network
 access to install and query vulnerability databases, which the environment

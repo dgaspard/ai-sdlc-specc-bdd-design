@@ -6,6 +6,11 @@
 # from your own terminal. It will not work inside a network-restricted agent
 # sandbox. See README.md in this folder.
 #
+# This script is a thin orchestrator: the actual checks live in
+# portable/run-*.sh, the same scripts a real CI job would call. Running the
+# spike through them (rather than duplicating tool invocations here) means
+# the spike measures exactly what a future required check would measure.
+#
 # What it does:
 #   1. Installs the scanners: semgrep, bandit, pip-audit, detect-secrets
 #      (npm audit uses the npm already on your machine).
@@ -27,6 +32,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PORTABLE="$ROOT/tools/security/portable"
 PY_REBUILD="${SEC01_PY_CHECKOUT:-$HOME/petclinic-demo-runs/r1/services/checkout}"
 OUT_DIR="$ROOT/tools/security/.spike-output"
 CAL="$(mktemp -d)"
@@ -49,25 +55,25 @@ echo "Tool versions:" | tee "$OUT_DIR/versions.txt"
 
 echo
 echo "== Real-build scan: JavaScript Checkout (impl-02) =="
-semgrep --config auto --json "$ROOT/services/checkout" > "$OUT_DIR/js-semgrep.json" || true
-detect-secrets scan "$ROOT/services/checkout" > "$OUT_DIR/js-secrets.json" || true
-( cd "$ROOT/services/platform" && npm audit --json ) > "$OUT_DIR/js-platform-audit.json" || true
+"$PORTABLE/run-sast.sh" "$ROOT/services/checkout" "$OUT_DIR/js-semgrep.json"
+"$PORTABLE/run-secret-scan.sh" "$ROOT/services/checkout" "$OUT_DIR/js-secrets.json"
+"$PORTABLE/run-dependency-audit.sh" "$ROOT/services/platform" "$OUT_DIR/js-platform-audit.json"
+echo "(Compare against tools/security/project-specific/cors-policy.json —"
+echo " this app's real CORS config — to confirm defect #4 is genuinely"
+echo " absent from the real build, not just unflagged.)"
 
+echo
 echo "== Real-build scan: Python Checkout rebuild ($PY_REBUILD) =="
 if [ -d "$PY_REBUILD" ]; then
   bandit -r "$PY_REBUILD" -f json > "$OUT_DIR/py-bandit.json" || true
-  semgrep --config auto --json "$PY_REBUILD" > "$OUT_DIR/py-semgrep.json" || true
-  detect-secrets scan "$PY_REBUILD" > "$OUT_DIR/py-secrets.json" || true
+  "$PORTABLE/run-sast.sh" "$PY_REBUILD" "$OUT_DIR/py-semgrep.json"
+  "$PORTABLE/run-secret-scan.sh" "$PY_REBUILD" "$OUT_DIR/py-secrets.json"
   if [ -f "$PY_REBUILD/../requirements.txt" ]; then
-    REQ="$PY_REBUILD/../requirements.txt"
+    REQ_DIR="$(cd "$PY_REBUILD/.." && pwd)"
   else
-    REQ="$PY_REBUILD/requirements.txt"
+    REQ_DIR="$PY_REBUILD"
   fi
-  if [ -f "$REQ" ]; then
-    pip-audit -r "$REQ" -f json > "$OUT_DIR/py-audit.json" || true
-  else
-    echo "WARNING: no requirements.txt found near $PY_REBUILD, skipping pip-audit" >&2
-  fi
+  "$PORTABLE/run-dependency-audit.sh" "$REQ_DIR" "$OUT_DIR/py-audit.json"
 else
   echo "WARNING: Python rebuild not found at $PY_REBUILD" >&2
   echo "Set SEC01_PY_CHECKOUT to point at a rehearsal workspace's" >&2
@@ -77,8 +83,9 @@ fi
 echo
 echo "== Calibration: planting known defects in a scratch copy =="
 echo "See tools/security/calibration-defects.md for the full list and rationale."
-mkdir -p "$CAL/checkout-js" "$CAL/checkout-py"
+mkdir -p "$CAL/checkout-js" "$CAL/checkout-py" "$CAL/platform"
 cp -r "$ROOT/services/checkout/." "$CAL/checkout-js/"
+cp -r "$ROOT/services/platform/." "$CAL/platform/"
 
 cat > "$CAL/checkout-js/scratch-defect-examples.js" <<'EOF'
 // SEC-01 calibration only — never imported, never deployed, never committed.
@@ -131,25 +138,29 @@ def bad_token_compare(a, b):
 EOF
 fi
 
-echo "-- Defect 8 (dependency with a known CVE) is manual: in the calibration"
-echo "   copy only, pin one services/platform dependency in"
-echo "   $CAL/checkout-js/../platform/package.json down to a version with a"
-echo "   published advisory, run npm audit again, and confirm it's flagged."
-echo "   Record the exact package/version/advisory ID in the write-up."
+echo "-- Defect 8 (dependency with a known CVE) is manual: pin one dependency"
+echo "   in $CAL/platform/package.json down to a version with a published"
+echo "   advisory, then run, in another terminal (the scratch copy is still"
+echo "   here — it's only deleted when this script exits):"
+echo "     tools/security/portable/run-dependency-audit.sh $CAL/platform $OUT_DIR/cal-dependency-audit.json"
+echo "   and confirm it's flagged. Record the exact package/version/advisory"
+echo "   ID in the write-up."
+read -r -p "Press Enter once defect #8 is done (or to skip it) — this deletes the scratch copy: " _
 
 echo
 echo "== Re-scanning the calibration copy =="
-semgrep --config auto --json "$CAL/checkout-js" > "$OUT_DIR/cal-js-semgrep.json" || true
-detect-secrets scan "$CAL/checkout-js" > "$OUT_DIR/cal-js-secrets.json" || true
+"$PORTABLE/run-sast.sh" "$CAL/checkout-js" "$OUT_DIR/cal-js-semgrep.json"
+"$PORTABLE/run-secret-scan.sh" "$CAL/checkout-js" "$OUT_DIR/cal-js-secrets.json"
 if [ -d "$PY_REBUILD" ]; then
   bandit -r "$CAL/checkout-py" -f json > "$OUT_DIR/cal-py-bandit.json" || true
-  semgrep --config auto --json "$CAL/checkout-py" > "$OUT_DIR/cal-py-semgrep.json" || true
+  "$PORTABLE/run-sast.sh" "$CAL/checkout-py" "$OUT_DIR/cal-py-semgrep.json"
 fi
 
 echo
 echo "== Done. Raw output saved under: $OUT_DIR =="
 echo "Calibration scratch copy (with planted vulnerabilities) was at: $CAL"
-echo "— it is deleted now that the scan finished; nothing vulnerable is kept."
+echo "— run defect #8 manually now if you haven't, then it will be deleted"
+echo "when this script exits. Nothing vulnerable is kept around afterward."
 echo
 echo "Next: open each JSON file in $OUT_DIR and fill in"
 echo "docs/engineering-reviews/sec-01-spike.md (template already there) —"

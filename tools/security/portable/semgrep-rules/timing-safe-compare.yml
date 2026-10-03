@@ -1,0 +1,32 @@
+rules:
+  - id: timing-unsafe-secret-compare-js
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      Comparing a secret/token/signature with == or === is not constant-time
+      and can leak information via a timing side channel. Use a
+      constant-time comparison instead (e.g. Node's crypto.timingSafeEqual).
+    metadata:
+      defect-class: "SEC-01 #1"
+    patterns:
+      - pattern-either:
+          - pattern: $A === $B
+          - pattern: $A == $B
+      - metavariable-regex:
+          metavariable: $A
+          regex: (?i).*(secret|token|signature|hmac|password).*
+
+  - id: timing-unsafe-secret-compare-py
+    languages: [python]
+    severity: WARNING
+    message: >-
+      Comparing a secret/token/signature with == is not constant-time and
+      can leak information via a timing side channel. Use
+      hmac.compare_digest instead.
+    metadata:
+      defect-class: "SEC-01 #1"
+    patterns:
+      - pattern: $A == $B
+      - metavariable-regex:
+          metavariable: $A
+          regex: (?i).*(secret|token|signature|hmac|password).*
