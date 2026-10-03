@@ -41,7 +41,18 @@ trap 'rm -rf "$CAL"' EXIT
 mkdir -p "$OUT_DIR"
 
 echo "== Installing scanners (needs network) =="
-pip install --user --quiet --break-system-packages bandit pip-audit semgrep detect-secrets
+python3 -m pip install --user --quiet --break-system-packages bandit pip-audit semgrep detect-secrets
+
+# `pip install --user` often lands commands in a directory that isn't on
+# PATH (pip prints a warning about this during install, easy to miss in a
+# long install log) — resolve it from the same interpreter that just did the
+# install and prepend it, instead of assuming the shell's PATH is already
+# set up for it.
+USER_BIN="$(python3 -m site --user-base 2>/dev/null)/bin"
+if [ -d "$USER_BIN" ]; then
+  export PATH="$USER_BIN:$PATH"
+fi
+
 echo "Tool versions:" | tee "$OUT_DIR/versions.txt"
 {
   bandit --version 2>&1 | head -1
