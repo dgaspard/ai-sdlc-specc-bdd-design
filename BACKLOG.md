@@ -33,20 +33,47 @@ correctness or identical source code.
 
 ### DEMO-01 — Rehearse deletion and reconstruction
 
-Status: in progress. Checkpoint tag `demo-01-baseline`. Tools, prompts, and the
-visible journey are in [tools/demo](tools/demo/README.md). Agent: Claude Code in a
-fresh session; disposable workspace with no prior Checkout history; prepared prompt
-(reading the shared JavaScript runtime is allowed and disclosed).
+Status: **evidence accepted (2026-10-03, A-14)**. Checkpoint tag
+`demo-01-baseline`. Tools, prompts, and the visible journey are in
+[tools/demo](tools/demo/README.md). Agent: Claude Code in a fresh session;
+disposable workspace with no prior Checkout history; prepared prompt (reading
+the shared JavaScript runtime is allowed and disclosed).
 
 | Run | Direction | Rebuild time | Result | Interventions | Record |
 | --- | --- | ---: | --- | ---: | --- |
 | r1 (2026-09-28) | JavaScript → Python | 25m 49s (agent) | 10/10 suites + visible journey; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
 | r2 (2026-09-29) | Python → JavaScript | ≤32m23s | 10/10 suites + visible journey; verification 8m13s | 0 | [r2](docs/rehearsals/r2.md) |
-| r3 | JavaScript → Python (recorded fallback) | — | — | — | — |
+| r3 | JavaScript → Python (optional recorded fallback) | — | not started | — | — |
 
-Next: r3 with screen recording. Live gate (A-12): three consecutive clean runs that
-fit the hour; if it must mean three Python runs, add r4. Watch for r1's
-unreproduced startup hang. On stage use `finish-rehearsal.sh --journey-only`.
+Live gate (A-12), revised by A-14 (2026-10-03): r1 and r2 — zero interventions,
+both language directions — are sufficient evidence the reconstruction claim
+holds. r3's screen recording is no longer a blocking milestone; it's an
+optional fallback recording (expected under an hour), done whenever before the
+talks. Watch for r1's unreproduced startup hang if/when r3 runs. On stage use
+`finish-rehearsal.sh --journey-only`.
+
+### DEMO-02 — Speaking outline for the presentation
+
+Status: in progress (promoted to Now 2026-10-03, A-14). Working draft:
+[talk notes](docs/talk-notes.md). Reprioritized ahead of DEMO-01's r3
+recording: r1 + r2 are accepted as sufficient rehearsal evidence, so the
+presentation outline needs to exist and be rehearsed before further
+rehearsal reps would add marginal value.
+
+Explicitly a talking-point outline, not a word-for-word script — three parts:
+the problem (statistics and an opening anecdote, still to be picked), the
+process used to build the application (pipeline, architecture decisions, the
+pivots, protection, folder structure), and findings and recommendations
+(what's next, the platform-services argument, repeatable review, the
+adoption checklist). Rough timing budget included against the one-hour slot,
+accounting for the live rebuild wait as part of the process section, not dead
+air.
+
+Done when: outline covers all three parts with the opening anecdote chosen,
+and at least one full read-through has been timed against the one-hour
+budget. Depends on DEMO-01 and EXP-01 evidence (already sufficient per A-14).
+Freeze core scope the week before 2026-11-07; fold in r3 if it's recorded by
+then.
 
 ### ENG-02 — Independent, calibrated engineering review
 
@@ -258,13 +285,8 @@ Status: planned. Decisions A-05, A-12. The on-stage flow:
   `npm test` summary, the elapsed time, and the connected trace.
 - Fallback: the recorded r3 rehearsal. Stretch (recorded): whole backend in Python.
 
-### DEMO-02 — Prepare presentation and recovery
-
-Status: planned; depends on DEMO-01 and EXP-01 evidence. Working draft:
-[talk notes](docs/talk-notes.md). Narrative for the ~25-minute rebuild wait,
-labeled fallback recording, recovery checkpoint, disclosed scaffolding and
-limitations, and final rehearsal results. Freeze core scope the week before
-2026-11-07.
+DEMO-02 (the speaking outline) moved to [Now](#demo-02--speaking-outline-for-the-presentation)
+on 2026-10-03 (A-14); see there for current status.
 
 ## Open follow-ups on completed work
 

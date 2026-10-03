@@ -1,18 +1,47 @@
 # Talk notes (November presentation)
 
-Outline for both talks: Black Tech NOLA workshop (2026-11-07) and NOAI
-(2026-11-13), one hour each. Not a specification — this is the narrative,
-reusing the specs, backlog, and rehearsal evidence as source material.
+Speaking outline for both talks: Black Tech NOLA workshop (2026-11-07) and
+NOAI (2026-11-13), one hour each. Not a specification, and not a script —
+these are talking points to speak from naturally, not a transcript to read.
+Structure: the problem (statistics and an anecdote), the process used to
+build this, then findings and recommendations.
 
-> **Status:** working draft for [DEMO-02](../BACKLOG.md#demo-02--prepare-presentation-and-recovery).
-> Remaining before the talks: fold in rehearsal r3 once recorded, confirm the
-> demo gate (three consecutive clean rehearsals) is met, and time a full
-> read-through against the one-hour budget.
+> **Status:** working draft for [DEMO-02](../BACKLOG.md#demo-02--speaking-outline-for-the-presentation).
+> Demo readiness: [A-14](../PROJECT-PLAN.md) (2026-10-03) accepts r1 + r2
+> (0 interventions each, both language directions) as sufficient evidence
+> the reconstruction claim holds. r3's screen recording is an optional
+> fallback, not a gate — record it whenever before the talks, expected to
+> take under an hour. Remaining before the talks: pick the opening anecdote
+> (marked below), time a full read-through against the one-hour budget, and
+> fold in r3 if it's recorded by then.
 
-## Beginning — problem statements
+## Rough timing against the one-hour budget
 
-What's broken about handing an agent a codebase and a prompt, framed before
-any repo detail:
+The live rebuild itself (~25–32 minutes elapsed, per r1/r2) is not dead air —
+it's where most of "the process" section gets talked through while the
+agent works in the background. Approximate allocation, not a hard script:
+
+| Segment | Minutes | Content |
+| --- | --- | --- |
+| The problem | 8–10 | Statistics + the opening anecdote |
+| Visible journey (before) + timed deletion | 3–5 | Live |
+| The process (talked through during the rebuild wait) | ~25–32 | Pipeline, architecture decisions, the pivots |
+| Visible journey (after) + full aggregate | 3–5 | Live, including the trace-tree language flip |
+| Findings and recommendations | 8–10 | Closing argument, call to action |
+| Buffer / questions | remainder | — |
+
+## The problem (statistics and an anecdote)
+
+**Anecdote — fill in before the talks:** open with one concrete moment from
+actually building this, not a statistic. Candidates worth considering: the
+moment GUARD-01 blocked an edit and the agent explained why instead of
+working around it; a specification gap the agent itself surfaced during r1
+or r2 (GAP-09 through GAP-15) that no one had thought to specify in advance;
+or the `UsdCents` / `Number.MAX_SAFE_INTEGER` discovery, as a small, concrete
+"even a 'language-neutral' contract secretly isn't" moment. Pick whichever
+one is most natural to tell live.
+
+Then the statistics, in order:
 
 1. **The verification tax is real and growing.** AI-generated PRs wait
    roughly 4.6x longer for review (LinearB, 8.1M PRs, DORA 2026). Teams
@@ -46,7 +75,7 @@ reading every line yourself.
 redundancy, or the organizational changes AI-assisted development forces.
 Those are explicitly named as open problems and show up again at the end.
 
-## Middle — how it was built
+## The process (how it was built)
 
 ### The pipeline
 
@@ -59,24 +88,20 @@ tests open for it to renegotiate.
    the human answers, the agent asks when the spec is silent.
 2. **Domain and schema** — `docs/specs/domain-model.md`,
    `spec/contracts/domain.openapi.json`; the harness caught two real schema
-   defects before any application code existed. (Aside worth showing: the
-   `UsdCents` field's declared maximum is literally JavaScript's
-   `Number.MAX_SAFE_INTEGER` — proof that even a "language-neutral" contract
-   quietly encodes language-specific runtime knowledge, and why that had to
-   be caught and decided on purpose rather than inherited by accident.)
+   defects before any application code existed.
 3. **Service features** — one folder per service; each scenario asserts only
    its own service's state plus the calls it makes outward (D-28), which is
    the specific design choice that later makes "delete one service, rebuild
    it in a different language" a testable claim instead of a demo trick.
-4. **Architecture decisions (A-01..A-13)** — language-neutral runtime
+4. **Architecture decisions (A-01..A-14)** — language-neutral runtime
    contract, black-box tests that never import application code, static
    ports and environment-variable-only configuration, OpenTelemetry with
-   protobuf-only export, simple local JWT auth, and (newest) a framework for
-   deciding what belongs in the agent's local loop versus CI/CD. Don't read
-   the table; pick two or three that a software audience will recognize as
-   real decisions, not boilerplate — A-03 (black-box harness) and A-10
-   (protobuf-only OTLP) land well because they're specific and have a reason
-   attached.
+   protobuf-only export, simple local JWT auth, a framework for deciding what
+   belongs in the agent's local loop versus CI/CD, and (newest) the demo
+   evidence-sufficiency decision below. Don't read the table; pick two or
+   three that a software audience will recognize as real decisions, not
+   boilerplate — A-03 (black-box harness) and A-10 (protobuf-only OTLP) land
+   well because they're specific and have a reason attached.
 5. **Protection (GUARD-01)** — `.claude/settings.json` deny rules plus a
    PreToolUse hook block the agent from editing `spec/**`, `docs/specs/**`,
    `.github/**`, `.claude/**`, `AGENTS.md` — the agent sees *why* it was
@@ -126,6 +151,15 @@ tests open for it to renegotiate.
   presenter-reviewed baseline set was added for the demo specifically —
   keeping the frozen spec's tolerance meaningful instead of widening it to
   paper over a rendering artifact.
+- **Demo evidence-sufficiency call (2026-10-03, A-14):** r1 and r2 already
+  showed zero interventions in both language directions. Rather than spend
+  more rehearsal cycles chasing a third run before moving on, the live gate
+  was explicitly relaxed — two clean runs are sufficient evidence for the
+  claim this talk makes, and the deferred r3 recording became a fallback
+  task instead of a blocker. Good live material: deciding *when evidence is
+  enough* is itself a real engineering call, and the same written-decision
+  discipline (reify it, don't just remember it) applied to a process
+  decision, not just a spec.
 
 ### Moments to actually show live
 
@@ -137,12 +171,12 @@ tests open for it to renegotiate.
 - Trace tree showing `telemetry.sdk.language` flip from `nodejs` to `python`
   after the rebuild — visual proof the new implementation is really new.
 - Rehearsal evidence: [r1](rehearsals/r1.md) (JS→Python),
-  [r2](rehearsals/r2.md) (Python→JS), r3 (JS→Python) — times, whatever
-  interventions were or weren't needed, and the specification gaps the agent
-  itself surfaced (GAP-08 through GAP-15), which is better evidence of spec
-  quality than anything written in advance.
+  [r2](rehearsals/r2.md) (Python→JS) — times, zero interventions in either
+  direction, and the specification gaps the agent itself surfaced (GAP-08
+  through GAP-15), which is better evidence of spec quality than anything
+  written in advance. r3, if recorded by then, is a bonus, not a requirement.
 
-## End — what's next, and how to adopt this
+## Findings and recommendations
 
 ### What's next for this project
 
@@ -222,7 +256,10 @@ sequencing:
    defaulting to "run everything everywhere."
 5. Treat security as its own counterweight, not an assumed side effect of
    good tests — budget an explicit review for it (SEC-01).
-6. Expect the team's center of gravity to move toward architecture and
+6. Decide, in writing, when evidence is sufficient — and be willing to say
+   so and move on, the way this project treated two clean rehearsals as
+   enough rather than chasing a third for its own sake (A-14).
+7. Expect the team's center of gravity to move toward architecture and
    product decision-making that has to happen faster than conventional
    review cycles allow, and toward developers who know language and library
    implementation details better than average, because those details (money

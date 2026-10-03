@@ -118,6 +118,8 @@ inspect its requests and invocation counts.
 
 | A-10 | Traces are exported only as OTLP/HTTP **protobuf** (`OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`), in every language. It is the one format both the Node and Python SDKs support, so a single standard applies to any rebuild. The test collector (`spec/harness/collector`, port 4318) accepts only protobuf and rejects anything else with 415; RT-008 fails a service that exports the wrong format. JSON and gRPC are not used; traces only (no metrics or logs). Tests shorten batching with `OTEL_BSP_SCHEDULE_DELAY=100` and wait up to 5 seconds for spans. A terminal trace-tree printer (`npm --prefix spec run trace`) shows traces in the demo. |
 | A-12 | Two one-hour talks (Black Tech NOLA workshop 2026-11-07; NOAI 2026-11-13). Demo: headed FE-002 journey starting at login (no sign-up screen), timed deletion of `services/checkout/`, live Python rebuild of Checkout only while the presenter talks, then the same headed journey and full aggregate. No fixed time budget beyond fitting the hour; elapsed time is shown. Fallback: pre-recorded rehearsal rebuild. |
+| A-13 | CI/CD placement decision framework (2026-10-03, branch `ci/perf-01-required-check`, tag `ci-perf-01-required`): a check belongs in the agent's local loop only if the agent needs the signal while building to converge; it belongs in CI, least-privilege and CI's-copy-authoritative, if it needs infrastructure/credentials/live external data unsuitable for an autonomous local session, or if the agent could make it pass dishonestly without independent detection (needs an independent CI rerun, or a tamper-evident/frozen definition CI can cheaply verify, as GUARD-01 already does). Composed with a second axis — portable (candidate for a future org-owned, centrally curated check, per ENG-02) vs. project-specific (stays local to this repo) — into a 2x2 that any new check is sorted into before it's added anywhere. First applied action: promote PERF-01 from the informational `suite` job to its own required `performance` job in `.github/workflows/guard.yml`, since it is cheap (~15s), tamper-evident, and a final gate rather than something the agent needs mid-build. Full framework: `docs/ci-cd-placement.md`. |
+| A-14 | Demo evidence-sufficiency decision (2026-10-03): r1 and r2 (DEMO-01) each showed zero interventions, in both language directions (JS→Python and Python→JS). Rather than hold to "three consecutive clean runs" as a fixed numeric gate, the live-readiness bar is explicitly relaxed to "two clean rehearsals, covering both directions, are sufficient evidence the reconstruction claim holds." r3's screen recording is reclassified from a blocking rehearsal to an optional fallback-recording task (expected under an hour), completed whenever before the talks rather than gating MVP-02A/SEC-01/ENG-02 work. Freed near-term capacity is reprioritized to DEMO-02 (the presentation speaking outline), on the reasoning that the outline needs to exist and be rehearsed before further rehearsal reps add marginal value. Not separately tagged; recorded here and in `docs/talk-notes.md` so the reasoning is referenceable when discussing the project's own decision-making process. |
 
 These architecture tasks (ARCH-01..04, OTEL-01, AUTH-01, GUARD-01) take priority over designing the
 per-service API contracts (SPEC-04), because the contracts and tests must follow them.
@@ -276,16 +278,23 @@ pass solely through mutual agreement. Prefer a recorded result if timing is unst
 | Python environment fails at the venue | Preinstall runtime and dependencies; pin versions; keep a recording |
 | Performance results vary by machine | Modest thresholds; same machine for both runs; report actual numbers |
 
-## Revised schedule (2026-09-29)
+## Revised schedule (2026-09-29, re-revised 2026-10-03 per A-14)
 
 Ahead of schedule, so the plan adds MVP-02A (administrator role and veterinarian
 roster, with SPEC-06 folded in), ENG-02 (independent, calibrated review), and
 PLAY-01 (Excella playbook, evidence, short recording) for the 2026-10-14 Excella
 leadership visit.
 
+Per A-14 (2026-10-03): DEMO-01's r1 and r2 are accepted as sufficient
+rehearsal evidence; r3's recording is no longer a blocking milestone and is
+dropped from this table (fallback recording happens whenever before the
+talks). The capacity that freed up goes to drafting and rehearsing the
+DEMO-02 speaking outline this week, ahead of SEC-01.
+
 | By | Milestone |
 | --- | --- |
-| 2026-10-02 | DEMO-01 rehearsals complete; fallback recorded |
+| 2026-10-02 | ~~DEMO-01 rehearsals complete; fallback recorded~~ — superseded by A-14: r1 + r2 accepted, r3 is non-blocking |
+| 2026-10-03–10-04 | DEMO-02 speaking outline drafted (problem / process / findings) and read through once against the one-hour budget |
 | 2026-10-05 | SEC-01 security spike complete (calibration + recommendation, feeds ENG-02) |
 | 2026-10-07 | MVP-02A and SPEC-06 decisions, specs, and red tests frozen; ENG-02 tooling built |
 | 2026-10-10 | MVP-02A JavaScript build green; ENG-02 passes |
