@@ -150,10 +150,19 @@ calibration score. Feeds PLAY-01.
 
 ### SEC-01 — Security spike: calibrate automated gates against AI-generated code
 
-Status: planned (2026-10-03). Time-boxed spike (target: 2 days), run in parallel
-with DEMO-01/ENG-02, before MVP-02A build. Not a shipped feature — a research
-exploration whose output is a written recommendation, feeding ENG-02's security
-gate and PLAY-01's playbook.
+Status: **spike package prepared (2026-10-03); execution pending.** Time-boxed
+spike (target: 2 days), run in parallel with DEMO-01/ENG-02, before MVP-02A
+build. Not a shipped feature — a research exploration whose output is a
+written recommendation, feeding ENG-02's security gate and PLAY-01's playbook.
+
+Tooling is ready in `tools/security/` (`run-sec01-spike.sh`,
+`calibration-defects.md`, `README.md`) and a fill-in template exists at
+`docs/engineering-reviews/sec-01-spike.md`. It has not been executed yet:
+Semgrep/Bandit/pip-audit/detect-secrets/`npm audit` all need real network
+access to install and query vulnerability databases, which the environment
+this was prepared in doesn't have (same restriction as the earlier GitHub
+push issue). Run it via Claude Code locally or a normal terminal — see
+`tools/security/README.md` for the exact command.
 
 Why now: published benchmarks put LLM-generated code's vulnerability rate at
 roughly 9.8–42.1%, and AI-introduced issues surviving in public repos passed
