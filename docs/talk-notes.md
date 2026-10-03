@@ -431,6 +431,13 @@ different orgs need different staffing and sequencing:
    that "no visible feature this sprint" means no progress — that's a sales
    problem to solve on purpose, not a sign the approach isn't working.
 
+**Where this goes next, if any of this was interesting:** this project
+keeps going. The next phase removes features rather than adds them — a
+deliberate deprecation/removal pass, on top of everything already frozen —
+and then moves into database creation and schema change over time, and how
+data actually gets interacted with inside an AI-assisted workflow. None of
+that is proven yet; it's the honest next set of unknowns, not a victory lap.
+
 ## Production notes
 
 Rough timing against the hour (the ~25–32 minute rebuild wait is lesson-time,
