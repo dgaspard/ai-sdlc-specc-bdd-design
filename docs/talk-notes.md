@@ -65,6 +65,10 @@ things they genuinely couldn't before.
 is dead, or that any of this removes the organizational change AI forces.
 Those stay open problems and come back at the end.
 
+*(Re-verify every number above against current sources before this goes on
+stage — they're from an earlier research pass in this project, not
+re-checked at final-draft time.)*
+
 ## The thesis (tell them the ending now)
 
 What building this surfaced: AI isn't really a *transformational* technology
@@ -97,98 +101,206 @@ very end, with roughly 20 minutes of slack built in for a slow run.
 
 ## Lessons from building it (the core of the talk)
 
-Each one: what was assumed going in, what broke that assumption, what it
-forced, and the one-line takeaway. Lead with the most surprising ones.
+Each lesson follows the same shape on purpose, so the audience can pattern-
+match it after the second one: **the assumption** going in, **why this
+specific pivot** happened — the concrete thing that exposed the assumption
+as wrong, not a vague "we realized" — **what changed**, and **the
+takeaway**. Lead with the most surprising ones.
 
-### "More tests means more safety" — wrong
+### Lesson 1 — "More tests means more safety"
 
-Assumed thoroughness meant volume. An audit of the authorization test suite
-found 241 of 242 checks were re-proving the *same* signing mechanism over
-and over — one real idea, dressed up as 242 tests. Around the same time, a
-cheap, frozen, tamper-proof performance check sat buried in an
-"informational, continue-on-error" CI bucket — meaning it could silently
-regress and nobody would notice. Two different symptoms, one root cause:
-nobody had asked *who needs this signal, and when* for either one. The fix
-in both cases was the same question, not a bigger test suite: prune
-redundant tests that prove nothing new, and promote the few that are cheap,
-tamper-evident, and load-bearing into an actual required gate. **Takeaway:**
-testing isn't a pile to grow, it's a set of guardrails to place deliberately.
+**The assumption:** thoroughness is a function of volume; more automated
+checks always means a wider safety margin.
 
-### "The builder can review its own work" — wrong
+**Why this pivot, specifically:** an audit of the authorization test suite
+— done because 242 checks felt like a lot for one mechanism, not because
+anything was failing — found 241 of them were re-proving the exact same
+signing logic in different clothes. One real idea, dressed up as 242 tests.
+In the same pass, a cheap, frozen, tamper-proof performance check turned up
+sitting inside an "informational, continue-on-error" CI job — meaning it
+could silently regress in production and nobody would be notified, while
+241 redundant auth checks ran on every single commit. The volume of tests
+and the actual safety margin they bought had quietly come apart.
 
-First engineering review of the rebuilt service was written by the same
-agent that built the code. It read like a checklist and nobody had tested
-whether it caught anything. That's not a review, that's the builder grading
-its own homework. Replaced it with an independent review — fresh session,
-no memory of having written the code, checklist-driven, calibrated by
-planting real defects and measuring the catch rate — *before* calling
-anything done. **Takeaway:** never let the thing that built it also certify
-it; that's true of agents for exactly the reason it's true of people.
+**What changed:** pruned the redundant auth checks down to the ones proving
+distinct behavior, and promoted the performance check out of the
+informational bucket into its own required, independent gate.
 
-### "Correct behavior and secure behavior are the same thing" — wrong
+**Takeaway:** testing isn't a pile to grow, it's a set of guardrails to
+place deliberately — audit for redundancy the same way you'd audit for gaps.
 
-Every test in this project proves the system does the *right* thing per
-spec. None of them prove it does the *safe* thing. A deliberately
-correct-but-insecure implementation — says the followup threat-model spike —
-can pass every frozen test in the suite. Spec-first reduces wrong behavior;
-it does nothing by itself about insecure behavior. That gap gets its own
-explicit, time-boxed security pass: scan the real implementations, then
-calibrate the scanners by planting real vulnerabilities and measuring what's
-actually caught, rather than trusting that "we have a scanner" means
-anything. **Takeaway:** security is a separate axis from correctness, not a
-side effect of it — budget for it on purpose.
+### Lesson 2 — "The builder can review its own work"
 
-### "A language-neutral spec has no language baked into it" — wrong
+**The assumption:** if the agent that wrote the code also writes the review
+of the code, that review has real value as a check.
 
-Small, concrete one: a currency field's declared maximum value, written to
-be usable by any language implementing the contract, turned out to be
-exactly JavaScript's maximum safe integer. Nobody put it there on purpose —
-it leaked in. *(Show the money/currency snippet live — it's a two-second
-"wait, really?" moment.)* **Takeaway:** "language-neutral" is a claim to
-verify, not a property you get for free just because the file format is
-generic.
+**Why this pivot, specifically:** the first engineering review read back as
+a narrative checklist — plausible, well-organized, and never once tested
+against a known defect. Asking "would this review have caught a real bug
+planted on purpose?" had no answer, because nobody had tried. That question
+is what exposed it as theater, not the content of the review itself.
 
-### "Guardrails as instructions are enough" — wrong
+**What changed:** replaced it with an independent review — a fresh agent
+session with no memory of writing the code, working from a checklist, and
+calibrated by planting real defects ahead of time and measuring the catch
+rate — required *before* calling the rebuild done, not added after as a
+formality.
 
-Early on, protection for the specs and tests was just a note telling the
-agent not to touch them. Agents, like people, don't reliably follow
-instructions they have an incentive to route around. The fix was structural,
-not polite: a permission system that blocks the edit outright and tells the
-agent *why*, backed by a frozen, hash-verified manifest in CI that doesn't
-care whether the local block was bypassed somehow. *(Demo: have the agent
-try to edit a feature file live and get blocked, with the reason shown.)*
-**Takeaway:** if a rule matters, make it physically impossible to break
-quietly — don't ask nicely.
+**Takeaway:** never let the thing that built it also certify it. True of
+agents for exactly the reason it's true of people, and for the same reason
+auditors aren't employees of the company they audit.
 
-### "Organize the repo for humans; agents don't care" — wrong
+### Lesson 3 — "Correct behavior and secure behavior are the same thing"
 
-A messy, sprawling set of docs and folders doesn't just slow a human down —
-an agent reasons over whatever context it's given, and a disorganized
-project produces visibly worse output from the exact same prompt. Folder
-boundaries that separate services, protected specs, and docs aren't
-aesthetic — they're what makes "delete this one piece cleanly" possible at
-all, for an agent the same way it would be for a new hire. **Takeaway:**
-repo hygiene is now a correctness concern for two audiences, not one.
+**The assumption:** a service that passes every behavioral test is a safe
+service.
 
-### "Chase perfection before you ship" — wrong
+**Why this pivot, specifically:** walking through what the test suite
+actually asserts — business outcomes against a spec — made it obvious that
+nothing in it asserts anything about *how* those outcomes are produced. A
+service could satisfy every frozen scenario while logging a secret at error
+level, or comparing a token with a timing-unsafe check, and every test
+would still pass. The gap wasn't found by a failure; it was found by asking
+what the passing tests were actually proof of.
 
-Two independent, clean rebuild rehearsals — zero interventions, both
-directions between languages — were already strong evidence the claim held.
-The instinct was to chase a third run anyway, "to be safe." That's exactly
-the kind of fake rigor worth naming on stage: decide in advance what counts
-as enough evidence, write the decision down, and stop when you hit it.
-Everything after that point is just time not spent on the next real problem.
-**Takeaway:** define "done" before you start, or you'll redefine it as "more
-than I have," forever.
+**What changed:** added an explicit, time-boxed security pass, separate from
+the behavioral suite — scan the real implementations, then calibrate the
+scanners themselves by planting real vulnerabilities and measuring what's
+actually caught, instead of trusting "we ran a scanner" as a finish line.
 
-### "A real pivot can be about process, not just code"
+**Takeaway:** security is a separate axis from correctness, not a side
+effect of it. Budget for it on purpose, with its own evidence of whether
+it's working.
 
-When a genuine external pull showed up — a chance to present this to
-leadership sooner than planned — the frozen specs and protected tests were
-*what made it safe to reorder work* without reopening anything already
-settled. That's worth saying out loud: the same discipline that protects
-code quality also buys the freedom to replan without fear. **Takeaway:**
-good guardrails aren't just safety, they're optionality.
+### Lesson 4 — "A language-neutral spec has no language baked into it"
+
+**The assumption:** writing a contract in a generic format (OpenAPI/JSON
+Schema) makes it genuinely language-neutral.
+
+**Why this pivot, specifically:** a currency field's declared maximum value
+— meant to be usable by any language implementing the contract — turned out
+to be exactly JavaScript's maximum safe integer. Nobody wrote it there on
+purpose; it was inherited from whatever authored the first draft and never
+challenged, because the file format *looked* neutral. *(Show the money/
+currency snippet live — it's a two-second "wait, really?" moment.)*
+
+**What changed:** made checking contracts for accidentally-inherited
+language assumptions an explicit review step, not an assumed property of
+using a generic file format.
+
+**Takeaway:** "language-neutral" is a claim to verify, not a property you
+get for free just because the format is generic.
+
+### Lesson 5 — "Guardrails as instructions are enough"
+
+**The assumption:** telling the agent, in writing, not to touch certain
+files is sufficient protection.
+
+**Why this pivot, specifically:** the honest question was "what actually
+stops this if the agent has a reason to ignore the instruction" — under
+time pressure, a confusing error, or just a bad run — and the answer was
+nothing. An instruction is a request, not a constraint, for the same reason
+it is for a person in a hurry.
+
+**What changed:** replaced the written instruction with a structural block —
+a permission system that refuses the edit outright and tells the agent
+*why* — backed by a frozen, hash-verified manifest checked independently in
+CI, so it holds even if the local block were somehow bypassed. *(Demo: have
+the agent try to edit a feature file live and get blocked, with the reason
+shown.)*
+
+**Takeaway:** if a rule actually matters, make it physically impossible to
+break quietly. Don't ask nicely.
+
+### Lesson 6 — "Organize the repo for humans; agents don't care"
+
+**The assumption:** repo structure and documentation hygiene are a
+developer-experience nicety, not something that affects correctness.
+
+**Why this pivot, specifically:** the same prompt, run against a cleaner
+version of the repository after a reorganization, produced visibly better
+agent output than it had against the sprawling version before. That's the
+tell: an agent reasons over whatever context it's handed, the same way a new
+hire does, and a disorganized project handed it worse context to reason
+over, regardless of how good the model was.
+
+**What changed:** treated repo and documentation structure as a
+correctness-adjacent concern worth deliberate maintenance, not just a
+cleanup task to get to eventually.
+
+**Takeaway:** repo hygiene is now a correctness concern for two audiences,
+not one.
+
+### Lesson 7 — "Chase perfection before you ship"
+
+**The assumption:** more rehearsal runs are always better evidence than
+fewer, so keep running them.
+
+**Why this pivot, specifically:** after two independent, clean rebuilds —
+zero interventions, in both language directions — the instinct was to run a
+third anyway, "to be safe," with no specific question that third run would
+actually answer. Noticing that *no new question was being asked* is what
+exposed it as fake rigor rather than real diligence.
+
+**What changed:** declared the existing two runs sufficient evidence for the
+claim being made, in writing, and redirected the freed-up time to the next
+thing that actually needed it — the presentation itself.
+
+**Takeaway:** define "done" before you start, or you'll keep redefining it
+as "more than I currently have," forever.
+
+### A pivot that wasn't about code
+
+When a genuine external pull showed up — a chance to present this work to
+leadership sooner than originally planned — the frozen specs and protected
+tests were what made it safe to reorder the remaining work without reopening
+anything already settled. Worth saying out loud: the same discipline that
+protects code quality also buys the freedom to replan without fear.
+**Takeaway:** good guardrails aren't just safety, they're optionality.
+
+## The role shift: where the developer's time actually goes now
+
+This is the part that surprised me most, and it's the part worth spending
+real time on, because it's the part a room full of developers will feel
+personally.
+
+Writing code used to be the bottleneck. Everything the industry has told
+developers mattered for decades — solution architecture, product thinking,
+test strategy (not just test volume), security, compliance, observability,
+maintainability — kept losing the fight for time against the pressure to
+ship the next feature, because code was slow to write and somebody had to
+write it. Those practices weren't wrong; they were just first in line to get
+cut whenever time, cost, or headcount got tight. Everyone nodded at the
+retro that "we should have designed this better" and then went right back to
+writing code, because writing code was due Friday.
+
+Once an agent can absorb most of the mechanical cost of writing code, that
+bottleneck moves. It doesn't disappear — it moves to exactly the activities
+that used to get shortchanged, because those are now the only things left
+that actually require a human:
+
+- **Solution architecture** — deciding what the services are and how they
+  talk to each other, before anything is generated, because an agent will
+  happily generate a confident answer to a question nobody should have
+  asked yet.
+- **Product decisions** — what the behavior should actually be when the
+  spec is silent, which an agent cannot answer for you no matter how
+  capable it is, because that's a business call, not a technical one.
+- **Testing strategy** — not "how many tests," but what's worth protecting,
+  what's redundant, and what a test is actually evidence of (Lesson 1).
+- **Security and compliance** — the explicit pass that correctness testing
+  does not give you for free (Lesson 3).
+- **Observability** — deciding up front what you'll need to see in
+  production, instead of adding logging after the first incident.
+- **Maintainability** — the structural decisions (Lessons 5 and 6) that
+  determine whether this is still a safe system to change in a year, with
+  different people, than it is today.
+
+None of these are new ideas. They're the oldest ideas in the industry. The
+shift isn't that developers become architects instead of engineers — it's
+that the excuse for not doing this work properly is gone. The job doesn't
+get smaller. It gets more honest about what it was always supposed to
+include.
 
 ## Where this is going (keep it tight)
 
@@ -238,6 +350,57 @@ checks — buildable today — scales the way a human re-reading the same
 checklist never can. The job moves from "catch this bug again" to "find the
 next thing worth writing a check for."
 
+## The cost conversation: selling this inside a real organization
+
+Save this for the end — it's the part that turns "interesting talk" into
+"let's actually try this," because it's the part that preempts the first
+objection every engineering leader in the room is already forming.
+
+**Be honest about the cost up front.** Writing domain contracts, service
+features, and observability rules before any code exists is genuinely
+time-consuming, and it does not produce the frequent, visible increments
+that most organizations are trained to expect — a sprint review with
+nothing demoable because the whole sprint went into an API contract is a
+hard thing to stand up in front of a VP. This is the single biggest reason
+this approach dies in real organizations before it gets a fair trial: it
+front-loads cost that is invisible to anyone who isn't reading the specs
+themselves, and defers the visible payoff.
+
+**So the sell has to change, not the substance.** A few things that
+actually work:
+
+- Sell the artifacts and services in pieces, not a finished product with a
+  front end. A passing contract test, a reviewed domain model, an
+  observability dashboard showing a trace end-to-end — these are real,
+  demonstrable increments of progress, even with no UI behind them yet.
+  Show them as the sprint's output on purpose, instead of apologizing for
+  not having a clickable feature.
+- Reframe the apparent slowness as the point, not a defect: **the missing
+  product and architecture decisions this approach forces you to make
+  explicit were never actually free.** They were always being made —
+  implicitly, late, usually under incident pressure or during a rewrite,
+  by whoever happened to be in the room at the time. This approach doesn't
+  add that cost. It moves a cost that already existed from "invisible and
+  paid later, at the worst possible time" to "visible and paid now, on
+  purpose." That's the feature, not the bug.
+- Tie the argument to numbers a budget-holder already tracks, not new
+  jargon: incident rate, time to onboard a new engineer into an unfamiliar
+  service, time to safely change or replace a component, PR review
+  turnaround. Those are the metrics this approach is actually trying to
+  move, and they're already in the room's vocabulary.
+
+**The long-term trade-off to put in front of leadership, plainly:** fewer
+visible features ship per week while contracts and specs get established.
+In exchange, you get a system that stays maintainable rather than quietly
+calcifying into brittle legacy software — the specific failure mode where
+the business logic only ever lived in the heads of the two or three people
+who built it, and the system becomes unsafe to touch the day they roll off
+the project. Specs, contracts, and frozen tests are how that knowledge
+survives staff turnover instead of leaving with it. That, not raw
+development speed, is the actual pitch: lower operational cost over the
+system's life, and a system that's still safe to hand to someone new five
+years from now.
+
 ## Close
 
 None of this matters if it can't be explained to someone else — generating
@@ -260,12 +423,13 @@ different orgs need different staffing and sequencing:
    independent CI gate — instead of running everything everywhere.
 5. Budget security as its own pass, not an assumed side effect of testing.
 6. Decide, in writing, when evidence is enough — and actually stop there.
-7. Expect the center of gravity to shift toward architecture and product
-   judgment that has to happen faster than old review cycles allowed, and
-   toward people who know their languages and libraries deeply — that's
-   exactly where specs go silent and someone has to resolve the ambiguity
-   correctly. Don't commit to a fixed staffing ratio; the scarce thing is
-   the kind of judgment, not a headcount formula.
+7. Expect the center of gravity to shift toward architecture, product
+   judgment, security, observability, and maintainability — not because the
+   job is being replaced, but because the excuse for shortchanging them is
+   gone.
+8. Expect to have to sell this internally in pieces, against the instinct
+   that "no visible feature this sprint" means no progress — that's a sales
+   problem to solve on purpose, not a sign the approach isn't working.
 
 ## Production notes
 
@@ -276,14 +440,14 @@ not dead air):
 | --- | --- |
 | Hook, stakes, thesis | 10–12 |
 | Visible journey (before) + timed delete | 3–5 |
-| Lessons, talked through during the rebuild wait | ~25–32 |
+| Lessons + the role shift, talked through during the rebuild wait | ~25–32 |
 | Visible journey (after) + full suite + trace flip | 3–5 |
-| Where this is going / bigger argument / close | 8–10 |
+| Where this is going / bigger argument / cost conversation / close | 10–12 |
 | Buffer / questions | remainder |
 
 Artifacts to have ready to show, cued to the lessons above: the money/
-currency snippet (language-leak lesson), the agent getting blocked live on a
-feature-file edit (guardrails lesson), `npm test`'s red-then-green output
-(mentioned in passing, not walked step by step), the trace tree's
+currency snippet (Lesson 4), the agent getting blocked live on a
+feature-file edit (Lesson 5), `npm test`'s red-then-green output (mentioned
+in passing, not walked step by step), the trace tree's
 `telemetry.sdk.language` flip, and the project board only if time allows —
 it's supporting evidence, not a story beat.
