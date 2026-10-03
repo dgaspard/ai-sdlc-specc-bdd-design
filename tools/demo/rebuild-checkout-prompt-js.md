@@ -1,3 +1,5 @@
+# Rebuild Checkout in JS
+
 Rebuild the Checkout service in JavaScript (Node.js 22 or newer) at
 `services/checkout/`. The previous implementation was deleted and is not available.
 
@@ -7,6 +9,7 @@ runtime, and observability contracts), `spec/features/`, and the tests under
 working directory.
 
 Requirements:
+
 - Provide executable `setup` and `start` scripts per the runtime contract.
 - You may use the shared JavaScript runtime in `services/platform/`, as the other
   JavaScript services do. Do not import code from other services; use only their

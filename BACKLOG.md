@@ -88,6 +88,49 @@ Apply to: the JavaScript baseline (`impl-02`), r1 Python, r2 JavaScript, r3 Pyth
 Record under `docs/engineering-reviews/` with gate output, findings, sign-off, and
 calibration score. Feeds PLAY-01.
 
+### SEC-01 — Security spike: calibrate automated gates against AI-generated code
+
+Status: planned (2026-10-03). Time-boxed spike (target: 2 days), run in parallel
+with DEMO-01/ENG-02, before MVP-02A build. Not a shipped feature — a research
+exploration whose output is a written recommendation, feeding ENG-02's security
+gate and PLAY-01's playbook.
+
+Why now: published benchmarks put LLM-generated code's vulnerability rate at
+roughly 9.8–42.1%, and AI-introduced issues surviving in public repos passed
+100,000 by February 2026 (see chat log 2026-10-03 for sources). Spec-first reduces
+*wrong* behavior; it does not by itself reduce *insecure* behavior — the contracts
+and BDD scenarios in this project assert business outcomes, not security
+properties, so a correct-and-insecure implementation can pass every frozen test.
+ENG-02 currently lists "Semgrep + Bandit + secret scan + dependency audit" as one
+line item; this spike finds out whether that's actually sufficient, before it's
+load-bearing.
+
+Questions this spike answers:
+- Run Semgrep/Bandit/secret-scan/`npm audit`/`pip-audit` against the existing
+  JavaScript Checkout (`impl-02`) and the Python rebuild (r1). What do they
+  actually flag? Any true positives already present (e.g. the known single shared
+  HS256 secret)?
+- Calibrate: plant 5–8 realistic AI-introduced vulnerabilities in a scratch copy
+  (non-constant-time secret comparison, a secret logged at error level, an
+  injection-shaped string concatenation, a dependency with a known CVE, overly
+  broad CORS, a path that skips the auth hook). What fraction do the chosen tools
+  actually catch? This is the same calibration discipline already used for TEST-01
+  and planned for ENG-02, applied specifically to the security tier.
+- Where tools miss, decide: add a tool, add a targeted scenario-level check
+  (business-observable security properties, e.g. "a declined payment's card
+  reference never appears in telemetry," already partly covered), or accept and
+  disclose the residual gap.
+- Recommendation: a short written practice — which scanners, at what gate, with
+  what measured catch rate — specific enough to go in the Excella playbook as
+  "the minimum automated security floor for AI-generated service code," distinct
+  from ENG-02's broader review (which also covers boundaries, payment safety, and
+  structure, not just security-tool output).
+
+Record under `docs/engineering-reviews/sec-01-spike.md`: tools run, versions,
+findings against both real builds, the calibration table (planted defect → caught
+y/n → by which tool), and the resulting recommendation. Feeds directly into
+ENG-02 item 1 (automated gates) and item 4 (threat-model note).
+
 ## Next — before 2026-10-14
 
 ### SPEC-06 — Close Checkout specification gaps found in rehearsal

@@ -1,3 +1,5 @@
+# Rebuild Checkout Service
+
 Rebuild the Checkout service in Python 3.12 at `services/checkout/`. The previous
 JavaScript implementation was deleted and is not available.
 
@@ -7,6 +9,7 @@ runtime, and observability contracts), `spec/features/`, and the tests under
 working directory.
 
 Requirements:
+
 - Provide executable `setup` and `start` scripts per the runtime contract. `setup`
   creates a local virtual environment and installs pinned dependencies from
   `requirements.txt`; `start` runs the service from that environment.

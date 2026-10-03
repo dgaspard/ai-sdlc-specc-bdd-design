@@ -286,6 +286,7 @@ leadership visit.
 | By | Milestone |
 | --- | --- |
 | 2026-10-02 | DEMO-01 rehearsals complete; fallback recorded |
+| 2026-10-05 | SEC-01 security spike complete (calibration + recommendation, feeds ENG-02) |
 | 2026-10-07 | MVP-02A and SPEC-06 decisions, specs, and red tests frozen; ENG-02 tooling built |
 | 2026-10-10 | MVP-02A JavaScript build green; ENG-02 passes |
 | 2026-10-13 | PLAY-01 package ready |

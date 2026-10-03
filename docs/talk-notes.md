@@ -12,6 +12,8 @@ Running list of talking points for the "how we built this" review. Not a specifi
 >   calibration) and known limits (shared HS256 secret, in-memory state).
 > - "Red baseline" below is historical; the live moment is now "delete Checkout, tests
 >   go red, agent rebuilds, tests go green".
+> - Add a closing section (see "Closing: platform services" below) making the case
+>   that code being cheap raises the cost of NOT centralizing platform concerns.
 
 ## Workflow slides
 
@@ -69,3 +71,39 @@ in another language cannot silently diverge:
 - The agent tries to edit a feature file and gets the GUARD-01 message.
 - `npm test` red baseline: "Checkout not implemented: services/checkout/start not found".
 - Trace tree showing `telemetry.sdk.language` change from `nodejs` to `python` after the rebuild.
+
+## Closing: platform services aren't optional anymore
+
+Not a feature of this repo — a closing argument for the audience, drawn from the
+2026-10-03 analysis session (see chat log) and from this project's own smallest
+example of the idea.
+
+**The argument:** application sprawl reinventing the same cross-cutting concerns
+per team predates AI. What changes is the cost-benefit: when writing application
+code was the expensive, slow part, duplicating a bit of auth or logging glue in
+every repo was annoying but survivable. When an agent can generate an entire
+service's application code in under 30 minutes, code stops being the scarce
+resource — and every team re-deriving SSO integration, audit logging wired to
+SIEM, secret scanning on agent-authored PRs, PR policy gates, license governance,
+sandboxed execution, and incident-response runbooks, independently, badly, is now
+the larger and more dangerous source of inconsistency, not the smaller one. That
+knowledge typically sits with security and infrastructure teams, not application
+teams — so without deliberate centralization, "AI makes every team ship faster"
+quietly becomes "every team ships its own ungoverned security posture faster."
+
+**The self-referential example, already inside this repo:** `services/platform/`
+is a miniature version of exactly this move. Instead of four services each
+reimplementing HTTP transport, auth-token verification, and OpenTelemetry
+instrumentation, that logic was centralized once and every JavaScript service
+reuses it (the Python rebuild had to supply its own, which is itself evidence:
+Checkout's agent spent real effort re-deriving auth/telemetry wiring that the
+other three services get for free). Scale that same principle up from "shared
+code within one repo" to "a shared platform across an organization's many
+AI-assisted teams" and you get the argument above: SSO, audit logging, secret
+scanning, PR gates, license governance, sandboxing, and incident response as
+org-level platform services, not per-team reinventions.
+
+**Close with:** this is a recommendation, not a finding this repo has tested.
+Pair with the SEC-01 spike result and the ENG-02 calibration score as the
+concrete "here's what per-team security review actually catches" evidence that
+motivates centralizing it.
