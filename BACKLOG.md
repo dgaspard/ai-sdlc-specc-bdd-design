@@ -59,6 +59,39 @@ Why: ENG-01 was written by the same agent that built the code, largely as a
 narrative checklist, and was never tested. The Python rebuild (r1) has no review.
 Passing tests say nothing about behavior the tests don't cover.
 
+**Target architecture (2026-10-03 design decision):** build the reference
+implementation in this repo now (there is no Excella platform team yet to own a
+shared version), but author it as a liftable, versioned unit from day one, split
+by portability — the same split that cut the auth-suite redundancy, applied to
+*review* instead of tests:
+
+- **Portable (candidate for a future org-level, centrally curated GitHub Actions
+  check, run from every repo's CI, not forked and maintained per repo):**
+  duplicate-code detection, security scanning (Semgrep/Bandit/secret scan),
+  dependency audit, the import-boundary check's *engine*, the independent-reviewer
+  *process* (fresh session, checklist-driven, cite file/line, human sign-off), and
+  the calibration *methodology* (plant defects, measure catch rate). A generic
+  defect like "non-constant-time secret comparison" is reusable across any
+  project's auth check; it doesn't belong reinvented, or worse not invented, per repo.
+- **Project-specific (stays in this repo, frozen like everything else):** the
+  import-boundary *rules* (which folders map to which service), the observability
+  rule audit (petclinic's own OBS registry), service-boundary/payment-safety
+  checklist content, the threat-model note, and which defects get planted for
+  calibration (though the defect *types* can seed a shared library).
+
+**Long term:** `/harness` (and `tools/review/`) in each repo narrows to (a) the
+project's own frozen contract/business checks, (b) a declared "already covered
+here" manifest so the central service doesn't re-check what a repo already proves,
+and (c) a feed of new recurring findings upward. A platform/security team curates
+the central library and promotes a repo-level finding into it once it recurs
+across multiple projects and has its own calibration case — the same reification
+discipline this project already uses for specs (a gap an agent surfaces doesn't
+matter until it's written into a frozen, re-checkable artifact). A shared,
+mandatory check also needs its own versioning/rollout discipline (semantic
+versions, staged rollout, a pin-and-upgrade path) and clear ownership, since a bad
+update now breaks every consuming repo's CI at once — a GUARD-01 for the org.
+This long-term piece is a design note for the playbook, not built here.
+
 1. **Automated gates (tool-judged, same for every language):**
    - Duplicate-code detection across services (e.g. jscpd, which reads JS and Python).
    - Import-boundary check: no service imports another service's code or a store;
@@ -124,7 +157,9 @@ Questions this spike answers:
   what measured catch rate — specific enough to go in the Excella playbook as
   "the minimum automated security floor for AI-generated service code," distinct
   from ENG-02's broader review (which also covers boundaries, payment safety, and
-  structure, not just security-tool output).
+  structure, not just security-tool output). Classify each finding/tool as
+  portable (candidate for ENG-02's future central service) or project-specific,
+  per ENG-02's target architecture.
 
 Record under `docs/engineering-reviews/sec-01-spike.md`: tools run, versions,
 findings against both real builds, the calibration table (planted defect → caught
