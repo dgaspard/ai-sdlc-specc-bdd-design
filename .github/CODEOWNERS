@@ -4,3 +4,8 @@
 /.claude/     @dgaspard
 /.github/     @dgaspard
 /AGENTS.md    @dgaspard
+
+# SEC-01/ENG-02: portable checks require review before they can be weakened
+# or removed. Lighter than GUARD-01's hash freeze on purpose — these checks
+# are meant to evolve — but a human still has to sign off on the change.
+/tools/security/portable/  @dgaspard
