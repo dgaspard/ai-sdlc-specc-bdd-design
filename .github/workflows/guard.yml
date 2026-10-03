@@ -25,6 +25,25 @@ jobs:
       - run: npm --prefix spec ci
       - run: npm --prefix spec run guard:check
 
+  performance:
+    # Required check (PERF-01): frozen workload and thresholds, same in every
+    # language (A-06). Cheap (~15s) and tamper-evident via GUARD-01, so CI can
+    # verify it independently rather than trust the agent's local run. See
+    # docs/ci-cd-placement.md for why this one check is split out of the
+    # otherwise-informational suite below.
+    name: Local performance (p95 < 200ms)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: spec/package-lock.json
+      - run: npm --prefix spec ci
+      - run: npm --prefix spec run test:performance
+
   suite:
     # Informational until the application exists; not a required check yet.
     name: Full test suite (informational)
