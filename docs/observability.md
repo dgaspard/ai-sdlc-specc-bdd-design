@@ -211,16 +211,16 @@ uncovered rules.
 | --- | --- | --- | --- | --- |
 | OBS-001 | Service identity | Proposed | [runtime-contract.test.js](../spec/tests/runtime/runtime-contract.test.js): `[RT-008] [OBS-001] <Service> exports traces as OTLP/HTTP protobuf named <service.name>` | Implemented; scoped checks pass |
 | OBS-002 | W3C propagation and context isolation | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-002]` request/acceptance/finalization headers and concurrent reservation contexts | Implemented; scoped checks pass |
-| OBS-003 | One business span per attempt | Proposed | No test; planned `[OBS-003] each attempt finishes exactly one business span` | No dedicated rule-wide test; broader coverage unverified |
-| OBS-004 | Outcome/status mapping | Proposed | No test; planned `[OBS-004] outcomes map to agreed statuses` | No dedicated rule-wide test; broader coverage unverified |
-| OBS-005 | IDs present, sensitive data excluded | Proposed | No test; planned `[OBS-005] telemetry includes known IDs without sensitive data` | No dedicated rule-wide test; broader coverage unverified |
-| OBS-006 | Stable names and attribute keys | Proposed | No test; planned `[OBS-006] span names and attributes follow the contract` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-003 | One business span per attempt | Proposed | No test; planned `[OBS-003] each attempt finishes exactly one business span` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed by construction (`runtime.js` try/finally), with a scope nuance — pre-authorization (403/400) rejections get no business span |
+| OBS-004 | Outcome/status mapping | Proposed | No test; planned `[OBS-004] outcomes map to agreed statuses` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed (`runtime.js:382-400,556-563`) |
+| OBS-005 | IDs present, sensitive data excluded | Proposed | No test; planned `[OBS-005] telemetry includes known IDs without sensitive data` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed — `attrs()` drops unset values, spot-checked call sites use resolved IDs only |
+| OBS-006 | Stable names and attribute keys | Proposed | No test; planned `[OBS-006] span names and attributes follow the contract` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed by construction — one naming expression in `runtime.js:517` |
 | OBS-007 | Structured correlated logs | Proposed | No test | Deferred; conditional on adding logs |
-| OBS-008 | Exporter lifecycle and failure isolation | Proposed | No test; planned `[OBS-008] exporter failures preserve business results` | No dedicated rule-wide test; broader coverage unverified |
-| OBS-009 | Full sampling in demo/tests | Proposed | No test; planned `[OBS-009] demo configuration captures every exercised trace` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-008 | Exporter lifecycle and failure isolation | Proposed | No test; planned `[OBS-008] exporter failures preserve business results` | **NOT followed in production** — [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): an exporter failure can crash the service; the only mitigation is scoped to the test harness (`runtime.js:117-133`). Real gap, needs a BACKLOG item |
+| OBS-009 | Full sampling in demo/tests | Proposed | No test; planned `[OBS-009] demo configuration captures every exercised trace` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed — default `ParentBased(AlwaysOn)` sampler, no override |
 | OBS-010 | Bounded metric labels | Proposed | No test | Deferred; conditional on adding metrics |
 | OBS-011 | Legacy visit cancellation | Retired → OBS-026 | Legacy test at tag `1.0` only | Not applicable |
-| OBS-012 | Customer eligibility | Proposed | No test; planned `[OBS-012] eligibility emits the agreed outcomes` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-012 | Customer eligibility | Proposed | No test; planned `[OBS-012] eligibility emits the agreed outcomes` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed (`services/customer/server.js:127-142`) |
 | OBS-013 | Legacy reservation create | Retired → OBS-023 | None | Not applicable |
 | OBS-014 | Legacy checkout execute | Retired → OBS-031 | None | Not applicable |
 | OBS-015 | Legacy payment authorize | Retired → OBS-032 | None | Not applicable |
@@ -228,9 +228,9 @@ uncovered rules.
 | OBS-017 | Legacy success evidence | Retired → OBS-036 | None | Not applicable |
 | OBS-018 | Legacy decline evidence | Retired → OBS-037 | None | Not applicable |
 | OBS-019 | Legacy replay evidence | Retired → OBS-038 | None | Not applicable |
-| OBS-020 | Dependency failure evidence | Proposed | No test; planned `[OBS-020] dependency failures finish spans without claiming success` | No dedicated rule-wide test; broader coverage unverified |
-| OBS-021 | Privacy of captured telemetry | Proposed | No test; planned `[OBS-021] captured telemetry excludes sensitive fixture values` | No dedicated rule-wide test; broader coverage unverified |
-| OBS-022 | Concurrent workflow isolation | Proposed | No test; planned `[OBS-022] concurrent workflows retain distinct contexts and correct IDs` | No dedicated rule-wide test; broader coverage unverified |
+| OBS-020 | Dependency failure evidence | Proposed | No test; planned `[OBS-020] dependency failures finish spans without claiming success` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed (`runtime.js:298-378,537-552`) |
+| OBS-021 | Privacy of captured telemetry | Proposed | No test; planned `[OBS-021] captured telemetry excludes sensitive fixture values` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed — clinical fields and the payment method reference never reach `attrs()`, checked across all `attrs()` call sites |
+| OBS-022 | Concurrent workflow isolation | Proposed | No test; planned `[OBS-022] concurrent workflows retain distinct contexts and correct IDs` | No dedicated test, but [audited 2026-10-05](engineering-reviews/eng-02-observability-audit.md): followed by construction — per-request `AsyncLocalStorage` context |
 | OBS-023 | Reservation request | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-023] request emits <outcome>` | Implemented; scoped checks pass |
 | OBS-024 | Reservation accept | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-024] accept emits <outcome>` | Implemented; scoped checks pass |
 | OBS-025 | Reservation deny | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-025] deny emits <outcome>` | Implemented; scoped checks pass; partial outcomes |

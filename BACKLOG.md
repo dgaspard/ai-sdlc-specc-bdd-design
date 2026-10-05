@@ -124,18 +124,27 @@ This long-term piece is a design note for the playbook, not built here.
 1. **Automated gates (tool-judged, same for every language):**
    - Duplicate-code detection across services (e.g. jscpd, which reads JS and Python).
    - Import-boundary check: no service imports another service's code or a store;
-     shared infrastructure (`services/platform/`) is allowed and listed. Not yet
-     built — note `tools/review/project-specific/ownership.test.mjs` (moved
-     2026-10-04 from `tools/ownership.test.mjs`) is a resource-ownership
-     access-control test despite its name, not this check. The other
-     `tools/*.test.mjs` checks moved into `tools/review/project-specific/`
-     2026-10-04; see `tools/review/README.md`.
+     shared infrastructure (`services/platform/`) is allowed and listed. **Built
+     2026-10-04** — `tools/review/portable/check-import-boundaries.mjs` +
+     `tools/review/project-specific/import-boundaries.json`, wired into
+     `npm run test:engineering`; zero violations on the current baseline, and
+     verified to catch a planted cross-service import. Note
+     `tools/review/project-specific/ownership.test.mjs` (moved 2026-10-04 from
+     `tools/ownership.test.mjs`) is a resource-ownership access-control test
+     despite its name, not this check. See `tools/review/README.md`.
    - Security scanning: Semgrep (both languages) plus Bandit for Python; secret scan.
    - Dependency audit: `npm audit` and `pip-audit`.
    - Connected-trace capture (`npm run trace:payment`) against every build,
-     including Python.
+     including Python. **Run 2026-10-05**: PASS on `main` and the `r2` JS
+     rebuild; `r1`/`r3` Python rebuilds need a local run (sandbox can't run
+     their `.venv`) — see `docs/engineering-reviews/eng-02-connected-trace.md`.
 2. **Observability rule audit:** list every OBS rule without a test and have the
    reviewer check each against the code, recording followed / not followed / N/A.
+   **Done 2026-10-05** — see `docs/engineering-reviews/eng-02-observability-audit.md`
+   and the updated status column in `docs/observability.md`'s traceability table.
+   Two concrete follow-ups found: OBS-008 (exporter failure can crash a service
+   in production — the mitigation is test-harness-only) needs its own BACKLOG
+   item, and OBS-046/047/048 still have no dedicated observability test.
 3. **Independent reviewer agent:** a fresh session that never saw the build,
    driven by a written checklist prompt (`tools/review/review-prompt.md`) covering
    service boundaries, payment safety, inter-service auth (including hand-written
@@ -333,8 +342,19 @@ on 2026-10-03 (A-14); see there for current status.
 
 - **GUARD-01 remote:** configure and verify the GitHub branch ruleset (PR required,
   guard check required, code-owner review) and confirm the CODEOWNERS username.
-- **SPEC-03 coverage:** privacy, exporter failure/lifecycle, eligibility tracing, and
-  broader fault/concurrency OBS rules remain untested; ENG-02's rule audit reviews them.
+- **SPEC-03 coverage:** ENG-02's observability rule audit (2026-10-05, see
+  `docs/engineering-reviews/eng-02-observability-audit.md`) reviewed privacy,
+  exporter failure/lifecycle, eligibility tracing, and the broader
+  fault/concurrency OBS rules against the actual code (not just "untested").
+  Most are followed by construction; two concrete gaps remain, not yet fixed:
+  - **OBS-008 production exporter-crash risk:** a dependency/collector
+    failure during span export can surface as an uncaught exception that
+    crashes the whole service; the only existing mitigation is scoped to
+    `PETCLINIC_TEST_ENDPOINTS=enabled` (test harness only — see
+    `services/platform/runtime.js:117-133`). Needs a real fix before this is
+    called production-ready telemetry.
+  - **OBS-046/047/048:** still no dedicated observability test, despite
+    MVP-02A shipping the underlying roster/reassignment features.
 
 ## Done
 
