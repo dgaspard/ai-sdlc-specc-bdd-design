@@ -6,6 +6,7 @@ import {
   fail,
   owner,
   assigned,
+  assignedOrAdmin,
   Locks,
 } from "../platform/runtime.js";
 const app = new Runtime("reservation", 4002, ["CUSTOMER_URL", "CHECKOUT_URL"]);
@@ -75,7 +76,36 @@ const list = (map, user, query) =>
         (k) => !query.has(k) || query.get(k) === r[k],
       ),
   );
+function vetById(vid) {
+  const v = vets.find((x) => x.id === vid);
+  if (!v) fail(404, "not_found");
+  return v;
+}
 app.route("GET", "/veterinarians", () => ok(vets));
+app.route(
+  "POST",
+  "/veterinarians",
+  ({ body }) => {
+    const v = { ...body, id: id(), active: true };
+    vets.push(v);
+    app.attrs({ "veterinarian.id": v.id });
+    app.outcome("added");
+    return created(v);
+  },
+  "add_veterinarian",
+);
+app.route(
+  "PATCH",
+  "/veterinarians/{veterinarianId}",
+  ({ params, body }) => {
+    const v = vetById(params.veterinarianId);
+    Object.assign(v, body);
+    app.attrs({ "veterinarian.id": v.id });
+    app.outcome("updated");
+    return ok(v);
+  },
+  "update_veterinarian",
+);
 app.route("GET", "/availability", ({ query }) => {
   const date = query.get("date") ?? app.date(),
     slots = [];
@@ -162,7 +192,7 @@ app.route(
         "veterinarian.id": user.veterinarianId,
       });
       const r = getReservation(user, params.reservationId);
-      assigned(user, r.veterinarianId);
+      assignedOrAdmin(user, r.veterinarianId); // D-41: administrator bypass
       if (r.reservationState !== "Requested") fail(409, "invalid_state");
       if (ms(r.scheduledStart) <= ms(app.now())) fail(422, "past_start");
       for (const [field, reason] of [
@@ -210,7 +240,7 @@ app.route(
         "veterinarian.id": user.veterinarianId,
       });
       const r = getReservation(user, params.reservationId);
-      assigned(user, r.veterinarianId);
+      assignedOrAdmin(user, r.veterinarianId); // D-41: administrator bypass
       if (r.reservationState !== "Requested") fail(409, "invalid_state");
       r.reservationState = "Denied";
       r.denialReason = "Denied by veterinarian";
@@ -250,7 +280,7 @@ app.route(
       "veterinarian.id": user.veterinarianId,
     });
     const r = getReservation(user, params.reservationId);
-    assigned(user, r.veterinarianId);
+    const isAssigned = assignedOrAdmin(user, r.veterinarianId); // D-41: administrator bypass
     if (
       r.reservationState !== "Accepted" ||
       ms(app.now()) < ms(r.scheduledStart)
@@ -259,18 +289,38 @@ app.route(
     if (r.visitId) fail(409, "already_recorded");
     if (body.performedServices.some((s) => !serviceIds.has(s)))
       fail(422, "unknown_service");
+    // D-47: an administrator bypass (not the assigned veterinarian, even if also
+    // holding administrator) must never supply clinical content.
+    const hasClinicalContent =
+      body.clinicalNotes !== undefined ||
+      (body.diagnoses?.length ?? 0) > 0 ||
+      (body.medications?.length ?? 0) > 0 ||
+      body.followUpNotes !== undefined;
+    if (!isAssigned && hasClinicalContent) fail(400, "validation_error");
+    // D-46: clinicalNotes is optional; present-but-blank is still invalid.
+    if (
+      body.clinicalNotes !== undefined &&
+      body.clinicalNotes.trim() === ""
+    )
+      fail(400, "validation_error");
     const v = {
       ...body,
+      // D-47: an administrator bypass omits diagnoses/medications entirely;
+      // VisitRead still requires them, so default to empty like an assigned
+      // veterinarian submitting nothing for either.
+      diagnoses: body.diagnoses ?? [],
+      medications: body.medications ?? [],
       id: id(),
       reservationId: r.id,
       customerId: r.customerId,
       petId: r.petId,
       veterinarianId: r.veterinarianId,
       startedAt: app.now(),
+      notesMissing: !body.clinicalNotes, // D-46, D-50
     };
     visits.set(v.id, v);
     r.visitId = v.id;
-    app.attrs({ "visit.id": v.id });
+    app.attrs({ "visit.id": v.id, "visit.notes_missing": v.notesMissing });
     app.outcome("recorded");
     return created(v);
   },
@@ -303,6 +353,40 @@ app.route(
   "correct_visit",
 );
 app.route(
+  "PATCH",
+  "/reservations/{reservationId}/veterinarian",
+  ({ user, params, body }) =>
+    locks.run("calendar", () => {
+      app.attrs({
+        "reservation.id": params.reservationId,
+        "veterinarian.id": user.veterinarianId,
+      });
+      const r = getReservation(user, params.reservationId);
+      // D-48 (revised): self-claim only, never a third party.
+      if (body.veterinarianId !== user.veterinarianId)
+        fail(400, "validation_error");
+      if (
+        !["Accepted", "CompletedSettled", "CompletedOutstanding"].includes(
+          r.reservationState,
+        )
+      )
+        fail(409, "invalid_state");
+      if (r.visitId) {
+        const v = visits.get(r.visitId);
+        if (v.clinicalNotes) fail(409, "invalid_state"); // D-51: permanently locked once notes exist
+        v.veterinarianId = body.veterinarianId;
+        app.attrs({ "visit.id": v.id });
+      }
+      r.veterinarianId = body.veterinarianId;
+      app.outcome("reassigned");
+      return ok(r);
+    }),
+  "reassign_veterinarian",
+);
+app.route("GET", "/reports/visits-missing-notes", () =>
+  ok([...visits.values()].filter((v) => v.notesMissing)),
+);
+app.route(
   "POST",
   "/internal/reservations/{reservationId}/complete",
   ({ user, params, body }) => {
@@ -333,6 +417,6 @@ await app.serve(() => {
   reservations = new Map();
   visits = new Map();
   locks = new Locks();
-  vets = app.seed("veterinarians");
+  vets = app.seed("veterinarians").map((v) => ({ ...v, active: true }));
   serviceIds = new Set(app.seed("services").map((s) => s.id));
 });

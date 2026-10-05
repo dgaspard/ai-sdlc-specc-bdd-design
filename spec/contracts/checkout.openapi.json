@@ -137,7 +137,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "security": [
           {
@@ -229,7 +230,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "security": [
           {
@@ -273,9 +275,10 @@
         "operationId": "applyPromotion",
         "summary": "Veterinarian who performed the visit applies the visit's one promotion",
         "x-roles": [
-          "veterinarian"
+          "veterinarian",
+          "administrator"
         ],
-        "description": "409 already_applied or nothing_owed. Promotions are final: no update or delete operation exists (405). Bringing the balance to $0 completes the reservation as settled with no payment authorization.",
+        "description": "409 already_applied or nothing_owed. Promotions are final: no update or delete operation exists (405). Bringing the balance to $0 completes the reservation as settled with no payment authorization. GAP-08: this operation's assigned-veterinarian restriction (403 not_assigned_veterinarian) was not previously documented here or covered by any scenario in promotion.feature — being made explicit now alongside the MVP-02A admin-bypass work, not a new restriction. MVP-02A (D-41, D-47): a caller with the administrator role bypasses the assigned-veterinarian check and may apply a promotion on any visit; the visit's veterinarianId attribution is unaffected by who applied the promotion — an administrator never changes or substitutes for that attribution (only a veterinarian can, via reassignVeterinarian, D-48).",
         "x-features": [
           "spec/features/checkout/promotion.feature"
         ],
@@ -418,9 +421,10 @@
         "operationId": "recordCashPayment",
         "summary": "Veterinarian who performed the visit records part or all of the balance paid in cash",
         "x-roles": [
-          "veterinarian"
+          "veterinarian",
+          "administrator"
         ],
-        "description": "Never calls the fake payment provider. Accept positive amounts up to the current balance; partial payment completes as CompletedOutstanding, clearing the balance as CompletedSettled. Serialize with card payments to prevent overcollection. Repeated key returns the original result and credits once. An identical same-key retry returns the original attempt and result with replayed=true, even after settlement; no additional credit or completion is sent. Changed input under the same key returns 409 idempotency_conflict before checking current balance. A new key against zero remaining balance returns 409 already_settled. An amount above the remaining balance returns 422 invalid_amount. No rejected request creates a payment attempt.",
+        "description": "Never calls the fake payment provider. Accept positive amounts up to the current balance; partial payment completes as CompletedOutstanding, clearing the balance as CompletedSettled. Serialize with card payments to prevent overcollection. Repeated key returns the original result and credits once. An identical same-key retry returns the original attempt and result with replayed=true, even after settlement; no additional credit or completion is sent. Changed input under the same key returns 409 idempotency_conflict before checking current balance. A new key against zero remaining balance returns 409 already_settled. An amount above the remaining balance returns 422 invalid_amount. No rejected request creates a payment attempt. GAP-08: this operation's assigned-veterinarian restriction (403 not_assigned_veterinarian) was not previously documented here or covered by any scenario in visit-payment.feature — being made explicit now alongside the MVP-02A admin-bypass work, not a new restriction. MVP-02A (D-41): a caller with the administrator role bypasses the assigned-veterinarian check and may record cash on any visit. Same open attribution question as applyPromotion and recordVisit — see docs/mvp-02a-planning.md.",
         "x-features": [
           "spec/features/checkout/visit-payment.feature",
           "spec/features/checkout/payment-idempotency.feature"

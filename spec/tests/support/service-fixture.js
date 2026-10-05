@@ -18,7 +18,8 @@ export function tokenFor(username = "avery.taylor", now = DEFAULT_CLINIC_NOW) {
   if (username === "service") return serviceToken("checkout", { clinicNow: now });
   const u = seed.user(username), iat = clinicSeconds(now);
   return signJwt({ sub: u.id, role: u.role, iat, exp: iat + USER_TOKEN_SECONDS,
-    ...(u.role === "customer" ? { customerId: u.customerId } : { veterinarianId: u.veterinarianId }) });
+    ...(u.role === "customer" ? { customerId: u.customerId } : { veterinarianId: u.veterinarianId }),
+    ...(u.roles ? { roles: u.roles } : {}) }); // MVP-02A (D-44): dual-role account's second role
 }
 export const reservationBody = () => ({ customerId: jordan, petId: milo, veterinarianId: avery,
   scheduledStart: "2026-10-12T09:00:00-05:00", scheduledEnd: "2026-10-12T10:00:00-05:00", requestedServices: [wellness] });
@@ -34,7 +35,8 @@ export class ServiceFixture {
       acceptedAt: DEFAULT_CLINIC_NOW, bookingFeeAmount: 2000, bookingFeePaid: true,
       bookingPaymentId: randomUUID(), reservationState: "Accepted", visitId: randomUUID(), denialReason: null };
     this.visit = { ...visitBody(), id: this.reservation.visitId, reservationId: this.reservation.id,
-      customerId: jordan, petId: milo, veterinarianId: avery, startedAt: "2026-10-12T09:05:00-05:00" };
+      customerId: jordan, petId: milo, veterinarianId: avery, startedAt: "2026-10-12T09:05:00-05:00",
+      notesMissing: false }; // MVP-02A (D-46, D-50): now a required VisitRead field.
     this.checkout = null;
   }
   async start() {

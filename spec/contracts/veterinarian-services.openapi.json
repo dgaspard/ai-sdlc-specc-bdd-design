@@ -19,7 +19,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "x-features": [
           "spec/features/veterinarian-services/service-catalog.feature"

@@ -35,6 +35,11 @@ export const time = (value, zone = false) =>
   }).format(new Date(value));
 export const fullName = (person) => `${person.firstName} ${person.lastName}`;
 export const vetName = (person) => `Dr ${fullName(person)}`;
+// MVP-02A (D-53): gated on roles the login response actually returned, never
+// a client-invented role or toggle.
+export const isAdministrator = (user) =>
+  user.role === "administrator" ||
+  (user.roles ?? []).includes("administrator");
 export function brand() {
   return h(
     "div",

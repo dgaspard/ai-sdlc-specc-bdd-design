@@ -49,6 +49,27 @@ export function assigned(user, veterinarianId) {
   if (user.veterinarianId !== veterinarianId)
     fail(403, "not_assigned_veterinarian");
 }
+// MVP-02A (D-39, D-44): true for an administrator-only account (role === "administrator")
+// or a dual-role account (role === "veterinarian", roles includes "administrator").
+export function isAdministrator(user) {
+  return (
+    user.role === "administrator" ||
+    (Array.isArray(user.roles) && user.roles.includes("administrator"))
+  );
+}
+/**
+ * Like assigned(), but an administrator may act on any veterinarian's resource
+ * (D-41). Returns whether the caller actually is the assigned veterinarian, so
+ * call sites can tell a normal call from an admin bypass (e.g. D-47: an admin
+ * bypass must not carry clinical content; a normal call by the assigned
+ * veterinarian, even one who also holds administrator, may).
+ */
+export function assignedOrAdmin(user, veterinarianId) {
+  const isAssigned = user.veterinarianId === veterinarianId;
+  if (!isAssigned && !isAdministrator(user))
+    fail(403, "not_assigned_veterinarian");
+  return isAssigned;
+}
 // Serial queues cover a domain critical section, including asynchronous downstream work.
 export class Locks {
   queues = new Map();
@@ -93,6 +114,23 @@ export class Runtime {
     this.secret = process.env.AUTH_TOKEN_SECRET;
     this.initialNow = process.env.CLINIC_NOW;
     this.clock = this.initialNow;
+    // Test-harness-only accommodation (see runtime-contract.md "Telemetry export
+    // resilience"): the test collector is a real process the harness restarts between
+    // scenarios/services, and a request already in flight to it can surface a
+    // connection-level error (ECONNREFUSED, socket hang up) as an uncaught exception or
+    // unhandled rejection outside any promise this runtime awaits directly — bypassing
+    // the try/catch in client()/sendWithHttp — which otherwise crashes the whole service
+    // over a dropped trace span. Scoped to PETCLINIC_TEST_ENDPOINTS=enabled so production
+    // keeps default Node behavior: an uncaught exception there is a real bug and should
+    // crash loudly, not be silently absorbed.
+    if (process.env.PETCLINIC_TEST_ENDPOINTS === "enabled") {
+      process.on("uncaughtException", (err) => {
+        console.error(`[${name}] uncaught exception (test harness only, service stays up):`, err);
+      });
+      process.on("unhandledRejection", (reason) => {
+        console.error(`[${name}] unhandled rejection (test harness only, service stays up):`, reason);
+      });
+    }
     this.provider = new BasicTracerProvider({
       resource: resourceFromAttributes({
         "service.name": process.env.OTEL_SERVICE_NAME ?? `petclinic-${name}`,
@@ -161,6 +199,10 @@ export class Runtime {
       ...(user.customerId
         ? { customerId: user.customerId }
         : { veterinarianId: user.veterinarianId }),
+      // MVP-02A (D-44): the dual-role (admin + veterinarian) account's second
+      // role must reach the real login-issued token too, not just the test
+      // harness's own signJwt helper.
+      ...(user.roles ? { roles: user.roles } : {}),
     });
   }
   serviceToken() {
@@ -189,12 +231,30 @@ export class Runtime {
         !Number.isFinite(claims.exp) ||
         claims.exp <= now ||
         !claims.sub ||
-        !["customer", "veterinarian", "service"].includes(claims.role)
+        !["customer", "veterinarian", "service", "administrator"].includes(
+          claims.role,
+        )
       )
         throw new Error();
       if (
         (claims.role === "customer" && !claims.customerId) ||
         (claims.role === "veterinarian" && !claims.veterinarianId)
+      )
+        throw new Error();
+      // MVP-02A (D-44): an optional `roles` claim marks a dual-role account (e.g. the
+      // veterinarian/administrator owner); `role` itself stays the account's primary role.
+      if (
+        claims.roles !== undefined &&
+        (!Array.isArray(claims.roles) ||
+          claims.roles.some(
+            (r) =>
+              ![
+                "customer",
+                "veterinarian",
+                "service",
+                "administrator",
+              ].includes(r),
+          ))
       )
         throw new Error();
       return claims;
@@ -294,7 +354,8 @@ export class Runtime {
         });
       }
       return { status: r.status, body: data };
-    } catch {
+    } catch (e) {
+      console.error(`[${this.name}] client() failed calling ${url}:`, e);
       span.setStatus({ code: SpanStatusCode.ERROR });
       span.setAttribute("error.type", "dependency_failure");
       if (payment) span.setAttribute("petclinic.operation.outcome", "failed");
@@ -334,6 +395,8 @@ export class Runtime {
       "partially_paid",
       "completed_settled",
       "completed_outstanding",
+      "added", // MVP-02A (OBS-046): addVeterinarian
+      "reassigned", // MVP-02A (OBS-048): reassignVeterinarian
     ]);
     this.server = http.createServer(async (req, res) => {
       const url = new URL(req.url, "http://localhost");
@@ -427,7 +490,13 @@ export class Runtime {
             const user = route.op["x-roles"].includes("anonymous")
               ? null
               : this.authenticate(req.headers.authorization);
-            if (user && !route.op["x-roles"].includes(user.role))
+            // MVP-02A (D-44): a dual-role account is authorized if either its primary
+            // role or any role in its optional `roles` claim is on the route's allowlist.
+            if (
+              user &&
+              !route.op["x-roles"].includes(user.role) &&
+              !(user.roles ?? []).some((r) => route.op["x-roles"].includes(r))
+            )
               fail(403, "forbidden");
             if (route.validate && !route.validate(body))
               fail(400, "validation_error");

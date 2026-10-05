@@ -20,6 +20,8 @@ const files = new Map([
     "appointments.js",
     "visits.js",
     "billing.js",
+    "veterinarians.js",
+    "reports.js",
   ].map((name) => [`/${name}`, [name, "text/javascript"]]),
   [
     "/design/styles/clinic.css",
@@ -38,7 +40,7 @@ const files = new Map([
   ]),
 ]);
 const pageRoute =
-  /^\/(?:appointments(?:\/new|\/[\da-f-]+(?:\/visit)?)?|visits\/[\da-f-]+|bills\/[\da-f-]+)?$/i;
+  /^\/(?:appointments(?:\/new|\/[\da-f-]+(?:\/visit)?)?|visits\/[\da-f-]+|bills\/[\da-f-]+|veterinarians|reports\/visits-missing-notes)?$/i;
 
 const server = http.createServer(async (request, response) => {
   const pathname = new URL(request.url, "http://localhost").pathname;

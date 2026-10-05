@@ -30,6 +30,8 @@ export function inputFor(op, f) {
     recordVisit: visitBody(), completeReservation: { financialOutcome: "settled" },
     collectBookingFee: { reservationId: f.reservation.id, customerId: jordan, amount: 2000, currency: "USD", method: "card", mockMethodReference: "fake-card-approve" },
     applyPromotion: { amount: 500 }, payVisitBalance: { amount: 5000, mockMethodReference: "fake-card-approve" }, recordCashPayment: { amount: 5000 },
+    addVeterinarian: { firstName: "Casey", lastName: "Nguyen", officeId: "office-3" },
+    updateVeterinarian: { active: false }, reassignVeterinarian: { veterinarianId: avery },
   };
   let path = op.path.replace(/\{([^}]+)\}/g, (_, key) => {
     if (!ids[key]) throw new Error(`No fixture for path parameter ${key}`);

@@ -12,7 +12,9 @@ wrong, and what that forced a change to.
 > A-14 (2026-10-03) — r1 + r2 are accepted as sufficient evidence the
 > reconstruction claim holds; r3 is an optional bonus recording, not a gate.
 > Opening anecdote is chosen (the 900-line PR below). Remaining: one full
-> timed read-through, and fold in r3 if it gets recorded before the talks.
+> timed read-through, fold in r3 if it gets recorded before the talks, and
+> land MVP-02A (2026-10-04 added, see "The second test" section) in time to
+> rehearse it — it's a planned ~8-minute segment, not yet run.
 
 ## The hook
 
@@ -309,13 +311,80 @@ that the excuse for not doing this work properly is gone. The job doesn't
 get smaller. It gets more honest about what it was always supposed to
 include.
 
+## The second test: adding a feature to a tested system (~8 min, status: planned, not yet run)
+
+**Why this earns real stage time, not a bullet:** every lesson above comes
+from *reconstructing* something that already existed — a controlled test,
+closer to a known-answer exam than what a developer actually faces at work.
+What a developer in the room will actually hit on Monday is a *change
+request* against a system someone else already built, tested, and froze.
+This is the first time this project does that, and it's the thing that
+either validates everything built so far, or exposes where it doesn't hold
+up outside a clean-room rebuild. Say that distinction out loud — it's the
+difference between "neat demo" and "I could try this at my job."
+
+**The feature, stated plainly:** add an administrator role to a clinic that
+only had veterinarians and customers before, run by the clinic's owner, who
+is *both* an administrator and a veterinarian — because that's what's
+actually true of a small business owner, not a clean textbook RBAC model. Admin
+manages the veterinarian roster (today hard-capped at exactly two, one
+office each); the owner can also act on any visit, switching between an
+admin view and a veterinarian view.
+
+**Tell this one differently than the other lessons — don't wait for the
+pivot, give the real-time discovery process, because that's the artifact
+that's actually novel here:**
+
+1. **Open with what looked like a scope question and turned into an
+   architecture discovery.** Reading the existing system before writing
+   anything new revealed that the veterinarian roster physically lives
+   inside a *different* service than the one that looks like it should own
+   it (Reservation, not "VeterinarianServices" — named for the service
+   catalog, not the roster). A developer who guessed instead of reading
+   would have built the feature in the wrong place. *This is the first live
+   example in the whole talk of "read before you build" actually changing
+   where code goes, not just how it's written.*
+2. **Surface the frozen assumption the feature quietly breaks.** The
+   existing, already-tested system hard-codes "at most two veterinarians" as
+   a business rule, not an accident — this isn't additive work, it's
+   *revising a decision other passing tests already depend on.* Show the
+   actual decision record line. This is the moment that distinguishes
+   "adding a feature" from "rebuilding a feature" for the audience: added
+   scope can contradict something already shipped and proven correct.
+3. **The dual-role problem forces a real security tradeoff, on stage, with
+   the audience watching the decision get made** — not a hypothetical one.
+   One account, two privilege levels, one JWT: simpler to build, and it
+   means a single stolen token now grants both. Say both the choice and the
+   reason stated plainly (ship it, disclose it, don't quietly accept it) —
+   this is the project's own threat-model practice being used live, not
+   described in the abstract.
+4. **Land it on the specific, concrete payoff:** every new admin-only route
+   this feature adds is a live instance of the one defect class SEC-01's
+   automated scanners structurally *cannot* catch (a route missing its
+   auth check — not a naming issue, a real gap). This is where the
+   audience sees why the project built a route-vs-contract cross-check
+   instead of trusting the scanner's silence as proof of safety. *This is
+   the payoff moment for Lesson 3 (security spike) — don't let it float as
+   a disconnected anecdote; call back to it explicitly.*
+
+**The honest framing to land before moving on:** this doesn't prove the
+method works for arbitrary enterprise change requests — it's one bounded
+example. What it does prove is narrower and more useful: that the specific
+guardrails built earlier (frozen decisions, protected contracts, a
+calibrated security pass) are still doing real work the moment the system
+stops being brand-new and starts being *maintained*, which is the condition
+real software spends nearly all its life in.
+
+*(Depends on MVP-02A/SPEC-06 actually running before this gets finalized —
+see [`mvp-02a-planning.md`](mvp-02a-planning.md) for the decisions and open
+items. If it doesn't land in time for a live segment, this becomes a told-
+not-shown story using the decision record and planning doc as artifacts —
+still real, just not rehearsed live.)*
+
 ## Where this is going (keep it tight)
 
 Still active before November, stated as proof this isn't a one-off stunt:
 
-- Proving the pipeline handles *adding* a feature (an admin role and a
-  veterinarian roster), not just rebuilding one that already existed — the
-  harder, more common case. Target: before November.
 - The independent, calibrated review becoming a standing gate, not a
   one-time exercise. Target: before November.
 - The security spike's recommendation — which scanners, at what gate, with
@@ -456,8 +525,14 @@ not dead air):
 | Visible journey (before) + timed delete | 3–5 |
 | Lessons + the role shift, talked through during the rebuild wait | ~25–32 |
 | Visible journey (after) + full suite + trace flip | 3–5 |
-| Where this is going / bigger argument / cost conversation / close | 10–12 |
+| The second test: adding a feature (admin role/roster) | ~8 |
+| Where this is going / bigger argument / cost conversation / close | 8–10 |
 | Buffer / questions | remainder |
+
+Adding the second-test segment tightens the close by ~2 minutes versus the
+prior draft — trim the cost-conversation bullets to their sharpest form
+first if the full read-through runs long, since the second-test segment is
+new, unrehearsed material and more likely to need the room than the close.
 
 Artifacts to have ready to show, cued to the lessons above: the money/
 currency snippet (Lesson 4), the agent getting blocked live on a

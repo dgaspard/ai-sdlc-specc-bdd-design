@@ -1,8 +1,10 @@
 import { current, saveSession, signOut, request } from "./api.js";
-import { h, brand, notice, field, formAction } from "./ui.js";
+import { h, brand, notice, field, formAction, isAdministrator } from "./ui.js";
 import { appointments, appointment, newAppointment } from "./appointments.js";
 import { recordVisit, visit } from "./visits.js";
 import { bill } from "./billing.js";
+import { veterinarians } from "./veterinarians.js";
+import { missingNotesReport } from "./reports.js";
 
 const root = document.getElementById("app");
 function navigate(path, message) {
@@ -94,20 +96,24 @@ async function render(message) {
   if (location.pathname === "/")
     history.replaceState(null, "", "/appointments");
   const user = current().user;
+  const administrator = isAdministrator(user);
   const main = h("main", { class: "main" });
   const messages = h("div");
   const content = h("div");
   const heading = h("header", { class: "page-heading" });
+  const eyebrow =
+    user.role === "customer"
+      ? "CUSTOMER PORTAL"
+      : user.role === "veterinarian"
+        ? "VETERINARIAN WORKSPACE"
+        : "CLINIC ADMINISTRATION";
   main.append(
-    h(
-      "div",
-      { class: "eyebrow muted" },
-      user.role === "customer" ? "CUSTOMER PORTAL" : "VETERINARIAN WORKSPACE",
-    ),
+    h("div", { class: "eyebrow muted" }, eyebrow),
     heading,
     messages,
     content,
   );
+  const path = location.pathname.split("/").filter(Boolean)[0];
   root.replaceChildren(
     h(
       "div",
@@ -123,11 +129,32 @@ async function render(message) {
             "a",
             {
               class: "nav-link",
-              "aria-current": "page",
+              "aria-current": path === "appointments" ? "page" : false,
               href: "/appointments",
             },
             "Appointments",
           ),
+          // MVP-02A (D-54): rendered only for roles the login response actually granted.
+          administrator &&
+            h(
+              "a",
+              {
+                class: "nav-link",
+                "aria-current": path === "veterinarians" ? "page" : false,
+                href: "/veterinarians",
+              },
+              "Veterinarians",
+            ),
+          administrator &&
+            h(
+              "a",
+              {
+                class: "nav-link",
+                "aria-current": path === "reports" ? "page" : false,
+                href: "/reports/visits-missing-notes",
+              },
+              "Reports",
+            ),
         ),
         h(
           "div",
@@ -193,6 +220,9 @@ async function render(message) {
     else if (parts[0] === "appointments") await appointments(ctx);
     else if (parts[0] === "visits") await visit(ctx, parts[1]);
     else if (parts[0] === "bills") await bill(ctx, parts[1]);
+    else if (parts[0] === "veterinarians") await veterinarians(ctx);
+    else if (parts[0] === "reports" && parts[1] === "visits-missing-notes")
+      await missingNotesReport(ctx);
     else {
       content.replaceChildren();
       ctx.say("This record is unavailable.", true);

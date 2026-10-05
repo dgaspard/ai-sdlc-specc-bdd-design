@@ -13,11 +13,14 @@ branding, layout, text, and interactions across reconstruction, not source ident
 Frontend deletion/reconstruction is a separate experiment **after** Checkout's
 Python experiment. No frontend deletion is authorized by this specification.
 
-The five screen types in `screens.md` cover login, appointment list/detail,
-appointment request, clinical visit recording, and bill/payment. The demo retains
-two veterinarians and assigned-veterinarian permissions. Additional business
-workflows remain covered by backend tests; do not add registration, administration,
-pet removal, promotions, cash recording, or catalog-editing UI in this slice.
+The five original screen types in `screens.md` cover login, appointment
+list/detail, appointment request, clinical visit recording, and bill/payment.
+**Superseded in part 2026-10-04 (MVP-02A, D-53–D-56):** two further screens —
+veterinarian roster management and the visits-missing-notes report — plus
+administrator bypass actions folded into the existing appointment/visit
+screens, are now in scope; see `screens.md`'s S6, S7, and amended S2/S4.
+Registration, pet removal, promotions, and cash-recording UI remain out of
+scope; those stay backend-only, covered by backend tests.
 
 ## Identity and retained assets
 

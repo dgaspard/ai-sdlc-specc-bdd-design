@@ -94,7 +94,7 @@ entity is known at that point.
 | OBS-024 | `petclinic.reservation.accept` (Reservation) | reservation.id, veterinarian.id, payment.attempt.id when attempted | `accepted`, `past_start`, `booking_payment_declined`, `slot_unavailable`, `pet_conflict`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
 | OBS-025 | `petclinic.reservation.deny` (Reservation) | reservation.id, veterinarian.id | `denied`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
 | OBS-026 | `petclinic.reservation.cancel` (Reservation) | reservation.id, customer.id | `canceled`, `already_started`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
-| OBS-027 | `petclinic.reservation.record_visit` (Reservation) | reservation.id, visit.id when created, veterinarian.id | `recorded`, `already_recorded`, `not_assigned_veterinarian`, `invalid_state`, `unknown_service`, `not_found`, `failed` |
+| OBS-027 | `petclinic.reservation.record_visit` (Reservation) | reservation.id, visit.id when created, veterinarian.id, `petclinic.visit.notes_missing` (boolean, MVP-02A D-46) | `recorded`, `already_recorded`, `not_assigned_veterinarian`, `invalid_state`, `unknown_service`, `not_found`, `failed`, `validation_error` (MVP-02A D-47: an administrator caller supplied clinical content) |
 | OBS-028 | `petclinic.veterinarian_services.get_fees` (VeterinarianServices) | `petclinic.veterinarian_service.count` (integer) | `found`, `unknown_service`, `failed` |
 | OBS-029 | `petclinic.checkout.finalize_bill` (Checkout) | checkout.id when created, visit.id, reservation.id, veterinarian.id, `petclinic.checkout.remaining_amount_cents` | `finalized`, `already_finalized`, `not_assigned_veterinarian`, `unknown_service`, `invalid_state`, `not_found`, `failed` |
 | OBS-030 | `petclinic.checkout.apply_promotion` (Checkout) | checkout.id, visit.id, promotion.id when created, veterinarian.id, `petclinic.promotion.amount_cents`, `petclinic.promotion.applied_amount_cents` | `applied`, `already_applied`, `nothing_owed`, `not_found`, `failed` |
@@ -106,9 +106,25 @@ entity is known at that point.
 | OBS-043 | `petclinic.customer.register` (Customer) | customer.id on success | `registered`, `validation_error`, `failed` |
 | OBS-044 | `petclinic.reservation.correct_visit` (Reservation) | visit.id, veterinarian.id | `corrected`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
 | OBS-045 | `petclinic.veterinarian_services.update_service` (VeterinarianServices) | veterinarian_service.id, veterinarian.id | `updated`, `not_found`, `failed` |
+| OBS-046 | `petclinic.reservation.add_veterinarian` (Reservation, MVP-02A D-39/D-42) | veterinarian.id when created | `created`, `validation_error`, `failed` |
+| OBS-047 | `petclinic.reservation.update_veterinarian` (Reservation, MVP-02A D-39/D-43) | veterinarian.id, `petclinic.veterinarian.active` (boolean, the new value) | `updated`, `validation_error`, `not_found`, `failed` |
+| OBS-048 | `petclinic.reservation.reassign_veterinarian` (Reservation, MVP-02A D-48/D-49) | reservation.id, veterinarian.id (the new, self-claimed assignment) | `reassigned`, `validation_error` (not a self-claim), `invalid_state` (visit already recorded, or reservation not Accepted), `not_found`, `failed` |
 
 Notes:
 
+- MVP-02A adds OBS-046–048 as draft contracts awaiting human review/freeze,
+  alongside D-39–D-50. OBS-046/047 are administrator-only operations
+  (auth-contract.md); OBS-048 is veterinarian-only. A caller without the right
+  role never reaches the span body in any of the three, so none of their
+  outcome lists need a `forbidden` entry — the role check happens before the
+  span starts, the same pattern already used for other role-gated operations
+  in this registry.
+- MVP-02A also extends OBS-027 (already implemented, not a new rule): a new
+  `petclinic.visit.notes_missing` attribute and a `validation_error` outcome
+  for an administrator caller supplying clinical content it isn't allowed to
+  write (D-46, D-47). Additive to an existing, implemented rule — not a
+  silent rewrite; flagging it here the same way GAP-08's fix was flagged
+  above.
 - SPEC-05 adds OBS-043–045 as draft contracts awaiting human review/freeze.
   Successful `registered`, `corrected`, `updated`, and `partially_paid` outcomes
   use OK status. Card partial payment uses `partially_paid`, not `settled`;
@@ -238,6 +254,9 @@ uncovered rules.
 | OBS-043 | Customer registration | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-043] register emits <outcome>` | Tests cover registration and relationship validation rejection; unexpected-failure/privacy payload branches remain gaps |
 | OBS-044 | Completed clinical correction | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-044] correct_visit emits <outcome>` | Tests cover correction, assignment, state, and missing visit; unexpected failure remains a gap |
 | OBS-045 | Catalog update | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-045] update_service emits <outcome>` | Tests cover update and missing service; unexpected failure remains a gap |
+| OBS-046 | Veterinarian added | Proposed | Not yet written — see [manage-veterinarians.feature](../spec/features/reservation/manage-veterinarians.feature) | MVP-02A; red tests pending (task tracked in docs/eng-02-planning.md's sibling, docs/mvp-02a-planning.md) |
+| OBS-047 | Veterinarian deactivated/reactivated/edited | Proposed | Not yet written — see [manage-veterinarians.feature](../spec/features/reservation/manage-veterinarians.feature) | MVP-02A; red tests pending |
+| OBS-048 | Veterinarian reassignment (fill-in) | Proposed | Not yet written — see [reassign-veterinarian.feature](../spec/features/reservation/reassign-veterinarian.feature) | MVP-02A; red tests pending |
 
 Slice 6 was frozen at checkpoint `test-01-s5-s6`. The supplied working-tree
 manifest now passes the guard for the GAP-01–07 revisions and was not changed

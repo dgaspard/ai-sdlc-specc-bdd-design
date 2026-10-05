@@ -17,6 +17,7 @@ import {
   selections,
   formAction,
   invalid,
+  isAdministrator,
 } from "./ui.js";
 
 const states = {
@@ -67,7 +68,9 @@ export async function appointments(ctx) {
     "Appointments",
     ctx.user.role === "customer"
       ? "Manage your pet's upcoming care."
-      : "Review appointments and record the care you provide.",
+      : ctx.user.role === "veterinarian"
+        ? "Review appointments and record the care you provide."
+        : "Review and manage any appointment.",
     ctx.user.role === "customer" &&
       h(
         "a",
@@ -161,10 +164,13 @@ export async function appointment(ctx, id) {
     ),
     h("p", {}, "$20.00 booking fee"),
   );
-  const assigned =
+  const assignedVet =
     ctx.user.role === "veterinarian" &&
     ctx.user.veterinarianId === row.veterinarianId;
-  if (assigned && row.reservationState === "Requested") {
+  // MVP-02A (D-41, D-55): an administrator not holding this reservation's
+  // veterinarian identity still gets the same actions, bypassing assignment.
+  const bypass = isAdministrator(ctx.user) && !assignedVet;
+  if ((assignedVet || bypass) && row.reservationState === "Requested") {
     const method = paymentMethod("booking-method", "Booking payment method");
     const form = h("form", {}, method.node);
     // Retain ambiguous booking intents across reloads, just like visit payments.
@@ -180,7 +186,7 @@ export async function appointment(ctx, id) {
     }
     formAction(
       form,
-      "Accept appointment",
+      bypass ? `Accept on behalf of ${n.vet}` : "Accept appointment",
       async () => {
         intent ??= {
           key: crypto.randomUUID(),
@@ -239,10 +245,26 @@ export async function appointment(ctx, id) {
       ctx.report,
     );
     panel.append(form);
+    if (bypass) {
+      const denyForm = h("form");
+      formAction(
+        denyForm,
+        "Deny appointment",
+        async () => {
+          await request("reservation", `/reservations/${id}/deny`, {
+            method: "POST",
+          });
+          await appointment(ctx, id);
+          ctx.say("Appointment denied.");
+        },
+        ctx.report,
+      );
+      panel.append(denyForm);
+    }
   }
   if (row.visitId)
     panel.append(h("a", { href: `/visits/${row.visitId}` }, "View visit"));
-  else if (assigned && row.reservationState === "Accepted")
+  else if ((assignedVet || bypass) && row.reservationState === "Accepted")
     panel.append(
       h(
         "a",
@@ -251,6 +273,36 @@ export async function appointment(ctx, id) {
       ),
     );
   if (row.denialReason) panel.append(h("p", {}, row.denialReason));
+  // MVP-02A (D-48, D-51, D-56 revised): self-claim only, for a veterinarian
+  // other than the one currently assigned; administrator-only accounts have
+  // no veterinarian identity to claim with, so they never see this control.
+  if (
+    ctx.user.role === "veterinarian" &&
+    ctx.user.veterinarianId !== row.veterinarianId &&
+    row.reservationState === "Accepted"
+  ) {
+    const notesExist = row.visitId
+      ? !(await request("reservation", `/visits/${row.visitId}`)).notesMissing
+      : false;
+    if (!notesExist) {
+      const reassignForm = h("form");
+      formAction(
+        reassignForm,
+        "Reassign to me",
+        async () => {
+          await request(
+            "reservation",
+            `/reservations/${id}/veterinarian`,
+            { method: "PATCH", body: { veterinarianId: ctx.user.veterinarianId } },
+          );
+          await appointment(ctx, id);
+          ctx.say("Appointment reassigned to you.");
+        },
+        ctx.report,
+      );
+      panel.append(reassignForm);
+    }
+  }
   ctx.content.replaceChildren(panel);
 }
 export async function newAppointment(ctx) {

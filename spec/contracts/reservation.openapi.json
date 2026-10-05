@@ -19,7 +19,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "security": [
           {
@@ -42,6 +43,117 @@
           },
           "401": {
             "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addVeterinarian",
+        "summary": "Administrator adds a veterinarian (MVP-02A)",
+        "description": "Supersedes D-04's two-veterinarian cap (D-42). The new veterinarian is created active; no office-availability validation beyond the request schema is performed in this MVP.",
+        "x-roles": [
+          "administrator"
+        ],
+        "x-features": [
+          "spec/features/reservation/manage-veterinarians.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "domain.openapi.json#/components/schemas/VeterinarianCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/VeterinarianRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/veterinarians/{veterinarianId}": {
+      "patch": {
+        "operationId": "updateVeterinarian",
+        "summary": "Administrator updates or (de)activates a veterinarian (MVP-02A)",
+        "description": "D-43: deactivating has no cascading effects — it blocks new assignment going forward only; existing future Accepted reservations and visits proceed unchanged.",
+        "x-roles": [
+          "administrator"
+        ],
+        "x-features": [
+          "spec/features/reservation/manage-veterinarians.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "veterinarianId",
+            "in": "path",
+            "required": true,
+            "description": "Veterinarian id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "domain.openapi.json#/components/schemas/VeterinarianUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/VeterinarianRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
           }
         }
       }
@@ -165,7 +277,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "security": [
           {
@@ -240,7 +353,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "security": [
           {
@@ -284,9 +398,10 @@
         "operationId": "acceptReservation",
         "summary": "Assigned veterinarian accepts after the booking fee is paid",
         "x-roles": [
-          "veterinarian"
+          "veterinarian",
+          "administrator"
         ],
-        "description": "403 not_assigned_veterinarian. 409 invalid_state. 422 past_start or booking_payment_declined (reservation stays Requested). Collects the fee through Checkout POST /internal/booking-fees with the same Idempotency-Key.",
+        "description": "403 not_assigned_veterinarian. 409 invalid_state. 422 past_start or booking_payment_declined (reservation stays Requested). Collects the fee through Checkout POST /internal/booking-fees with the same Idempotency-Key. MVP-02A (D-41): an administrator may accept on behalf of any veterinarian, bypassing the assigned-veterinarian check.",
         "x-features": [
           "spec/features/reservation/accept-deny-reservation.feature"
         ],
@@ -360,8 +475,10 @@
         "operationId": "denyReservation",
         "summary": "Assigned veterinarian denies a request",
         "x-roles": [
-          "veterinarian"
+          "veterinarian",
+          "administrator"
         ],
+        "description": "MVP-02A (D-41): an administrator may deny on behalf of any veterinarian, bypassing the assigned-veterinarian check.",
         "x-features": [
           "spec/features/reservation/accept-deny-reservation.feature"
         ],
@@ -471,9 +588,10 @@
         "operationId": "recordVisit",
         "summary": "Assigned veterinarian records the visit at or after the start",
         "x-roles": [
-          "veterinarian"
+          "veterinarian",
+          "administrator"
         ],
-        "description": "409 invalid_state (not Accepted, or before scheduledStart) or already_recorded. startedAt is the clinic clock. 422 unknown_service when any performedServices ID is absent from the seeded service catalog; no visit is stored. 403 not_assigned_veterinarian when the caller is not the assigned veterinarian.",
+        "description": "409 invalid_state (not Accepted, or before scheduledStart) or already_recorded. startedAt is the clinic clock. 422 unknown_service when any performedServices ID is absent from the seeded service catalog; no visit is stored. 403 not_assigned_veterinarian when the caller is not the assigned veterinarian and not an administrator. MVP-02A (D-41, D-47): an administrator may close/record a visit for any veterinarian, but may never supply clinicalNotes, diagnoses, medications, or followUpNotes in that call (rejected as 400 validation_error).",
         "x-features": [
           "spec/features/reservation/record-visit.feature"
         ],
@@ -514,6 +632,73 @@
               "application/json": {
                 "schema": {
                   "$ref": "domain.openapi.json#/components/schemas/VisitRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "common.openapi.json#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "common.openapi.json#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/veterinarian": {
+      "patch": {
+        "operationId": "reassignVeterinarian",
+        "summary": "A veterinarian fills in for a reservation or its visit (MVP-02A)",
+        "description": "D-48 (revised): self-claim only — veterinarianId must equal the caller's own veterinarianId; a third party is rejected as 400 validation_error, and this is never performable by an administrator acting alone (the caller must hold the veterinarian role, enforced by x-roles). Permitted for Accepted, CompletedSettled, or CompletedOutstanding reservations; 409 invalid_state otherwise. D-51: once the visit has clinicalNotes, reassignment is permanently blocked (409 invalid_state) regardless of reservation state.",
+        "x-roles": [
+          "veterinarian"
+        ],
+        "x-features": [
+          "spec/features/reservation/reassign-veterinarian.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "description": "Reservation id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "domain.openapi.json#/components/schemas/ReservationVeterinarianReassign"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "domain.openapi.json#/components/schemas/ReservationRead"
                 }
               }
             }
@@ -620,7 +805,8 @@
         "x-roles": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ],
         "security": [
           {
@@ -655,6 +841,46 @@
           },
           "404": {
             "$ref": "common.openapi.json#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/reports/visits-missing-notes": {
+      "get": {
+        "operationId": "visitsMissingNotes",
+        "summary": "Completed visits closed without clinical notes (MVP-02A, D-50)",
+        "description": "The clinic's first report. An oversight list: a veterinarian sees every such visit, not only their own; there is no assigned-veterinarian restriction on reading it.",
+        "x-roles": [
+          "veterinarian",
+          "administrator"
+        ],
+        "x-features": [
+          "spec/features/reservation/visits-missing-notes-report.feature"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "domain.openapi.json#/components/schemas/VisitRead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "common.openapi.json#/components/responses/Forbidden"
           }
         }
       }
@@ -822,14 +1048,11 @@
         }
       },
       "VisitRecordRequest": {
-        "description": "Reservation, customer, pet, and veterinarian come from the reservation and token.",
+        "description": "Reservation, customer, pet, and veterinarian come from the reservation and token. MVP-02A (D-46): clinicalNotes is no longer required — closing/recording a visit without it is allowed and returns notesMissing: true rather than a rejection. MVP-02A (D-47): when the caller is an administrator bypassing the assigned-veterinarian check (not also the assigned veterinarian), clinicalNotes, diagnoses, medications, and followUpNotes must all be absent; supplying any of them is rejected as 400 validation_error. Not expressible as a static schema constraint here (it depends on caller role and assignment) — enforced in the implementation and covered by feature scenarios.",
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "performedServices",
-          "clinicalNotes",
-          "diagnoses",
-          "medications"
+          "performedServices"
         ],
         "properties": {
           "performedServices": {

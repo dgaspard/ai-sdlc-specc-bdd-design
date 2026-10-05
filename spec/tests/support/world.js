@@ -92,7 +92,10 @@ class PetClinicWorld extends World {
     }
     const iat = clinicSeconds(this.clinicNow);
     const link = u.role === "customer" ? { customerId: u.customerId } : { veterinarianId: u.veterinarianId };
-    return signJwt({ sub: u.id, role: u.role, ...link, iat, exp: iat + USER_TOKEN_SECONDS });
+    // MVP-02A (D-44): a dual-role seed user (e.g. "avery.taylor") carries an
+    // additional `roles` claim; `role` itself stays its primary role.
+    const roles = u.roles ? { roles: u.roles } : {};
+    return signJwt({ sub: u.id, role: u.role, ...link, ...roles, iat, exp: iat + USER_TOKEN_SECONDS });
   }
 
   /** Makes a seeded user (by username or display name, e.g. "Jordan") the caller. */

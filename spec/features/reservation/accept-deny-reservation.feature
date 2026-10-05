@@ -86,3 +86,21 @@ Feature: Veterinarian accepts or denies a request
       | Accepted | denies  | denial     |
       | Denied   | accepts | acceptance |
       | Canceled | denies  | denial     |
+
+  # MVP-02A (D-41, D-44): "the administrator" is Dr Avery Taylor's account
+  # acting on its administrator role. These scenarios use a reservation
+  # assigned to Dr Morgan Reed specifically so the test actually exercises
+  # the bypass, rather than coinciding with Dr Avery Taylor already being
+  # the assigned veterinarian (as in the Background above).
+  Scenario: An administrator can accept a request assigned to a different veterinarian
+    Given Checkout will report the booking fee as paid with payment "pay-2"
+    And Jordan has a Requested reservation for Luna with Dr Morgan Reed on "2026-10-12" at "11:00"
+    When the administrator accepts Luna's reservation
+    Then Luna's reservation is "Accepted"
+    And Reservation asks Checkout to collect "$20.00" for Luna's reservation
+
+  Scenario: An administrator can deny a request assigned to a different veterinarian
+    Given Jordan has a Requested reservation for Luna with Dr Morgan Reed on "2026-10-12" at "11:00"
+    When the administrator denies Luna's reservation
+    Then Luna's reservation is "Denied"
+    And Checkout is not asked to collect a booking fee

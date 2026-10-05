@@ -64,6 +64,56 @@ Feature: Record a visit
       | "Wellness" performed twice    |
       | blank clinical notes          |
 
+  # MVP-02A (D-46): closing/recording a visit no longer requires clinical
+  # notes. Omitting them is allowed; the saved visit is flagged, not
+  # rejected, so an administrator closing an appointment on a veterinarian's
+  # behalf (next scenarios) has a real path that doesn't require notes they
+  # aren't allowed to write.
+  Scenario: Closing a visit without clinical notes succeeds but is flagged
+    When Dr Avery Taylor records a visit with performed service "Wellness" and no clinical notes
+    Then the visit is saved with a new visit ID
+    And the visit is flagged as missing clinical notes
+
+  # MVP-02A (D-41, D-44, D-45, D-47): "the administrator" is Dr Avery
+  # Taylor's account acting on its administrator role, closing a visit for
+  # a reservation assigned to Dr Morgan Reed so the test exercises the
+  # actual bypass. Resolves what was an open question earlier today: the
+  # administrator never supplies clinical content at all (D-47), so there's
+  # no attribution ambiguity to resolve — the visit's veterinarianId stays
+  # Dr Morgan Reed's, the originally assigned veterinarian, regardless of
+  # who closed the appointment.
+  Scenario: An administrator can close a visit for a reservation assigned to a different veterinarian, without notes
+    Given Sam has an Accepted reservation for Rex with Dr Morgan Reed on "2026-10-12" at "10:00" requesting "Wellness"
+    And the clinic clock reads "2026-10-12 10:05" Central Time
+    When the administrator records a visit for Rex with performed service "Wellness" and no clinical notes
+    Then the visit is saved with a new visit ID
+    And it references Dr Morgan Reed as the visit's veterinarian
+    And the visit is flagged as missing clinical notes
+    And the reservation remains "Accepted"
+
+  # MVP-02A (D-47): an administrator may never write clinical content, even
+  # when acting on a visit via the bypass above.
+  Scenario: An administrator cannot supply clinical notes when closing a visit
+    Given Sam has an Accepted reservation for Rex with Dr Morgan Reed on "2026-10-12" at "10:00" requesting "Wellness"
+    And the clinic clock reads "2026-10-12 10:05" Central Time
+    When the administrator attempts to record a visit for Rex with performed service "Wellness" and clinical notes "Healthy"
+    Then the visit is refused as invalid
+    And no visit is saved
+
+  # MVP-02A (D-52): the bypass above also works for "avery.taylor" acting on
+  # her dual role, which leaves open whether it depends on also holding the
+  # veterinarian role. "riley.chen" holds only administrator — no
+  # veterinarian identity at all — and proves it doesn't.
+  Scenario: An administrator-only account can close a visit for any veterinarian, without notes
+    Given Sam has an Accepted reservation for Rex with Dr Morgan Reed on "2026-10-12" at "10:00" requesting "Wellness"
+    And the clinic clock reads "2026-10-12 10:05" Central Time
+    And "riley.chen" is logged in
+    When the administrator records a visit for Rex with performed service "Wellness" and no clinical notes
+    Then the visit is saved with a new visit ID
+    And it references Dr Morgan Reed as the visit's veterinarian
+    And the visit is flagged as missing clinical notes
+    And the reservation remains "Accepted"
+
   Scenario: A pet's history contains only that pet's visits
     Given Milo has recorded visit "milo-wellness"
     And Jordan's other pet Luna has recorded visit "luna-vaccination"

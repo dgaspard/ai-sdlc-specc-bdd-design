@@ -124,8 +124,12 @@ This long-term piece is a design note for the playbook, not built here.
 1. **Automated gates (tool-judged, same for every language):**
    - Duplicate-code detection across services (e.g. jscpd, which reads JS and Python).
    - Import-boundary check: no service imports another service's code or a store;
-     shared infrastructure (`services/platform/`) is allowed and listed. Replaces
-     `tools/ownership.test.mjs`; the other `tools/*.test.mjs` checks move to `tools/review/`.
+     shared infrastructure (`services/platform/`) is allowed and listed. Not yet
+     built — note `tools/review/project-specific/ownership.test.mjs` (moved
+     2026-10-04 from `tools/ownership.test.mjs`) is a resource-ownership
+     access-control test despite its name, not this check. The other
+     `tools/*.test.mjs` checks moved into `tools/review/project-specific/`
+     2026-10-04; see `tools/review/README.md`.
    - Security scanning: Semgrep (both languages) plus Bandit for Python; secret scan.
    - Dependency audit: `npm audit` and `pip-audit`.
    - Connected-trace capture (`npm run trace:payment`) against every build,
@@ -152,8 +156,27 @@ calibration score. Feeds PLAY-01.
 
 ### SEC-01 — Security spike: calibrate automated gates against AI-generated code
 
-Status: **spike package prepared (2026-10-03); execution pending.** Time-boxed
-spike (target: 2 days), run in parallel with DEMO-01/ENG-02, before MVP-02A
+Status: **complete (2026-10-04).** Run locally (network access the dev
+sandbox doesn't have) via `tools/security/run-sec01-spike.sh` plus standalone
+reruns of the calibration snippets with realistic variable names. Full
+write-up: [`docs/engineering-reviews/sec-01-spike.md`](docs/engineering-reviews/sec-01-spike.md).
+
+Headline result: **5 of 8 planted defects caught (62.5%)** by Semgrep
+(default registry + two custom rules) + Bandit (Python) + dependency audit
+(`npm audit`/`pip-audit`). Real remaining gaps: the JS injection shape (#3),
+overly broad CORS (#4) — both need new custom Semgrep rules — and the route
+skipping the auth hook (#5), which needs a route-vs-contract cross-check, not
+a scanner. One methodology finding not yet fixed: Bandit's default recursive
+scan includes `.venv`/vendored deps and needs an exclude pattern before its
+real-world output is usable without manual filtering. Feeds ENG-02 item 1
+(automated gates, now has a measured floor) and item 4 (threat-model note,
+via the misses). Recommendation section is written to be lifted directly
+into PLAY-01's playbook.
+
+<details>
+<summary>Original scope (time-boxed spike, prepared 2026-10-03)</summary>
+
+Time-boxed spike (target: 2 days), run in parallel with DEMO-01/ENG-02, before MVP-02A
 build. Not a shipped feature — a research exploration whose output is a
 written recommendation, feeding ENG-02's security gate and PLAY-01's playbook.
 
@@ -208,6 +231,8 @@ Record under `docs/engineering-reviews/sec-01-spike.md`: tools run, versions,
 findings against both real builds, the calibration table (planted defect → caught
 y/n → by which tool), and the resulting recommendation. Feeds directly into
 ENG-02 item 1 (automated gates) and item 4 (threat-model note).
+
+</details>
 
 ## Next — before 2026-10-14
 
@@ -353,6 +378,44 @@ backend; delete only `frontend/` application code via a reviewed manifest; exclu
 prior frontend source/history and the static design preview; rebuild in vanilla
 JavaScript. Require the frozen appearance tolerance, identical text/interactions,
 and ENG-02. Record time, interventions, failures, and retained scaffolding.
+
+### CI-01 — Wire SEC-01's security gates into CI/CD on push to main
+
+Status: deferred until after the November talks (2026-11-07, 2026-11-13).
+Confirmed 2026-10-04: no `.github/workflows/` directory exists at all, so
+none of SEC-01's scanners (Semgrep, Bandit, `npm audit`, `pip-audit`,
+detect-secrets) run automatically today — they only run locally via
+`tools/security/run-sec01-spike.sh` / `tools/security/portable/run-*.sh`.
+Nothing currently stops an insecure change from reaching `main` through a
+normal push or merge. Related open gap: the "GUARD-01 remote" follow-up
+(branch ruleset: PR required, guard check required, code-owner review) is
+also still unconfigured — this item should close both at once rather than
+wiring security scanning into CI without branch protection to enforce it.
+
+Why this order: per the A-13 CI/CD placement framework, these checks belong
+in the agent's local loop *and* as a required remote gate, not one or the
+other — local catches issues before commit, CI catches anything that
+slipped through or came from a push outside the usual agent loop. Placed
+after the November MVP (DEMO-01/02/03, MVP-02A, PLAY-01) so it doesn't
+compete with talk-prep time, and explicitly before any database/persistence
+work ([DATA-01](#data-01--personal-historical-data-and-archival-learning-demo))
+so that work lands on a repo that already enforces its security floor,
+rather than retrofitting the gate after data-handling code exists.
+
+Scope (sketch, to be specced properly when picked up):
+
+- `.github/workflows/security.yml` (or equivalent) running
+  `portable/run-sast.sh`, `portable/run-secret-scan.sh`,
+  `portable/run-dependency-audit.sh` on every push/PR to `main`; add Bandit
+  for Python once its `.venv`/vendor exclusion (flagged in the SEC-01
+  write-up) is fixed, so CI doesn't choke on noise.
+- Configure the branch ruleset: PR required, the guard check (`guard:check`)
+  required, code-owner review required (closes "GUARD-01 remote").
+- Decide fail-vs-warn per check to start (SEC-01's 62.5% catch rate argues
+  for treating these as a floor, not a perfect gate, at least initially).
+- `.github/` is CODEOWNERS-protected — any workflow file change here needs
+  human review and a `guard:freeze` run before merge, same as other
+  protected paths.
 
 ### DATA-01 — Personal historical-data and archival learning demo
 

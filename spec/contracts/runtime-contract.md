@@ -100,6 +100,24 @@ are not used. The test collector rejects any other format with 415 and records i
 which fails RT-008. Every handled HTTP request, including `GET /health`, produces a
 server span following OBS-041 (named `GET /health` for the health check). Traces only; metrics and logs are off.
 
+## Telemetry export resilience
+
+When `PETCLINIC_TEST_ENDPOINTS=enabled`, a service installs process-level
+`uncaughtException`/`unhandledRejection` handlers that log and keep the process
+running, instead of the Node default (crash). This exists only because the test
+collector is a real process the harness restarts between scenarios/services, and
+a trace-export request already in flight to it can surface a connection-level
+error (`ECONNREFUSED`, socket hang up) outside any promise the runtime awaits
+directly — bypassing the normal `client()`/`dependency()` error handling — which
+would otherwise crash the whole service over a dropped span.
+
+This is deliberately narrow: outside the test harness (`PETCLINIC_TEST_ENDPOINTS`
+unset or not `enabled`), no such handler is installed, and an uncaught
+exception/rejection crashes the process as it would by default. A service should
+never fail open on a genuine bug — this accommodation exists solely for a known,
+test-harness-specific timing race in telemetry export, not as general
+error-handling policy.
+
 ## Health
 
 `GET /health` returns HTTP 200 with `{"status":"ok"}` once the project is ready to

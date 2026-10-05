@@ -8,7 +8,7 @@ import * as seed from "../../harness/seed.js";
 import { cents, usd } from "../../harness/money.js";
 import { central, instant } from "../../harness/clinic-time.js";
 import { decodeJwt, serviceToken } from "../../harness/auth.js";
-import { expectProblem } from "./common.steps.js";
+import { expectProblem, adminToken } from "./common.steps.js";
 
 const CUSTOMERS = { Jordan: "Jordan Rivera", Sam: "Sam Lee" };
 const PET_OWNER = { Milo: "Jordan", Luna: "Jordan", Rex: "Sam" };
@@ -124,7 +124,13 @@ async function accept(world, reservationId, vetName, bookingFee = { method: "car
   });
 }
 async function recordVisit(world, reservationId, vetName, body) {
+  world.memo.lastVisitTarget = reservationId;
   return world.api("POST", `/reservations/${reservationId}/visit`, { body, token: await as(world, vetName) });
+}
+/** Same as recordVisit, but with an explicit token (admin-bypass callers, MVP-02A). */
+async function recordVisitAs(world, reservationId, token, body) {
+  world.memo.lastVisitTarget = reservationId;
+  return world.api("POST", `/reservations/${reservationId}/visit`, { body, token });
 }
 const visitBody = (over = {}) => ({
   performedServices: [seed.service("Wellness").id], clinicalNotes: "Routine examination", diagnoses: [], medications: [], ...over,
@@ -260,6 +266,14 @@ Given("Jordan has an Accepted reservation for Luna with no recorded visit", asyn
 Given("Sam has a Requested reservation for Rex with Dr Avery Taylor on {string} at {string}", async function (date, time) {
   this.memo.other = await requested(this, { pet: "Rex", start: central(`${date} ${time}`) });
 });
+// MVP-02A (D-41, D-47): admin-bypass record-visit scenarios. Reassigns `this.memo.reservation`
+// (Milo's Background reservation is not used by these scenarios) so every existing generic
+// visit/reservation step ("the visit is saved...", "the reservation remains...", "no visit is
+// saved") works unchanged against Rex's reservation.
+Given(/^Sam has an Accepted reservation for Rex with (Dr [A-Za-z]+ [A-Za-z]+) on "([^"]+)" at "([^"]+)" requesting "([^"]+)"$/,
+  async function (vet, date, time, service) {
+    this.memo.reservation = await accepted(this, { pet: "Rex", vet, start: central(`${date} ${time}`), services: [service] });
+  });
 Given("Jordan's other pet Luna has an Accepted reservation with Dr Avery Taylor on {string} at {string}", async function (date, time) {
   this.memo.luna = await accepted(this, { pet: "Luna", start: central(`${date} ${time}`) });
 });
@@ -284,6 +298,33 @@ Then("the reservation remains {string}", async function (state) {
 });
 Then("Luna's reservation is {string}", async function (state) {
   assert.equal((await getReservation(this, this.memo.luna.id)).reservationState, state);
+});
+
+// ---------------------------------------------------------------------------
+// MVP-02A (D-41, D-44): administrator accept/deny bypass
+// ---------------------------------------------------------------------------
+Given(/^Jordan has a Requested reservation for Luna with (Dr [A-Za-z]+ [A-Za-z]+) on "([^"]+)" at "([^"]+)"$/,
+  async function (vet, date, time) {
+    this.memo.luna = await requested(this, { pet: "Luna", vet, start: central(`${date} ${time}`) });
+  });
+When("the administrator accepts Luna's reservation", async function () {
+  this.response = await this.api("POST", `/reservations/${this.memo.luna.id}/accept`, {
+    body: { bookingFee: { method: "card", mockMethodReference: "fake-card-approve" } },
+    token: await adminToken(this), headers: { "idempotency-key": crypto.randomUUID() },
+  });
+});
+When("the administrator denies Luna's reservation", async function () {
+  this.response = await this.api("POST", `/reservations/${this.memo.luna.id}/deny`, { token: await adminToken(this) });
+});
+Then("Reservation asks Checkout to collect {string} for Luna's reservation", function (amount) {
+  const calls = bookingFeeCalls(this, this.memo.luna.id);
+  assert.equal(calls.length, 1);
+  const c = calls[0];
+  assert.deepEqual({ ...c.body, mockMethodReference: undefined }, {
+    reservationId: this.memo.luna.id, customerId: seed.customer("Jordan").id,
+    amount: cents(amount), currency: "USD", method: "card", mockMethodReference: undefined,
+  });
+  assert.ok(c.body.mockMethodReference, "card booking fee needs a mock method reference");
 });
 
 // ---------------------------------------------------------------------------
@@ -417,6 +458,19 @@ Then(/^the slot "([^"]+)" is (taken|available) for (Dr [A-Za-z]+ [A-Za-z]+)$/, a
   const [date, time] = local.split(" ");
   const starts = startsFor(await availability(this, date, vet), vet);
   assert.equal(starts.includes(time), status === "available", `open slots: ${starts}`);
+});
+// MVP-02A (D-43): deactivation has no cascading effect on an existing reservation.
+Given(/^Jordan has an Accepted reservation for Milo with (Dr [A-Za-z]+ [A-Za-z]+) on "([^"]+)" at "([^"]+)"$/,
+  async function (vet, date, time) {
+    this.memo.reservation = await accepted(this, { vet, start: central(`${date} ${time}`) });
+  });
+Then("Jordan's reservation for Milo is still {string}", async function (state) {
+  assert.equal((await getReservation(this, this.memo.reservation.id)).reservationState, state);
+});
+Then(/^the slot "([^"]+)" is still recorded as taken for (Dr [A-Za-z]+ [A-Za-z]+)$/, async function (local, vet) {
+  const [date, time] = local.split(" ");
+  const starts = startsFor(await availability(this, date, vet), vet);
+  assert.ok(!starts.includes(time), `expected ${time} to still be taken; open: ${starts}`);
 });
 
 // ---------------------------------------------------------------------------
@@ -567,10 +621,6 @@ Then("the first available start time is {string}", function (time) {
 // Visits
 // ---------------------------------------------------------------------------
 async function doVisit(world, vet, body) {
-  const pet = seed.pet("Milo").id;
-  const saved = world.response;
-  world.memo.visitCountBefore = (await world.api("GET", `/visits?petId=${pet}`, { token: await vetToken(world) })).body.length;
-  world.response = saved;
   return recordVisit(world, world.memo.reservation.id, vet, body);
 }
 When("Dr Avery Taylor records a visit with performed service {string} and clinical notes {string}", async function (service, notes) {
@@ -581,6 +631,13 @@ When("Dr Avery Taylor records a visit with performed services {string} and {stri
 });
 When("Dr Avery Taylor records a visit with clinical notes but no diagnoses, medications, or follow-up", async function () {
   await doVisit(this, "Dr Avery Taylor", { performedServices: [seed.service("Wellness").id], clinicalNotes: "Healthy", diagnoses: [], medications: [] });
+});
+// MVP-02A (D-46): closing/recording without clinical notes.
+When("Dr Avery Taylor records a visit with performed service {string} and no clinical notes", async function (service) {
+  await doVisit(this, "Dr Avery Taylor", { performedServices: [seed.service(service).id], diagnoses: [], medications: [] });
+});
+Then("the visit is flagged as missing clinical notes", function () {
+  assert.equal(this.response.body.notesMissing, true, JSON.stringify(this.response.body));
 });
 When(/^(Dr [A-Za-z]+ [A-Za-z]+) records a visit$/, async function (vet) {
   await doVisit(this, vet, visitBody());
@@ -630,11 +687,28 @@ Then("the visit is saved with empty diagnoses and medications", function () {
   assert.equal(this.response.body.followUpNotes, undefined);
 });
 Then("no visit is saved", async function () {
-  const r = await this.api("GET", `/visits?petId=${seed.pet("Milo").id}`, { token: await vetToken(this) });
-  assert.equal(r.body.length, this.memo.visitCountBefore);
+  const r = await getReservation(this, this.memo.lastVisitTarget);
+  assert.equal(r.visitId, null, "a visit was unexpectedly saved");
 });
 Then("the visit is refused as invalid", function () {
   expectProblem(this, "validation_error", 400);
+});
+
+// ---------------------------------------------------------------------------
+// MVP-02A (D-41, D-44, D-45, D-47): administrator record-visit bypass
+// ---------------------------------------------------------------------------
+When("the administrator records a visit for Rex with performed service {string} and no clinical notes", async function (service) {
+  this.response = await recordVisitAs(this, this.memo.reservation.id, await adminToken(this), {
+    performedServices: [seed.service(service).id], diagnoses: [], medications: [],
+  });
+});
+When("the administrator attempts to record a visit for Rex with performed service {string} and clinical notes {string}", async function (service, notes) {
+  this.response = await recordVisitAs(this, this.memo.reservation.id, await adminToken(this), {
+    performedServices: [seed.service(service).id], clinicalNotes: notes, diagnoses: [], medications: [],
+  });
+});
+Then("it references Dr Morgan Reed as the visit's veterinarian", function () {
+  assert.equal(this.response.body.veterinarianId, seed.vet("Dr Morgan Reed").id);
 });
 
 // History
@@ -661,4 +735,101 @@ Then("it does not contain {string}", function (label) {
 });
 Then("it contains {string} and {string} exactly once each", function (a, b) {
   for (const label of [a, b]) assert.equal(idsIn(this).filter((id) => id === this.memo.labels[label]).length, 1, label);
+});
+
+// ---------------------------------------------------------------------------
+// MVP-02A (D-45, D-48, D-49, D-51, D-52): reassign-veterinarian.feature ("filling in")
+// ---------------------------------------------------------------------------
+async function reassignAs(world, reservationId, token, targetVetName) {
+  const body = { veterinarianId: seed.vet(targetVetName).id };
+  return world.api("PATCH", `/reservations/${reservationId}/veterinarian`, { body, token });
+}
+async function reassign(world, reservationId, vetName, targetVetName) {
+  return reassignAs(world, reservationId, await as(world, vetName), targetVetName);
+}
+Given(/^Jordan has another Accepted reservation for Luna with (Dr [A-Za-z]+ [A-Za-z]+) on "([^"]+)" at "([^"]+)" requesting "([^"]+)"$/,
+  async function (vet, date, time, service) {
+    this.memo.luna = await accepted(this, { pet: "Luna", vet, start: central(`${date} ${time}`), services: [service] });
+  });
+Given("Dr Avery Taylor has closed Milo's visit without clinical notes", async function () {
+  this.memo.visit = await withVisit(this, this.memo.reservation, "Dr Avery Taylor",
+    { performedServices: [seed.service("Wellness").id], diagnoses: [], medications: [] });
+});
+Given("Dr Avery Taylor has closed Milo's visit with clinical notes {string}", async function (notes) {
+  this.memo.visit = await withVisit(this, this.memo.reservation, "Dr Avery Taylor", visitBody({ clinicalNotes: notes }));
+});
+When("Dr Morgan Reed reassigns Milo's reservation to themselves", async function () {
+  this.response = await reassign(this, this.memo.reservation.id, "Dr Morgan Reed", "Dr Morgan Reed");
+});
+When("Dr Morgan Reed attempts to reassign Milo's reservation to Dr Avery Taylor", async function () {
+  this.response = await reassign(this, this.memo.reservation.id, "Dr Morgan Reed", "Dr Avery Taylor");
+});
+When("Dr Morgan Reed attempts to reassign Milo's reservation to themselves", async function () {
+  this.response = await reassign(this, this.memo.reservation.id, "Dr Morgan Reed", "Dr Morgan Reed");
+});
+When("the customer attempts to reassign Milo's reservation to Dr Morgan Reed", async function () {
+  this.response = await reassignAs(this, this.memo.reservation.id, this.token, "Dr Morgan Reed");
+});
+When("the administrator attempts to reassign Milo's reservation to Dr Morgan Reed", async function () {
+  this.response = await reassignAs(this, this.memo.reservation.id, await adminToken(this), "Dr Morgan Reed");
+});
+When("Dr Avery Taylor reassigns Luna's reservation to themselves", async function () {
+  this.response = await reassign(this, this.memo.luna.id, "Dr Avery Taylor", "Dr Avery Taylor");
+});
+When("Dr Morgan Reed attempts to reassign Luna's reservation to themselves", async function () {
+  this.response = await reassign(this, this.memo.luna.id, "Dr Morgan Reed", "Dr Morgan Reed");
+});
+When("Dr Morgan Reed attempts to reassign an unknown reservation to themselves", async function () {
+  this.response = await reassignAs(this, "ffffffff-ffff-4fff-8fff-ffffffffffff", await as(this, "Dr Morgan Reed"), "Dr Morgan Reed");
+});
+Then("the reassignment is refused as invalid", function () {
+  expectProblem(this, "validation_error", 400);
+});
+Then("Milo's reservation is assigned to Dr Morgan Reed", async function () {
+  assert.equal((await getReservation(this, this.memo.reservation.id)).veterinarianId, seed.vet("Dr Morgan Reed").id);
+});
+Then("Milo's reservation is still assigned to Dr Avery Taylor", async function () {
+  assert.equal((await getReservation(this, this.memo.reservation.id)).veterinarianId, seed.vet("Dr Avery Taylor").id);
+});
+Then("Luna's reservation is assigned to Dr Avery Taylor", async function () {
+  assert.equal((await getReservation(this, this.memo.luna.id)).veterinarianId, seed.vet("Dr Avery Taylor").id);
+});
+Then("the visit's veterinarian is now Dr Morgan Reed", async function () {
+  const r = await this.api("GET", `/visits/${this.memo.visit.id}`, { token: await vetToken(this) });
+  assert.equal(r.body.veterinarianId, seed.vet("Dr Morgan Reed").id);
+});
+Then("the visit's veterinarian is still Dr Avery Taylor", async function () {
+  const r = await this.api("GET", `/visits/${this.memo.visit.id}`, { token: await vetToken(this) });
+  assert.equal(r.body.veterinarianId, seed.vet("Dr Avery Taylor").id);
+});
+Then("the visit is still flagged as missing clinical notes", async function () {
+  const r = await this.api("GET", `/visits/${this.memo.visit.id}`, { token: await vetToken(this) });
+  assert.equal(r.body.notesMissing, true);
+});
+
+// ---------------------------------------------------------------------------
+// MVP-02A (D-46, D-50): visits-missing-notes-report.feature (first report)
+// ---------------------------------------------------------------------------
+Given(/^Jordan has a completed visit for Milo with (Dr [A-Za-z]+ [A-Za-z]+) closed without clinical notes$/, async function (vet) {
+  const res = await accepted(this, { vet, start: nextSlot(this) });
+  this.memo.reportVisit = await withVisit(this, res, vet, { performedServices: [seed.service("Wellness").id], diagnoses: [], medications: [] });
+});
+Given(/^Jordan has a completed visit for Milo with (Dr [A-Za-z]+ [A-Za-z]+) closed with clinical notes "([^"]+)"$/, async function (vet, notes) {
+  const res = await accepted(this, { vet, start: nextSlot(this) });
+  this.memo.reportVisit = await withVisit(this, res, vet, visitBody({ clinicalNotes: notes }));
+});
+When("the administrator requests the visits-missing-notes report", async function () {
+  this.response = await this.api("GET", "/reports/visits-missing-notes", { token: await adminToken(this) });
+});
+When("the customer attempts to request the visits-missing-notes report", async function () {
+  this.response = await this.api("GET", "/reports/visits-missing-notes", { token: this.token });
+});
+Then("the report includes Milo's visit", function () {
+  assert.ok(this.response.body.some((v) => v.id === this.memo.reportVisit.id), JSON.stringify(this.response.body));
+});
+Then("the report does not include Milo's visit", function () {
+  assert.ok(!this.response.body.some((v) => v.id === this.memo.reportVisit.id));
+});
+Then("the report is empty", function () {
+  assert.deepEqual(this.response.body, []);
 });

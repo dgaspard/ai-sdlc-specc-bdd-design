@@ -56,3 +56,27 @@ Feature: Apply a promotion
   Scenario: A negative promotion is invalid
     When Dr Avery Taylor applies a "-$5.00" promotion
     Then the promotion is refused as invalid
+
+  # GAP-08: this restriction was never previously covered by a scenario here,
+  # even though finalize-bill.feature and record-visit.feature already test
+  # the equivalent rule for their own operations. Making it explicit now
+  # alongside the MVP-02A admin-bypass work below, not introducing a new rule.
+  Scenario: Only the assigned veterinarian may apply a promotion
+    When Dr Morgan Reed applies a "$15.00" promotion
+    Then the promotion is refused as "not assigned veterinarian"
+    And the remaining balance is "$50.00"
+
+  # MVP-02A (D-41, D-44): "the administrator" is Dr Avery Taylor's account
+  # acting on its administrator role. The Background assigns this visit to
+  # Dr Avery Taylor, so this scenario reassigns it to Dr Morgan Reed first —
+  # otherwise the administrator would already be the assigned veterinarian
+  # and the scenario wouldn't exercise the actual bypass.
+  # Resolved: PromotionRequest's schema exposes no veterinarian-attribution
+  # field at all (the applying veterinarian "comes from the token" only for
+  # the assigned-veterinarian check; nothing about who applied it is stored
+  # or returned) — there is no attribution to decide either way.
+  Scenario: An administrator may apply a promotion even when not the assigned veterinarian
+    Given the visit was performed by Dr Morgan Reed instead
+    When the administrator applies a "$15.00" promotion
+    Then the promotion is saved with amount "$15.00" and applied amount "$15.00"
+    And the remaining balance is "$35.00"

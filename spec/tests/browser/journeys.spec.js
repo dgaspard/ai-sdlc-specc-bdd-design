@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ServiceFixture, jordan, milo, avery, wellness } from '../support/service-fixture.js';
 import { ensureRunning, stopAll } from '../../harness/processes.js';
+import { vet as vetSeed } from '../../harness/seed.js';
 
 let api;
 test.beforeEach(async () => {
@@ -180,4 +181,107 @@ test('[FE-005] response loss and reload retain the exact payment intent', async 
   expect(attempts[1]).toEqual(attempts[0]);
   await settled();
   expect(await api.providerCalls()).toHaveLength(2);
+});
+
+// MVP-02A (D-53, D-54, D-55, D-56): administrator role, roster management,
+// the visits-missing-notes report, admin-bypass actions, and reassignment.
+
+test('[FE-006] administrator manages the veterinarian roster', async ({ page }) => {
+  await login(page, 'riley.chen');
+  await expect(page.getByRole('heading', { name: 'Appointments', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Reports', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Veterinarians', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Veterinarians', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add veterinarian', exact: true }).click();
+  const form = page.locator('form').filter({ has: page.getByLabel('First name', { exact: true }) });
+  await form.getByLabel('First name', { exact: true }).fill('Casey');
+  await form.getByLabel('Last name', { exact: true }).fill('Nguyen');
+  await form.getByLabel('Office', { exact: true }).fill('office-3');
+  await form.getByRole('button', { name: 'Add veterinarian', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Veterinarian added.');
+  await expect(page.getByRole('row', { name: /Casey Nguyen/ })).toContainText('Active');
+  const morganRow = page.getByRole('row', { name: /Morgan Reed/ });
+  await morganRow.getByRole('button', { name: 'Deactivate', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Veterinarian deactivated.');
+  await expect(morganRow).toContainText('Inactive');
+  await morganRow.getByRole('button', { name: 'Reactivate', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Veterinarian reactivated.');
+  await expect(morganRow).toContainText('Active');
+  await logout(page);
+  await login(page, 'jordan.rivera');
+  await expect(page.getByRole('link', { name: 'Veterinarians', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Reports', exact: true })).toHaveCount(0);
+});
+
+test('[FE-007] administrator reads the visits-missing-notes report', async ({ page }) => {
+  await api.request();
+  await api.accept();
+  await api.clock('2026-10-12T09:05:00-05:00');
+  await api.call('POST', `/reservations/${api.reservation.id}/visit`, { service: 'reservation',
+    body: { performedServices: [wellness], diagnoses: [], medications: [] }, expected: 201 });
+  await login(page, 'riley.chen');
+  await page.getByRole('link', { name: 'Reports', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Visits missing notes', exact: true })).toBeVisible();
+  const row = page.getByRole('row', { name: /Milo/ });
+  await expect(row).toContainText('Jordan Rivera');
+  await expect(row).toContainText('Dr Avery Taylor');
+  await logout(page);
+  await login(page, 'jordan.rivera');
+  await page.goto('/reports/visits-missing-notes');
+  await expect(page.getByRole('alert')).toContainText("You don't have permission to do that.");
+});
+
+test('[FE-008] administrator bypass actions require no separate login', async ({ page }) => {
+  const morgan = vetSeed('Morgan Reed');
+  await api.request({ veterinarianId: morgan.id, scheduledStart: '2026-10-13T09:00:00-05:00', scheduledEnd: '2026-10-13T10:00:00-05:00' });
+  await login(page, 'avery.taylor');
+  await page.goto(`/appointments/${api.reservation.id}`);
+  await page.getByLabel('Booking payment method', { exact: true }).selectOption('fake-card-approve');
+  await page.getByRole('button', { name: 'Accept on behalf of Dr Morgan Reed', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Appointment accepted. Booking fee paid.');
+  await api.clock('2026-10-13T09:05:00-05:00');
+  await page.getByRole('link', { name: 'Record visit', exact: true }).click();
+  await expect(page.getByLabel('Clinical notes', { exact: true })).toHaveCount(0);
+  await page.getByRole('group', { name: 'Performed services', exact: true }).getByLabel('Wellness', { exact: true }).check();
+  await page.getByRole('button', { name: 'Save visit', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Visit recorded.');
+  await expect(page.getByText('Missing clinical notes', { exact: true })).toBeVisible();
+  // Same signed-in session, her own assigned appointment still records normally (no toggle needed, D-53).
+  await api.request({ scheduledStart: '2026-10-13T10:00:00-05:00', scheduledEnd: '2026-10-13T11:00:00-05:00' });
+  await api.accept();
+  await api.clock('2026-10-13T10:05:00-05:00');
+  await page.goto(`/appointments/${api.reservation.id}/visit`);
+  await expect(page.getByLabel('Clinical notes', { exact: true })).toBeVisible();
+  await page.getByRole('group', { name: 'Performed services', exact: true }).getByLabel('Wellness', { exact: true }).check();
+  await page.getByLabel('Clinical notes', { exact: true }).fill('Routine examination');
+  await page.getByRole('button', { name: 'Save visit', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Visit recorded.');
+});
+
+test("[FE-009] reassigning an appointment's veterinarian", async ({ page }) => {
+  const morgan = vetSeed('Morgan Reed');
+  await api.request({ veterinarianId: morgan.id, scheduledStart: '2026-10-14T09:00:00-05:00', scheduledEnd: '2026-10-14T10:00:00-05:00' });
+  await api.call('POST', `/reservations/${api.reservation.id}/accept`, { service: 'reservation', actor: 'morgan.reed',
+    body: { bookingFee: { method: 'card', mockMethodReference: 'fake-card-approve' } }, expected: 200 });
+  await login(page, 'morgan.reed');
+  await page.goto(`/appointments/${api.reservation.id}`);
+  await expect(page.getByRole('button', { name: 'Reassign to me', exact: true })).toHaveCount(0);
+  await logout(page);
+  // Administrator-only: no veterinarian identity to self-claim with, so no control at all.
+  await login(page, 'riley.chen');
+  await page.goto(`/appointments/${api.reservation.id}`);
+  await expect(page.getByRole('button', { name: /^Reassign/ })).toHaveCount(0);
+  await logout(page);
+  await login(page, 'avery.taylor');
+  await page.goto(`/appointments/${api.reservation.id}`);
+  await page.getByRole('button', { name: 'Reassign to me', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Appointment reassigned to you.');
+  await expect(page.getByText('Dr Avery Taylor', { exact: true })).toBeVisible();
+  await api.clock('2026-10-14T09:05:00-05:00');
+  await page.getByRole('link', { name: 'Record visit', exact: true }).click();
+  await page.getByRole('group', { name: 'Performed services', exact: true }).getByLabel('Wellness', { exact: true }).check();
+  await page.getByLabel('Clinical notes', { exact: true }).fill('Routine examination');
+  await page.getByRole('button', { name: 'Save visit', exact: true }).click();
+  await page.goto(`/appointments/${api.reservation.id}`);
+  await expect(page.getByRole('button', { name: /^Reassign/ })).toHaveCount(0);
 });

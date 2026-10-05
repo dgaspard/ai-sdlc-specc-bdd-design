@@ -64,8 +64,18 @@
         "enum": [
           "veterinarian",
           "customer",
-          "service"
+          "service",
+          "administrator"
         ]
+      },
+      "Roles": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Role"
+        },
+        "minItems": 2,
+        "uniqueItems": true,
+        "description": "MVP-02A (D-44): present only for an account holding more than one role (today, exactly one account: the clinic owner, holding veterinarian and administrator). The singular 'role' property stays the account's primary role for backward compatibility with single-role accounts and existing checks; 'roles', when present, is the full set. Authorization passes if the required role equals 'role' or appears in 'roles'."
       },
       "LoginRequest": {
         "type": "object",
@@ -105,8 +115,12 @@
           "role": {
             "enum": [
               "veterinarian",
-              "customer"
+              "customer",
+              "administrator"
             ]
+          },
+          "roles": {
+            "$ref": "#/components/schemas/Roles"
           },
           "displayName": {
             "type": "string",
@@ -119,6 +133,7 @@
             "$ref": "#/components/schemas/Uuid"
           }
         },
+        "description": "MVP-02A: 'administrator' is a valid primary role on its own (an admin-only account with no veterinarianId/customerId), distinct from the dual-role case where 'role' stays 'veterinarian' and 'roles' additionally includes 'administrator' (D-40, D-44).",
         "allOf": [
           {
             "if": {
@@ -154,6 +169,23 @@
               "not": {
                 "required": [
                   "customerId"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "role": {
+                  "const": "administrator"
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  { "required": ["customerId"] },
+                  { "required": ["veterinarianId"] }
                 ]
               }
             }
@@ -209,6 +241,9 @@
           },
           "role": {
             "$ref": "#/components/schemas/Role"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/Roles"
           },
           "customerId": {
             "$ref": "#/components/schemas/Uuid"
@@ -303,8 +338,12 @@
           "role": {
             "enum": [
               "veterinarian",
-              "customer"
+              "customer",
+              "administrator"
             ]
+          },
+          "roles": {
+            "$ref": "#/components/schemas/Roles"
           },
           "displayName": {
             "type": "string",

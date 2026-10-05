@@ -56,7 +56,8 @@ visual comparisons, the real customer/vet journey, decline/double activation,
 ownership routes, and real-response loss/reload/retry. This includes process startup
 and teardown on the reference host; it is an observation, not a PERF-01 guarantee.
 
-Supplemental checks in `tools/frontend-engineering.test.mjs` cover required-field
+Supplemental checks in `tools/review/project-specific/frontend-engineering.test.mjs`
+(moved under ENG-02's `tools/review/` scaffolding, 2026-10-04) cover required-field
 errors without writes, fractional-cent rejection and exact partial payment,
 authorized-completion-error display despite a zero fetched balance, and literal
 rendering of malicious-looking clinical text. The completion-error check injects

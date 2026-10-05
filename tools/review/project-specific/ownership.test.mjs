@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { owner } from "../services/platform/runtime.js";
+import { owner } from "../../../services/platform/runtime.js";
 
 it("a resource ID cannot substitute for its different customer owner", () => {
   const user = { role: "customer", customerId: "customer-one" };

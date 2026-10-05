@@ -7,7 +7,7 @@ import path from "node:path";
 import { PROJECTS, SPEC_ROOT } from "../../harness/config.js";
 import { loadContract, responseTarget, validateResponse, validateRequest } from "../../harness/schema.js";
 
-const ROLES = ["veterinarian", "customer", "service", "anonymous"];
+const ROLES = ["veterinarian", "customer", "service", "anonymous", "administrator"]; // MVP-02A (D-39)
 const IDEMPOTENT = ["collectBookingFee", "acceptReservation", "payVisitBalance", "recordCashPayment"];
 const METHODS = ["get", "post", "put", "patch", "delete"];
 const services = Object.entries(PROJECTS).filter(([, p]) => p.kind === "service");

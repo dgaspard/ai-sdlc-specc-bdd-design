@@ -7,7 +7,7 @@ import {
   ServiceFixture,
   problem,
   reservationBody,
-} from "../spec/tests/support/service-fixture.js";
+} from "../../../spec/tests/support/service-fixture.js";
 
 it("invalid idempotency keys are rejected before contacting the provider", async (t) => {
   const fixture = new ServiceFixture("checkout");

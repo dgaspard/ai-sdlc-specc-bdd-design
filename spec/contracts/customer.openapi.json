@@ -112,7 +112,8 @@
         "operationId": "listCustomers",
         "summary": "List customers",
         "x-roles": [
-          "veterinarian"
+          "veterinarian",
+          "administrator"
         ],
         "security": [
           {

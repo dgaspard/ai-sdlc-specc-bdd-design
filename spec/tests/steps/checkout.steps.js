@@ -44,6 +44,7 @@ Before({ tags: "@service:checkout" }, function () {
     id: visitId, reservationId, customerId: JORDAN().id, petId: seed.pet("Milo").id,
     veterinarianId: seed.vet("Dr Avery Taylor").id, performedServices: [seed.service("Wellness").id],
     clinicalNotes: "Routine examination", diagnoses: [], medications: [], startedAt: "2026-10-12T09:05:00-05:00",
+    notesMissing: false, // MVP-02A (D-46, D-50): now a required VisitRead field.
   };
 
   // Reservation: visit and reservation reads, completion writes.
@@ -144,9 +145,9 @@ async function pay(world, { card = world.memo.card, key = crypto.randomUUID(), a
   (world.memo.results ??= []).push(r);
   return r;
 }
-async function payCash(world, { key = crypto.randomUUID(), amount } = {}) {
+async function payCash(world, { key = crypto.randomUUID(), amount } = {}, vet = "avery.taylor") {
   world.memo.callsBefore = (await providerCalls()).length;
-  const token = await world.tokenFor("avery.taylor");
+  const token = await world.tokenFor(vet);
   const body = { amount: amount ?? world.memo.checkout.remainingBalance };
   const r = await world.api("POST", `/checkouts/${world.memo.checkout.id}/cash-payments`, { body, token, headers: { "idempotency-key": key } });
   if (r.status === 200) world.memo.lastAttempt = r.body.attempt;
@@ -181,6 +182,12 @@ Given("Milo's finalized Wellness checkout has a remaining balance of {string}", 
 });
 Given(/^the visit was performed by (Dr [A-Za-z]+ [A-Za-z]+)$/, function (vet) {
   assert.equal(this.memo.visit.veterinarianId, seed.vet(vet).id);
+});
+// MVP-02A (D-41 admin-bypass scenarios): reassigns the Background's visit so the
+// bypass is actually exercised rather than coinciding with the default assignment.
+Given(/^the visit was performed by (Dr [A-Za-z]+ [A-Za-z]+) instead$/, function (vet) {
+  this.memo.visit.veterinarianId = seed.vet(vet).id;
+  this.memo.reservation.veterinarianId = seed.vet(vet).id;
 });
 // The mock method token decides the provider's answer; "a different card" is a new token.
 Given(/^the fake payment provider will (authorize|decline) (the|a different) card$/, function (outcome, which) {
@@ -390,12 +397,12 @@ Then("Checkout sends Customer a credit of {string} from payment {string} for Mil
 // ---------------------------------------------------------------------------
 // Promotion
 // ---------------------------------------------------------------------------
-async function promote(world, body) {
-  const r = await world.api("POST", `/checkouts/${world.memo.checkout.id}/promotion`, { body, token: await world.tokenFor("avery.taylor") });
+async function promote(world, body, vet = "avery.taylor") {
+  const r = await world.api("POST", `/checkouts/${world.memo.checkout.id}/promotion`, { body, token: await world.tokenFor(vet) });
   return r;
 }
-When(/^Dr Avery Taylor applies an? "([^"]+)" promotion$/, async function (amount) {
-  await promote(this, { amount: cents(amount) });
+When(/^(Dr [A-Za-z]+ [A-Za-z]+) applies an? "([^"]+)" promotion$/, async function (vet, amount) {
+  await promote(this, { amount: cents(amount) }, seed.userFor(vet).username);
 });
 When("Dr Avery Taylor applies a promotion without entering an amount", async function () {
   await promote(this, {});
@@ -403,6 +410,11 @@ When("Dr Avery Taylor applies a promotion without entering an amount", async fun
 Given("Dr Avery Taylor has applied a {string} promotion", async function (amount) {
   const r = await promote(this, { amount: cents(amount) });
   assert.equal(r.status, 201, JSON.stringify(r.body));
+});
+// MVP-02A (D-41, D-44): "the administrator" is Dr Avery Taylor's account acting
+// on its administrator role (checkout has no admin-only scenario).
+When("the administrator applies a {string} promotion", async function (amount) {
+  await promote(this, { amount: cents(amount) });
 });
 Then("the promotion is saved with amount {string} and applied amount {string}", function (amount, applied) {
   assert.equal(this.response.status, 201, JSON.stringify(this.response.body));
@@ -466,7 +478,12 @@ When("Jordan pays the visit balance by card with a new attempt key", async funct
 When("Jordan pays the visit balance with the different card and a new attempt key", async function () {
   await pay(this);
 });
-When("Dr Avery Taylor records a {string} cash payment for the visit", async function (amount) {
+When(/^(Dr [A-Za-z]+ [A-Za-z]+) records a "([^"]+)" cash payment for the visit$/, async function (vet, amount) {
+  await payCash(this, { amount: cents(amount) }, seed.userFor(vet).username);
+});
+// MVP-02A (D-41, D-44): "the administrator" is Dr Avery Taylor's account acting
+// on its administrator role (checkout has no admin-only scenario).
+When("the administrator records a {string} cash payment for the visit", async function (amount) {
   await payCash(this, { amount: cents(amount) });
 });
 When("Jordan pays {string} of the visit balance", async function (amount) {

@@ -468,7 +468,7 @@
             "maxLength": 100
           }
         },
-        "description": "Shared Veterinarian properties with no unknown-field restriction; Create and Read add required fields and forbid unknown fields."
+        "description": "Shared Veterinarian properties with no unknown-field restriction; Create and Read add required fields and forbid unknown fields. 'active' (MVP-02A) is deliberately not shared here — see VeterinarianRead and VeterinarianUpdate — so it can never be set at creation (Create rejects it as an unknown property)."
       },
       "VeterinarianCreate": {
         "allOf": [
@@ -481,7 +481,8 @@
           "firstName",
           "lastName",
           "officeId"
-        ]
+        ],
+        "description": "MVP-02A: administrator-only (D-39, D-42). The server always creates a new veterinarian as active; 'active' is not a recognized property here and a request including it is rejected as validation_error."
       },
       "VeterinarianUpdate": {
         "type": "object",
@@ -502,6 +503,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 100
+          },
+          "active": {
+            "type": "boolean",
+            "description": "MVP-02A (D-39, D-43): administrator-only. Set false to deactivate, true to reactivate."
           }
         }
       },
@@ -513,11 +518,16 @@
           {
             "type": "object",
             "required": [
-              "id"
+              "id",
+              "active"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/Uuid"
+              },
+              "active": {
+                "type": "boolean",
+                "description": "MVP-02A (D-42, D-43). True unless an administrator has deactivated this veterinarian."
               }
             }
           }
@@ -526,7 +536,8 @@
         "required": [
           "firstName",
           "lastName",
-          "officeId"
+          "officeId",
+          "active"
         ]
       },
       "ReservationFields": {
@@ -584,6 +595,17 @@
             "$ref": "#/components/schemas/ServiceReference"
           }
         }
+      },
+      "ReservationVeterinarianReassign": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["veterinarianId"],
+        "properties": {
+          "veterinarianId": {
+            "$ref": "#/components/schemas/Uuid"
+          }
+        },
+        "description": "MVP-02A (D-48, revised): 'filling in.' veterinarianId must equal the caller's own veterinarianId — self-claim only, never a third party. Permitted any time no clinical notes have been written yet for this reservation's visit — before a visit is recorded at all, or after it was closed without notes (D-46's real-world case: emergencies, appointment overruns, delayed paperwork). Once clinicalNotes exist, reassignment is permanently blocked, regardless of the reservation's financial completion state. When a visit already exists, reassigning also updates the visit's own veterinarianId to match, since that field — not the reservation's — is what gates note-writing (D-45)."
       },
       "ReservationRead": {
         "allOf": [
@@ -740,11 +762,11 @@
           "petId",
           "veterinarianId",
           "performedServices",
-          "clinicalNotes",
           "diagnoses",
           "medications",
           "startedAt"
-        ]
+        ],
+        "description": "MVP-02A (D-46): 'clinicalNotes' is no longer required — closing/recording a visit without it is allowed and returns a non-blocking 'missing_clinical_notes' warning rather than a rejection. MVP-02A (D-47): when the caller's role is administrator (not veterinarian), 'clinicalNotes', 'diagnoses', 'medications', and 'followUpNotes' must all be absent or empty; supplying any of them is rejected as validation_error. Not expressible as a static schema constraint here (it depends on caller role) — enforced in the implementation and covered by a feature scenario."
       },
       "VisitUpdate": {
         "type": "object",
@@ -789,11 +811,16 @@
           {
             "type": "object",
             "required": [
-              "id"
+              "id",
+              "notesMissing"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/Uuid"
+              },
+              "notesMissing": {
+                "type": "boolean",
+                "description": "MVP-02A (D-46, D-50). True when clinicalNotes is absent or empty. Computed, never client-settable; not part of VisitFields/VisitCreate/VisitUpdate. Lets the visits-missing-notes report (D-50) query this directly instead of recomputing it from clinicalNotes."
               }
             }
           }
@@ -805,7 +832,6 @@
           "petId",
           "veterinarianId",
           "performedServices",
-          "clinicalNotes",
           "diagnoses",
           "medications",
           "startedAt"

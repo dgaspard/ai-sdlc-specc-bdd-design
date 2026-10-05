@@ -6,6 +6,7 @@ import {
   fail,
   owner,
   assigned,
+  assignedOrAdmin,
   Locks,
   copy,
   canonical,
@@ -279,7 +280,7 @@ app.route(
     locks.run(`bill:${params.checkoutId}`, async () => {
       const c = checkout(user, params.checkoutId);
       app.attrs({ "veterinarian.id": user.veterinarianId });
-      assigned(user, assignedVets.get(c.id));
+      assignedOrAdmin(user, assignedVets.get(c.id)); // D-41: administrator bypass
       if (c.promotion) fail(409, "already_applied");
       if (c.remainingBalance === 0) fail(409, "nothing_owed");
       const amount = body.amount ?? 0;
@@ -309,7 +310,9 @@ app.route(
 async function pay({ params, user, body, key }, cash) {
   return locks.run(`bill:${params.checkoutId}`, async () => {
     const c = checkout(user, params.checkoutId);
-    if (user.role === "veterinarian") assigned(user, assignedVets.get(c.id));
+    // Cash recording is vet/admin-only (D-41 bypass); card payment is customer-only and
+    // has no assigned-veterinarian concept to check.
+    if (cash) assignedOrAdmin(user, assignedVets.get(c.id));
     paymentAttrs(c, null, false, cash, user.veterinarianId);
     const scopedKey = `visit:${c.id}:${key}`,
       fingerprint = canonical({ ...body, method: cash ? "cash" : "card" });

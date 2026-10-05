@@ -103,8 +103,8 @@ cat > "$CAL/checkout-js/scratch-defect-examples.js" <<'EOF'
 // Standalone examples of planted defect classes; see calibration-defects.md.
 
 // Defect 1: non-constant-time secret/token comparison.
-export function badTokenCompare(a, b) {
-  return a === b;
+export function badTokenCompare(signingSecret, requestSignature) {
+  return signingSecret === requestSignature;
 }
 
 // Defect 2: secret logged at error level.
@@ -144,8 +144,8 @@ def bad_shell(customer_id):
     return subprocess.run("grep " + customer_id + " visits.log", shell=True)
 
 # Defect 7: non-constant-time secret comparison.
-def bad_token_compare(a, b):
-    return a == b
+def bad_token_compare(signing_secret, request_signature):
+    return signing_secret == request_signature
 EOF
 fi
 

@@ -4,13 +4,13 @@ import assert from "node:assert/strict";
 import {
   chromium,
   expect,
-} from "../spec/node_modules/@playwright/test/index.mjs";
+} from "../../../spec/node_modules/@playwright/test/index.mjs";
 import {
   ServiceFixture,
   jordan,
   visitBody,
-} from "../spec/tests/support/service-fixture.js";
-import { ensureRunning, stopAll } from "../spec/harness/processes.js";
+} from "../../../spec/tests/support/service-fixture.js";
+import { ensureRunning, stopAll } from "../../../spec/harness/processes.js";
 
 let browser, api;
 before(async () => {

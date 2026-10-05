@@ -8,15 +8,19 @@ import {
   selections,
   formAction,
   invalid,
+  isAdministrator,
+  notice,
 } from "./ui.js";
 
 export async function recordVisit(ctx, id) {
   const row = await request("reservation", `/reservations/${id}`);
-  if (
-    ctx.user.role !== "veterinarian" ||
-    ctx.user.veterinarianId !== row.veterinarianId
-  )
-    throw new ApiError(403);
+  const assignedVet =
+    ctx.user.role === "veterinarian" &&
+    ctx.user.veterinarianId === row.veterinarianId;
+  // MVP-02A (D-41, D-47, D-55): an administrator bypass may close/record a
+  // visit, but may never supply clinical content.
+  const bypass = isAdministrator(ctx.user) && !assignedVet;
+  if (!assignedVet && !bypass) throw new ApiError(403);
   if (row.visitId) {
     await ctx.navigate(`/visits/${row.visitId}`);
     return;
@@ -27,21 +31,27 @@ export async function recordVisit(ctx, id) {
     "Record visit",
     `${n.pet} · ${n.customer} · ${n.vet} · ${date(row.scheduledStart)}`,
   );
-  const notes = field("Clinical notes", "notes", {
-    tag: "textarea",
-    required: true,
-  });
-  const diagnoses = field("Diagnoses", "diagnoses", { tag: "textarea" });
-  const medications = field("Medications", "medications", { tag: "textarea" });
-  const followup = field("Follow-up notes", "followup", { tag: "textarea" });
+  const notes = bypass
+    ? null
+    : field("Clinical notes", "notes", { tag: "textarea", required: true });
+  const diagnoses = bypass
+    ? null
+    : field("Diagnoses", "diagnoses", { tag: "textarea" });
+  const medications = bypass
+    ? null
+    : field("Medications", "medications", { tag: "textarea" });
+  const followup = bypass
+    ? null
+    : field("Follow-up notes", "followup", { tag: "textarea" });
   const form = h(
     "form",
     { class: "panel" },
     servicesField("Performed services", data.services, row.requestedServices),
-    notes.node,
-    diagnoses.node,
-    medications.node,
-    followup.node,
+    bypass
+      ? notice(
+          "This visit will be saved without clinical notes and flagged for follow-up.",
+        )
+      : [notes.node, diagnoses.node, medications.node, followup.node],
   );
   const lines = (input) =>
     input.value
@@ -52,10 +62,10 @@ export async function recordVisit(ctx, id) {
     form,
     "Save visit",
     async () => {
-      if (!selections(form).length || !notes.input.value.trim()) {
+      if (!selections(form).length || (!bypass && !notes.input.value.trim())) {
         invalid(
           form,
-          !notes.input.value.trim()
+          !bypass && !notes.input.value.trim()
             ? notes.input
             : form.querySelector('input[name="services"]'),
           "Clinical notes and at least one service are required.",
@@ -71,12 +81,16 @@ export async function recordVisit(ctx, id) {
             method: "POST",
             body: {
               performedServices: selections(form),
-              clinicalNotes: notes.input.value.trim(),
-              diagnoses: lines(diagnoses.input),
-              medications: lines(medications.input),
-              ...(followup.input.value.trim()
-                ? { followUpNotes: followup.input.value.trim() }
-                : {}),
+              ...(bypass
+                ? {}
+                : {
+                    clinicalNotes: notes.input.value.trim(),
+                    diagnoses: lines(diagnoses.input),
+                    medications: lines(medications.input),
+                    ...(followup.input.value.trim()
+                      ? { followUpNotes: followup.input.value.trim() }
+                      : {}),
+                  }),
             },
           },
         );
@@ -114,8 +128,11 @@ export async function visit(ctx, id) {
   const panel = h(
     "section",
     { class: "panel stack" },
-    h("h2", {}, "Clinical notes"),
-    h("p", {}, record.clinicalNotes),
+    // MVP-02A (D-46, D-50): a visit closed via the administrator bypass has
+    // no clinical notes at all; show the flag rather than an empty section.
+    record.notesMissing
+      ? h("p", { class: "badge pending" }, "Missing clinical notes")
+      : [h("h2", {}, "Clinical notes"), h("p", {}, record.clinicalNotes)],
     h("h3", {}, "Performed services"),
     h(
       "p",
@@ -148,6 +165,9 @@ export async function visit(ctx, id) {
   else if (
     ctx.user.role === "veterinarian" &&
     ctx.user.veterinarianId === record.veterinarianId
+    // D-41 bypasses accept/deny/record-visit/promotion/cash, but not
+    // finalizing the bill (D-36): only the visit's own assigned veterinarian
+    // finalizes, matching checkout's unchanged assigned(), not assignedOrAdmin().
   ) {
     const form = h("form");
     formAction(

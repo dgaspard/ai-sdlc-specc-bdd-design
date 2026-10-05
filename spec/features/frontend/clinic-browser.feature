@@ -46,3 +46,45 @@ Feature: Reconstructable clinic browser experience
     When Jordan reloads and retries the same payment
     Then the original UUID and exact payload are reused
     And the settled outcome is displayed without another provider request
+
+  # MVP-02A (D-53, D-54): administrator-only account, no veterinarian identity.
+  Scenario: FE-006 Administrator manages the veterinarian roster
+    Given Riley is signed in as an administrator with no veterinarian identity
+    Then Jordan and Morgan's sign-ins show no Veterinarians or Reports link
+    When Riley opens Veterinarians and adds a new veterinarian
+    Then the roster shows the new veterinarian as Active
+    When Riley deactivates an existing veterinarian
+    Then that row shows Inactive without a confirmation dialog
+    When Riley reactivates that veterinarian
+    Then that row shows Active again
+
+  # MVP-02A (D-50, D-54).
+  Scenario: FE-007 Administrator reads the visits-missing-notes report
+    Given a visit for Milo was closed without clinical notes
+    When Riley opens Reports
+    Then that visit appears with Milo, Jordan, and its veterinarian
+    When Jordan attempts to open the Reports route directly
+    Then access is denied
+
+  # MVP-02A (D-41, D-47, D-53, D-55): the dual-role owner acts as administrator
+  # on a reservation she is not assigned to, and as an ordinary veterinarian on
+  # her own, in the same signed-in session, with no view toggle.
+  Scenario: FE-008 Administrator bypass actions require no separate login
+    Given a requested appointment assigned to Morgan for Luna
+    When Avery, signed in with her own dual role, accepts it on Morgan's behalf
+    Then it becomes Accepted without Avery signing out
+    When Avery records that visit with no clinical notes available to enter
+    Then the visit is saved and flagged as missing clinical notes
+    And Avery can still record her own assigned visit with clinical notes in the same session
+
+  # MVP-02A (D-48, D-51, D-56 revised): the backend accepts only a caller's own
+  # veterinarianId here; there is no "assign to someone else" capability for
+  # any caller, administrator included.
+  Scenario: FE-009 Reassigning an appointment's veterinarian
+    Given an Accepted appointment assigned to Morgan with no clinical notes yet
+    When Riley, administrator only, opens that appointment
+    Then Riley sees no reassignment control at all
+    When Avery reassigns it to herself
+    Then it is now assigned to Avery
+    When a visit is recorded with clinical notes for that appointment
+    Then the reassignment control no longer appears for anyone

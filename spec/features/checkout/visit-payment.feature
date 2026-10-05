@@ -88,6 +88,33 @@ Feature: Pay the remaining visit balance
     Then the payment is reported as already settled
     And the fake payment provider is not called
 
+  # GAP-08: this restriction was never previously covered by a scenario here,
+  # even though finalize-bill.feature and record-visit.feature already test
+  # the equivalent rule for their own operations. Making it explicit now
+  # alongside the MVP-02A admin-bypass work below, not introducing a new rule.
+  Scenario: Only the assigned veterinarian may record a cash payment
+    When Dr Morgan Reed records a "$50.00" cash payment for the visit
+    Then the payment is refused as "not assigned veterinarian"
+    And the fake payment provider is not called
+
+  # MVP-02A (D-41, D-44): "the administrator" is Dr Avery Taylor's account
+  # acting on its administrator role. The Background assigns this visit to
+  # Dr Avery Taylor, so this scenario reassigns it to Dr Morgan Reed first —
+  # otherwise the administrator would already be the assigned veterinarian
+  # and the scenario wouldn't exercise the actual bypass.
+  # Unlike promotion, cash payment does expose attribution
+  # (recordedByVeterinarianId) — naturally derived from the caller's own
+  # veterinarianId claim, which Dr Avery Taylor's dual-role account has.
+  # Deliberately not asserted here: this scenario doesn't cover the
+  # admin-only (no veterinarianId) case, which is a separate open follow-up
+  # if an admin-only account is ever given this bypass.
+  Scenario: An administrator may record a cash payment even when not the assigned veterinarian
+    Given the visit was performed by Dr Morgan Reed instead
+    When the administrator records a "$50.00" cash payment for the visit
+    Then a payment attempt is recorded as "cash_recorded"
+    And the remaining balance is "$0.00"
+    And Checkout asks Reservation to complete the reservation as settled
+
   Scenario: Payment succeeds but completion fails
     Given the fake payment provider will authorize the card
     And Reservation will fail to complete the reservation
