@@ -85,4 +85,43 @@ protection on `tools/review/portable/` mirrors `tools/security/portable/`.
    systematically find duplicate code/packages/stray docs across the whole
    repo, including but not limited to the r1/r2 rehearsal leftovers.
 
+## Resolved (2026-10-04, second pass)
+
+The four items that were execution judgment calls rather than settled
+decisions are now answered:
+
+1. **CODEOWNERS wiring.** `tools/security/portable/` and `tools/review/portable/`
+   now have real entries in `.github/CODEOWNERS` (mandatory review, not a
+   hash freeze — matching the lighter protection model their own READMEs
+   already claimed but never wired up). This is also the intended pattern
+   for the eventual CI/CD brainstorm: protection lives in CODEOWNERS, not
+   scattered written instructions.
+2. **"Fresh agent with no memory" mechanism.** Confirmed as the Agent tool
+   with `isolation: "worktree"` — a genuinely separate agent instance with no
+   conversation history, working on an isolated copy of the repo. No more
+   elaborate mechanism is needed for this.
+3. **The checklist/calibration list is a living list, not a fixed scope.**
+   Six planted defects and whatever the first reviewer checklist covers are
+   the *starting* point, not the ceiling. As repeatable engineering review
+   patterns get discovered — a new defect class, a new checklist item that
+   proves itself — they get added, the same way `tools/security/portable/`
+   is already framed as something that "evolves as new defect classes get
+   discovered" and eventually graduates into a shared, portable library once
+   proven on a second real project. The goal stated plainly: get better
+   reviews over time, and eventually hand that list to someone else so they
+   aren't starting from zero.
+4. **Threat-model note: its own single-purpose file**, not folded into
+   another record's prose. Built at
+   [`tools/review/project-specific/threat-model.md`](../tools/review/project-specific/threat-model.md),
+   ID-keyed (`THREAT-01`, `THREAT-02`, ...) so other records — decisions,
+   contracts, future reviews — reference an entry by ID instead of
+   duplicating it. `business-decisions.md` D-44 and `auth-contract.md` were
+   updated to reference `THREAT-02` and `THREAT-01` directly rather than
+   restating them. The right verbosity level for other agent-facing records
+   (how much cross-referencing vs. inline context is actually useful) isn't
+   settled yet — there isn't enough real usage yet to know — so for now the
+   bias is toward single-purpose, ID-referenced files over consolidated,
+   noisier ones; revisit once there's been enough real debugging against
+   these files to know what's actually useful.
+
 No open questions remain; tooling work can start.

@@ -44,8 +44,9 @@ and a shared secret are deliberate demo shortcuts, never a production pattern. S
   X. This is a single token carrying both privilege levels, not two logins —
   switching between an admin view and a veterinarian view in the frontend is a
   UI-only affordance; it never re-authenticates. **Disclosed limitation:** a
-  stolen token for this one account grants both privilege levels at once. Recorded
-  in ENG-02's threat-model note alongside the existing single shared HS256 secret.
+  stolen token for this one account grants both privilege levels at once —
+  `THREAT-02` in [`tools/review/project-specific/threat-model.md`](../../tools/review/project-specific/threat-model.md),
+  alongside the existing shared-secret risk (`THREAT-01`).
 - Times come from the clinic clock (`CLINIC_NOW` when set). User tokens last 8 hours
   (`exp = iat + 28800`).
 - Sent as `Authorization: Bearer <token>`.
