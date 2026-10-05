@@ -135,6 +135,7 @@ export class ServiceFixture {
     }
     const r = this.stubs.reservation;
     if (r) {
+      r.respond("GET", "/veterinarians", 200, () => seed.veterinarians.map((v) => ({ ...v, active: true })));
       r.respond("GET", "/visits/{visitId}", 200, () => this.visit);
       r.respond("GET", "/reservations/{reservationId}", 200, () => this.reservation);
       r.respond("POST", "/internal/reservations/{reservationId}/complete", 200, (req) => {
