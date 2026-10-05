@@ -413,7 +413,7 @@ export class Runtime {
       "partially_paid",
       "completed_settled",
       "completed_outstanding",
-      "added", // MVP-02A (OBS-046): addVeterinarian
+      "created", // MVP-02A (OBS-046): addVeterinarian
       "reassigned", // MVP-02A (OBS-048): reassignVeterinarian
     ]);
     this.server = http.createServer(async (req, res) => {

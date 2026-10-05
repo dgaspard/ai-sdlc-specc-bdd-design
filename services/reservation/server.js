@@ -89,7 +89,7 @@ app.route(
     const v = { ...body, id: id(), active: true };
     vets.push(v);
     app.attrs({ "veterinarian.id": v.id });
-    app.outcome("added");
+    app.outcome("created"); // OBS-046
     return created(v);
   },
   "add_veterinarian",
@@ -98,9 +98,11 @@ app.route(
   "PATCH",
   "/veterinarians/{veterinarianId}",
   ({ params, body }) => {
+    // OBS-047 / OBS-005: the ID comes from the request, so it's known even on not_found.
+    app.attrs({ "veterinarian.id": params.veterinarianId });
     const v = vetById(params.veterinarianId);
     Object.assign(v, body);
-    app.attrs({ "veterinarian.id": v.id });
+    app.attrs({ "veterinarian.active": v.active });
     app.outcome("updated");
     return ok(v);
   },
@@ -303,10 +305,7 @@ app.route(
       body.followUpNotes !== undefined;
     if (!isAssigned && hasClinicalContent) fail(400, "validation_error");
     // D-46: clinicalNotes is optional; present-but-blank is still invalid.
-    if (
-      body.clinicalNotes !== undefined &&
-      body.clinicalNotes.trim() === ""
-    )
+    if (body.clinicalNotes !== undefined && body.clinicalNotes.trim() === "")
       fail(400, "validation_error");
     const v = {
       ...body,

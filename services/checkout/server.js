@@ -24,18 +24,19 @@ const urls = {
   catalog: process.env.VETERINARIAN_SERVICES_URL,
   payment: process.env.PAYMENT_PROVIDER_URL,
 };
-let bills,
-  byVisit,
-  assignedVets,
-  paidBookings,
-  attempts,
-  locks,
-  incompleteBills;
+let bills, byVisit, paidBookings, attempts, locks, incompleteBills;
 function checkout(user, checkoutId) {
   app.attrs({ "checkout.id": checkoutId });
   const c = owner(user, bills.get(checkoutId));
   app.attrs({ "visit.id": c.visitId, "reservation.id": c.reservationId });
   return c;
+}
+// ENG-02 REV-016 / D-48: billing actions follow the visit's *current* veterinarian,
+// which Reservation owns and a fill-in can change after the bill exists. Ask it each
+// time instead of keeping a copy taken at finalization.
+async function currentVet(visitId) {
+  return (await app.dependency(`${urls.reservation}/visits/${visitId}`))
+    .veterinarianId;
 }
 function remaining(c) {
   c.remainingBalance =
@@ -200,7 +201,7 @@ app.route(
       if (byVisit.has(params.visitId)) {
         const existing = bills.get(byVisit.get(params.visitId));
         app.attrs({ "reservation.id": existing.reservationId });
-        assigned(user, assignedVets.get(existing.id));
+        assigned(user, await currentVet(existing.visitId));
         fail(409, "already_finalized");
       }
       if (incompleteBills.has(params.visitId)) fail(502, "dependency_failed");
@@ -245,7 +246,6 @@ app.route(
         await account(c, "credit", r.bookingFeeAmount, r.bookingPaymentId);
       bills.set(c.id, c);
       byVisit.set(v.id, c.id);
-      assignedVets.set(c.id, v.veterinarianId);
       incompleteBills.delete(v.id);
       app.attrs({
         "checkout.id": c.id,
@@ -280,7 +280,7 @@ app.route(
     locks.run(`bill:${params.checkoutId}`, async () => {
       const c = checkout(user, params.checkoutId);
       app.attrs({ "veterinarian.id": user.veterinarianId });
-      assignedOrAdmin(user, assignedVets.get(c.id)); // D-41: administrator bypass
+      assignedOrAdmin(user, await currentVet(c.visitId)); // D-41: administrator bypass
       if (c.promotion) fail(409, "already_applied");
       if (c.remainingBalance === 0) fail(409, "nothing_owed");
       const amount = body.amount ?? 0;
@@ -316,7 +316,7 @@ async function pay({ params, user, body, key }, cash) {
     const c = checkout(user, params.checkoutId);
     // Cash recording is vet/admin-only (D-41 bypass); card payment is customer-only and
     // has no assigned-veterinarian concept to check.
-    if (cash) assignedOrAdmin(user, assignedVets.get(c.id));
+    if (cash) assignedOrAdmin(user, await currentVet(c.visitId));
     paymentAttrs(c, null, false, cash, user.veterinarianId);
     const scopedKey = `visit:${c.id}:${key}`,
       fingerprint = canonical({ ...body, method: cash ? "cash" : "card" });
@@ -403,7 +403,6 @@ app.route(
 await app.serve(() => {
   bills = new Map();
   byVisit = new Map();
-  assignedVets = new Map();
   paidBookings = new Map();
   attempts = new Map();
   incompleteBills = new Set();

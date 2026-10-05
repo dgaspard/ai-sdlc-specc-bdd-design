@@ -40,7 +40,7 @@ found nothing in either scan.
 | CAL-03 | Service tokens skip HMAC | **— (gap)** | Semgrep: missed | **Caught** (REV-001, critical; verified live with a forged `alg:none` token) |
 | CAL-04 | `!==` instead of `timingSafeEqual` | — | **Missed**: the custom `timing-unsafe-secret-compare-js` rule only matches `==`/`===` on variables named secret/token/signature, and the plant is `s !== expected`. **After hardening (rerun 2026-10-05): caught** by the new `timing-unsafe-digest-compare-js`, `runtime.js:240` | **Caught** (REV-003, medium) |
 | CAL-05 | Checkout falls back to the catalog's seed file | Side effect only: 1 BDD scenario ("Unknown performed service") and 2 OBS-029 traces fail because the fallback swallows `unknown_service` | import-boundary: **missed** (expected: data read, not an import) | **Caught** (REV-006, high) |
-| CAL-06 | Any veterinarian passes admin-only roster routes | **Caught**: 2 BDD scenarios, AUTH-006 add/update vet | — | **Caught** (REV-005, high; verified live) |
+| CAL-06 | Any veterinarian passes admin-only roster routes | **Caught**: 2 BDD scenarios (confirmed in isolation). *Correction:* AUTH-006 add/update vet fail on clean `main` too (see real-findings #12), so they don't count as catches | — | **Caught** (REV-005, high; verified live) |
 | CAL-07 | `reservation.id` dropped from OBS-048 span | — (expected: OBS-048 has no test) | — | **Caught** (REV-014, low) |
 | CAL-08 | `/availability` ignores `active` | **Caught**: BDD "A deactivated veterinarian offers no availability" | — | **Caught** (REV-011, medium) |
 | CAL-09 | `new RegExp(userInput)` | — | **Caught**: Semgrep `detect-non-literal-regexp`, `customer/server.js:100` (this rule also fires on the clean build's route regex, `runtime.js:269`) | **Caught** (REV-013, medium; verified live) |
@@ -133,6 +133,7 @@ against `main` by reading the code; none were fixed here.
 | 9 | The `roles` claim accepts `"service"` | REV-017 | Backlog (low). Defense in depth only. |
 | 10 | `dependency()` passes downstream 4xx codes through to callers | REV-018 | Backlog (low). |
 | 11 | Booking fee hardcoded in 4 places | REV-019 | Leave as is. The fixed $20 fee is a business decision. Revisit only if the fee becomes configurable. |
+| 12 | **2 auth tests fail on clean `main` since MVP-02A (`04d383f`):** `[AUTH-006] reservation.add/updateVeterinarian: veterinarian role returns 403` | Found 2026-10-05 while verifying REV-016; reproduced on `f86ac60` | `access-control.test.js` uses `avery.taylor` as its "veterinarian" actor, but Avery is the dual-role administrator, so the admin-only routes correctly return 201. A test bug, not a code bug. Fix (protected `spec/`, your call): use `morgan.reed` as the veterinarian actor. These went unseen because the auth suite takes about 10 minutes and wasn't being run in full. |
 
 ## Follow-ups
 
