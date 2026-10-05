@@ -38,7 +38,7 @@ found nothing in either scan.
 | CAL-01 | Chicago-time helper copied into Checkout | — | **Caught**: jscpd, `checkout/server.js:40-55` ↔ `reservation/server.js:17-32` | **Caught** (REV-015, REV-019). Rated low/note; mis-mapped to REV-006 in its own summary |
 | CAL-02 | Payment method reference in span | — (OBS privacy tests pass) | Semgrep: missed | **Caught** (REV-008, high) |
 | CAL-03 | Service tokens skip HMAC | **— (gap)** | Semgrep: missed | **Caught** (REV-001, critical; verified live with a forged `alg:none` token) |
-| CAL-04 | `!==` instead of `timingSafeEqual` | — | **Missed**: the custom `timing-unsafe-secret-compare-js` rule only matches `==`/`===` on variables named secret/token/signature, and the plant is `s !== expected` | **Caught** (REV-003, medium) |
+| CAL-04 | `!==` instead of `timingSafeEqual` | — | **Missed**: the custom `timing-unsafe-secret-compare-js` rule only matches `==`/`===` on variables named secret/token/signature, and the plant is `s !== expected`. **After hardening (rerun 2026-10-05): caught** by the new `timing-unsafe-digest-compare-js`, `runtime.js:240` | **Caught** (REV-003, medium) |
 | CAL-05 | Checkout falls back to the catalog's seed file | Side effect only: 1 BDD scenario ("Unknown performed service") and 2 OBS-029 traces fail because the fallback swallows `unknown_service` | import-boundary: **missed** (expected: data read, not an import) | **Caught** (REV-006, high) |
 | CAL-06 | Any veterinarian passes admin-only roster routes | **Caught**: 2 BDD scenarios, AUTH-006 add/update vet | — | **Caught** (REV-005, high; verified live) |
 | CAL-07 | `reservation.id` dropped from OBS-048 span | — (expected: OBS-048 has no test) | — | **Caught** (REV-014, low) |
@@ -47,7 +47,7 @@ found nothing in either scan.
 | CAL-10 | Reflected CORS + credentials | **Caught**: RT-006 × 4 services | Not a real catch: `cors-misconfiguration` fires on the *clean* build's exact-match origin check too (`runtime.js:439`), so it can't tell safe CORS from broad CORS | **Caught** (REV-004, high; verified live) |
 | CAL-11 | `/internal/*` skips auth from loopback | **Caught**: AUTH-005/006 on all 4 internal operations | — | **Caught** (REV-002, critical; verified live) |
 | CAL-12 | `incompleteBills` guard removed | — | **Caught**: `engineering-review.test.mjs` test 4 | **Caught** (REV-007, high) |
-| CAL-13 | Rejected bearer token logged | — | Adjacent only: Semgrep `unsafe-formatstring` flags the new `console.error` (format-string reason, not secret leak). The custom `secret-logged-js` rule missed it because the variable is named `header` | **Caught** (REV-012, medium; verified live) |
+| CAL-13 | Rejected bearer token logged | — | Adjacent only: Semgrep `unsafe-formatstring` flags the new `console.error` (format-string reason, not secret leak). The custom `secret-logged-js` rule missed it because the variable is named `header`. **After hardening: caught** by `secret-logged-js`, `runtime.js:276` | **Caught** (REV-012, medium; verified live) |
 
 **Catch rates:**
 
@@ -59,8 +59,12 @@ found nothing in either scan.
   CAL-12 (engineering test). CAL-13 was only flagged for an unrelated reason
   (adjacent). CAL-10's CORS rule fires on safe and unsafe code alike, so it
   doesn't count.
-- **Caught by no layer except the reviewer:** CAL-02, CAL-03, CAL-04,
-  CAL-07, and CAL-13.
+- **L1 after hardening the two custom rules (rerun 2026-10-05): 5/13.** CAL-04
+  and CAL-13 are now caught as well. The rules' own tests pass 6/6, and the
+  clean scan has the same 7 findings as before, so the hardening added no
+  new false positives.
+- **Caught by no layer except the reviewer:** CAL-02, CAL-03, and CAL-07
+  (before hardening, CAL-04 and CAL-13 were also on this list).
 - **Both custom Semgrep rules missed their own defect class** (CAL-04 and
   CAL-13). Each matches on variable *names* (secret, token, signature) and
   on a narrow operator set. Ordinary names like `s`, `expected`, and
@@ -140,6 +144,8 @@ against `main` by reading the code; none were fixed here.
   - **secret-in-log:** flag any `console.*` argument that's `req.headers.authorization`
     or a value derived from it.
   - **Re-run** `run-calibration-gates.sh` to confirm.
+  - **Done 2026-10-05 (`52252a6`):** both are now caught, rule tests pass 6/6,
+    and the clean scan gained no new findings.
 - **Revisit SEC-01's 5/8 headline.** Two of its five catches came from these
   name-matching rules, applied to snippets whose names happened to fit.
 - **Spec gap (your call, protected):** add an AUTH-005 case that forges a
