@@ -100,6 +100,22 @@ decisions are now answered:
    with `isolation: "worktree"` — a genuinely separate agent instance with no
    conversation history, working on an isolated copy of the repo. No more
    elaborate mechanism is needed for this.
+
+   **Amendment, 2026-10-05, from the first real run:** `isolation: "worktree"`
+   is not available in this Cowork agent environment — it requires the
+   calling agent's own root to be a git repository, which it isn't here (the
+   actual repo is reached through a mounted connected folder instead). The
+   call fails outright rather than degrading silently
+   ("Cannot create agent worktree: not in a git repository..."). Substituted
+   a plain fresh subagent call (still zero conversation memory of the build —
+   the property that actually matters for independence) with an explicit
+   no-edit instruction in the prompt as the safety net worktree isolation
+   would otherwise have provided. This worked and produced a real,
+   fact-checked review (`docs/engineering-reviews/eng-02-review-impl-02-2026-10-05.md`).
+   Revisit this if ENG-02 is ever run from an environment where the agent's
+   own working directory is itself a git repo (e.g. Claude Code running
+   locally against a real clone) — worktree isolation should work there and
+   is still the better safety property when available.
 3. **The checklist/calibration list is a living list, not a fixed scope.**
    Six planted defects and whatever the first reviewer checklist covers are
    the *starting* point, not the ceiling. As repeatable engineering review

@@ -150,6 +150,18 @@ This long-term piece is a design note for the playbook, not built here.
    service boundaries, payment safety, inter-service auth (including hand-written
    token signing/verification), privacy in telemetry and errors, and structure.
    Every finding cites file and line. A human signs off security and boundary findings.
+   **Built and run 2026-10-05** — see `tools/review/review-prompt.md` and the
+   first real review,
+   `docs/engineering-reviews/eng-02-review-impl-02-2026-10-05.md`. Four
+   findings (REV-001–004) await your sign-off before this is demo-ready:
+   Checkout's `pay()`/`apply_promotion()` mutate the bill before the
+   downstream credit/discount call confirms (REV-001/002); a deactivated
+   veterinarian can still be newly booked or self-reassign, contradicting
+   D-43 (REV-003); Customer's veterinarian list is a stale seed-time copy
+   that never sees MVP-02A's roster changes (REV-004). Note:
+   `isolation: "worktree"` (the confirmed fresh-agent mechanism) isn't
+   available in this Cowork environment — see the amendment in
+   `docs/eng-02-planning.md`.
 4. **Threat-model note:** record known architectural risks, starting with the single
    shared HS256 secret (any compromised service can forge user tokens); disclose
    as a demo limitation.
