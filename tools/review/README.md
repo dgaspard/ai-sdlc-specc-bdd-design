@@ -45,19 +45,28 @@ and business rules, not generic engines.
 (verifying that a different customer's resource ID can't be substituted to
 bypass the 404 ownership check) is a resource-ownership access-control test,
 not the service-level *import*-boundary check BACKLOG describes ("no service
-imports another service's code or a store"). That check — reading each
-service's actual imports and flagging a cross-service one that isn't
-`services/platform/` — doesn't exist yet. It's still open work under this
-folder's automated-gates component, not something this file already covers.
-Kept the file under its original name since renaming it is a separate,
-deliberate decision, not a side effect of this move.
+imports another service's code or a store"). That check now lives separately
+at `portable/check-import-boundaries.mjs` + `project-specific/import-boundaries.json`
+(wired in via `project-specific/import-boundaries.test.mjs`). Kept
+`ownership.test.mjs` under its original name since renaming it is a
+separate, deliberate decision, not a side effect of this move.
 
-## CODEOWNERS protection: not yet wired up on `main`
+## CODEOWNERS protection: wired up
 
-`tools/security/portable/README.md` already states "CODEOWNERS requires
-review on this folder" as its intended protection model, and this folder's
-`portable/` is meant to work the same way — but as of this scaffolding pass,
-`.github/CODEOWNERS` on `main` has no line for either `tools/security/portable/`
-or `tools/review/portable/`. This is a known, previously-flagged gap, not a
-new one. `.github/` is protected — I can draft the CODEOWNERS addition when
-asked, but it needs your review and a `guard:freeze` run before it's real.
+`.github/CODEOWNERS` now has mandatory-review entries for both
+`tools/security/portable/` and `tools/review/portable/` (added 2026-10-04,
+alongside `tools/review/project-specific/threat-model.md` — see
+`docs/eng-02-planning.md`'s "Resolved (2026-10-04, second pass)" section).
+
+## Automated gates: status
+
+- **Import-boundary check** — built, passing, wired into
+  `npm run test:engineering`. See `portable/check-import-boundaries.mjs`.
+- **Duplicate-code detection** — `portable/run-dupe-check.sh` wraps `jscpd`.
+  Needs real npm-registry access to install it, so (like
+  `tools/security/run-sec01-spike.sh`) it can't run inside this agent
+  sandbox's restricted network. Run it locally:
+  `bash tools/review/portable/run-dupe-check.sh <path> <output-dir>`.
+- **Security/dependency scans** — reuse `tools/security/portable/` directly,
+  not re-implemented here.
+- **Connected-trace capture** — not yet built.
