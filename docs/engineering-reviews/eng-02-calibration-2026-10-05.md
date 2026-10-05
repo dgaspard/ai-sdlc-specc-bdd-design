@@ -5,8 +5,12 @@ ENG-02 item 5. Answer key: [`tools/review/project-specific/calibration-manifest.
 `plant-calibration-defects.mjs` (same folder). Raw reviewer output:
 [eng-02-calibration-review-round1-2026-10-05.md](eng-02-calibration-review-round1-2026-10-05.md).
 
-**Status: L0 and L2 scored; L1 network gates (jscpd, Semgrep, secret scan)
-pending a local run** of `bash tools/review/project-specific/run-calibration-gates.sh`.
+**Status: all layers scored.** L1 network gates were run locally by Dustin
+(`run-calibration-gates.sh`; Semgrep 1.179.0, detect-secrets 1.5.0, jscpd
+5.4.0). Raw output is in `test-results/eng-02-calibration/` (gitignored).
+Semgrep reported 15 internal matching errors on the `cryptojs-weak-algorithm`
+rule, the same in both scans; they don't affect any CAL row. detect-secrets
+found nothing in either scan.
 
 ## Setup
 
@@ -31,19 +35,19 @@ pending a local run** of `bash tools/review/project-specific/run-calibration-gat
 
 | ID | Defect | L0 frozen tests | L1 gates | L2 reviewer |
 | --- | --- | --- | --- | --- |
-| CAL-01 | Chicago-time helper copied into Checkout | — | jscpd: *pending* | **Caught** (REV-015, REV-019). Rated low/note; mis-mapped to REV-006 in its own summary |
-| CAL-02 | Payment method reference in span | — (OBS privacy tests pass) | Semgrep: *pending* | **Caught** (REV-008, high) |
-| CAL-03 | Service tokens skip HMAC | **— (gap)** | Semgrep: *pending* | **Caught** (REV-001, critical; verified live with a forged `alg:none` token) |
-| CAL-04 | `!==` instead of `timingSafeEqual` | — | custom Semgrep rule: *pending* | **Caught** (REV-003, medium) |
+| CAL-01 | Chicago-time helper copied into Checkout | — | **Caught**: jscpd, `checkout/server.js:40-55` ↔ `reservation/server.js:17-32` | **Caught** (REV-015, REV-019). Rated low/note; mis-mapped to REV-006 in its own summary |
+| CAL-02 | Payment method reference in span | — (OBS privacy tests pass) | Semgrep: missed | **Caught** (REV-008, high) |
+| CAL-03 | Service tokens skip HMAC | **— (gap)** | Semgrep: missed | **Caught** (REV-001, critical; verified live with a forged `alg:none` token) |
+| CAL-04 | `!==` instead of `timingSafeEqual` | — | **Missed**: the custom `timing-unsafe-secret-compare-js` rule only matches `==`/`===` on variables named secret/token/signature, and the plant is `s !== expected` | **Caught** (REV-003, medium) |
 | CAL-05 | Checkout falls back to the catalog's seed file | Side effect only: 1 BDD scenario ("Unknown performed service") and 2 OBS-029 traces fail because the fallback swallows `unknown_service` | import-boundary: **missed** (expected: data read, not an import) | **Caught** (REV-006, high) |
 | CAL-06 | Any veterinarian passes admin-only roster routes | **Caught**: 2 BDD scenarios, AUTH-006 add/update vet | — | **Caught** (REV-005, high; verified live) |
 | CAL-07 | `reservation.id` dropped from OBS-048 span | — (expected: OBS-048 has no test) | — | **Caught** (REV-014, low) |
 | CAL-08 | `/availability` ignores `active` | **Caught**: BDD "A deactivated veterinarian offers no availability" | — | **Caught** (REV-011, medium) |
-| CAL-09 | `new RegExp(userInput)` | — | Semgrep: *pending* | **Caught** (REV-013, medium; verified live) |
-| CAL-10 | Reflected CORS + credentials | **Caught**: RT-006 × 4 services | Semgrep: *pending* | **Caught** (REV-004, high; verified live) |
+| CAL-09 | `new RegExp(userInput)` | — | **Caught**: Semgrep `detect-non-literal-regexp`, `customer/server.js:100` (this rule also fires on the clean build's route regex, `runtime.js:269`) | **Caught** (REV-013, medium; verified live) |
+| CAL-10 | Reflected CORS + credentials | **Caught**: RT-006 × 4 services | Not a real catch: `cors-misconfiguration` fires on the *clean* build's exact-match origin check too (`runtime.js:439`), so it can't tell safe CORS from broad CORS | **Caught** (REV-004, high; verified live) |
 | CAL-11 | `/internal/*` skips auth from loopback | **Caught**: AUTH-005/006 on all 4 internal operations | — | **Caught** (REV-002, critical; verified live) |
 | CAL-12 | `incompleteBills` guard removed | — | **Caught**: `engineering-review.test.mjs` test 4 | **Caught** (REV-007, high) |
-| CAL-13 | Rejected bearer token logged | — | secret-in-log rule: *pending* | **Caught** (REV-012, medium; verified live) |
+| CAL-13 | Rejected bearer token logged | — | Adjacent only: Semgrep `unsafe-formatstring` flags the new `console.error` (format-string reason, not secret leak). The custom `secret-logged-js` rule missed it because the variable is named `header` | **Caught** (REV-012, medium; verified live) |
 
 **Catch rates:**
 
@@ -51,11 +55,18 @@ pending a local run** of `bash tools/review/project-specific/run-calibration-gat
   rerun was needed.
 - **L0 frozen tests:** 4/13 caught directly (CAL-06, 08, 10, 11), plus 1
   side effect (CAL-05).
-- **L1 sandbox gates:** 1/13 (CAL-12). The jscpd and Semgrep columns stay
-  open until the local run.
-- **Missed by everything except the reviewer:** CAL-01 (pending jscpd),
-  CAL-02, CAL-03, CAL-04, CAL-07, CAL-09, and CAL-13. The last five also
-  depend on the pending Semgrep run.
+- **L1 automated gates:** 3/13: CAL-01 (jscpd), CAL-09 (Semgrep), and
+  CAL-12 (engineering test). CAL-13 was only flagged for an unrelated reason
+  (adjacent). CAL-10's CORS rule fires on safe and unsafe code alike, so it
+  doesn't count.
+- **Caught by no layer except the reviewer:** CAL-02, CAL-03, CAL-04,
+  CAL-07, and CAL-13.
+- **Both custom Semgrep rules missed their own defect class** (CAL-04 and
+  CAL-13). Each matches on variable *names* (secret, token, signature) and
+  on a narrow operator set. Ordinary names like `s`, `expected`, and
+  `header` slip through. That is the realistic shape for AI-generated code,
+  and the reason SEC-01 rated these rules as catches: its snippets used
+  names chosen to match the rule.
 
 ## What the numbers mean (and don't)
 
@@ -121,8 +132,16 @@ against `main` by reading the code; none were fixed here.
 
 ## Follow-ups
 
-- **Run the local L1 gates** (`run-calibration-gates.sh`), then fill in the
-  jscpd/Semgrep column.
+- **Harden the two custom Semgrep rules** (`tools/security/portable/semgrep-rules/`,
+  CODEOWNERS-reviewed):
+  - **timing compare:** add `!=`/`!==`, and match comparisons whose operand
+    comes from `createHmac(...).digest(...)` rather than relying on variable
+    names.
+  - **secret-in-log:** flag any `console.*` argument that's `req.headers.authorization`
+    or a value derived from it.
+  - **Re-run** `run-calibration-gates.sh` to confirm.
+- **Revisit SEC-01's 5/8 headline.** Two of its five catches came from these
+  name-matching rules, applied to snippets whose names happened to fit.
 - **Spec gap (your call, protected):** add an AUTH-005 case that forges a
   `role: "service"` token with a bad signature against each internal
   operation. This would have caught CAL-03 at L0.

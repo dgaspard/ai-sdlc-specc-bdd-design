@@ -170,9 +170,9 @@ This long-term piece is a design note for the playbook, not built here.
    REV-003 write-only-flag shape, SEC-01's three misses, a removed
    double-charge guard, a timing-unsafe compare, and a logged bearer token)
    in a throwaway copy of `main`. Blind fresh reviewer: **13/13**. Frozen
-   tests: 4/13, plus one side effect. Sandbox gates: 1/13. jscpd and Semgrep
-   are pending a local run of
-   `tools/review/project-specific/run-calibration-gates.sh`. See
+   tests: 4/13, plus one side effect. Automated gates: 3/13 (jscpd, Semgrep
+   regexp, engineering test). Both custom SEC-01 Semgrep rules missed their
+   own defect class because they match on variable names. See
    `docs/engineering-reviews/eng-02-calibration-2026-10-05.md`. It also
    lists 11 real findings on `main` awaiting triage, including **guard red
    on `main`** (protected files edited by the REV fixes, never re-frozen)
