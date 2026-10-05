@@ -118,17 +118,17 @@ against `main` by reading the code; none were fixed here.
 
 | # | Finding | Source | Notes |
 | --- | --- | --- | --- |
-| 1 | **Guard is red on `main`:** 11 protected files changed since the last freeze | REV-020; reproduced on the real repo | The REV-001–005 fixes (`51d9115`, `3c12725`) and `f86ac60` edited protected specs/tests without a `guard:freeze`. Needs your review + freeze. |
+| 1 | **Guard is red on `main`:** 11 protected files changed since the last freeze | REV-020; reproduced on the real repo | **Resolved 2026-10-05:** reviewed and re-frozen by Dustin. |
 | 2 | **2 observability tests fail on `main`:** `[OBS-043] register emits registered/validation_error` return 502 | Calibration baseline run | Customer's REV-004 fix now calls Reservation `/veterinarians` during registration; REV-004 stubbed `/veterinarians` in `customer.steps.js` only, not in the shared `ServiceFixture`. **Resolved 2026-10-05:** Dustin added the stub to `programStubs()`. OBS-043 now passes 2/2 and BDD 267/267. |
-| 3 | PRE-01: OBS-047's `veterinarian.active` attribute is never set; OBS-046's outcome is `added`, but the contract says `created` | Manifest + REV-014 | |
-| 4 | PRE-02: decoded path params flow into service-token downstream URLs | Manifest (reviewer missed) | Impact not yet assessed |
-| 5 | An authorized payment whose credit failed can't be finished by a retry | REV-009 | |
-| 6 | Promotion to $0 followed by a failed `complete()` strands the reservation | REV-010 | |
-| 7 | A partial finalize failure blocks the bill permanently (the `incompleteBills` guard prevents a double charge, but nothing recovers) | REV-007 second half | |
-| 8 | Checkout's `assignedVets` snapshot ignores later reassignment | REV-016 | May be acceptable if attribution freezes at finalize; needs a decision |
-| 9 | The `roles` claim accepts `"service"` | REV-017 | Defense in depth (needs the secret, THREAT-01) |
-| 10 | `dependency()` passes downstream 4xx codes through to callers | REV-018 | |
-| 11 | Booking fee hardcoded in 4 places | REV-019 | |
+| 3 | PRE-01: OBS-047's `veterinarian.active` attribute is never set; OBS-046's outcome is `added`, but the contract says `created` | Manifest + REV-014 | **Decision 2026-10-05: contract wins.** Dustin writes red OBS-046–048 tests, then the code is changed to emit `created` and set `veterinarian.active`. |
+| 4 | PRE-02: decoded path params flow into service-token downstream URLs | Manifest (reviewer missed) | **Fixed 2026-10-05 (`305c121`):** probed, then mitigated. Path params are validated against their contract `uuid` schema and return 404. See THREAT-04: no frozen test yet, so a rebuild can reintroduce it. |
+| 5 | An authorized payment whose credit failed can't be finished by a retry | REV-009 | **Accepted and disclosed** as THREAT-03 (PROJECT-PLAN excludes automated recovery). |
+| 6 | Promotion to $0 followed by a failed `complete()` strands the reservation | REV-010 | **Accepted and disclosed** as THREAT-03. |
+| 7 | A partial finalize failure blocks the bill permanently (the `incompleteBills` guard prevents a double charge, but nothing recovers) | REV-007 second half | **Accepted and disclosed** as THREAT-03. |
+| 8 | Checkout's `assignedVets` snapshot ignores later reassignment | REV-016 | **Decision 2026-10-05: follow reassignment (bug).** Scenario first (Dustin), then Checkout checks the visit's current veterinarian. |
+| 9 | The `roles` claim accepts `"service"` | REV-017 | Backlog (low). Defense in depth only. |
+| 10 | `dependency()` passes downstream 4xx codes through to callers | REV-018 | Backlog (low). |
+| 11 | Booking fee hardcoded in 4 places | REV-019 | Leave as is. The fixed $20 fee is a business decision. Revisit only if the fee becomes configurable. |
 
 ## Follow-ups
 
