@@ -172,7 +172,9 @@ This long-term piece is a design note for the playbook, not built here.
    in a throwaway copy of `main`. Blind fresh reviewer: **13/13**. Frozen
    tests: 4/13, plus one side effect. Automated gates: 3/13 (jscpd, Semgrep
    regexp, engineering test). Both custom SEC-01 Semgrep rules missed their
-   own defect class because they match on variable names. See
+   own defect class because they matched only on variable names. Hardened
+   with structural rules (`52252a6`), they now catch both, raising the
+   automated gates to 5/13. See
    `docs/engineering-reviews/eng-02-calibration-2026-10-05.md`. It also
    lists 11 real findings on `main` awaiting triage, including **guard red
    on `main`** (protected files edited by the REV fixes, never re-frozen)
