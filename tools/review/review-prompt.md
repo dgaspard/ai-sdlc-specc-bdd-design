@@ -54,7 +54,7 @@ own judgment on what they *can't* check:
 
 ```
 npm run test:engineering     # import-boundary check + other project-specific engineering tests
-npm run guard:check          # protected-file integrity
+npm --prefix spec run guard:check   # protected-file integrity
 npm run trace:payment        # one real cross-process payment trace
 npm --prefix services/platform audit   # dependency vulnerabilities
 ```
@@ -103,6 +103,15 @@ and say what it would take to exploit or break it if "not followed."
 - If a provider call succeeds but a downstream step then fails, is that
   reported accurately (not silently as success), and does a subsequent
   retry avoid charging again?
+- After any partial failure (money taken but credit not recorded, discount
+  recorded but reservation not completed, charge posted but bill not
+  stored), can a retry *finish the job*, or does the operation get stuck
+  permanently because the retry replays the old error or hits an
+  "already applied" guard? Reporting the failure honestly isn't enough on
+  its own. (Added 2026-10-05, from calibration round 1's unplanted findings.)
+- Is every guard that a comment claims protects against double-charging
+  actually *read* on the path it protects? (Added 2026-10-05, from
+  calibration.)
 
 ### 3. Inter-service authentication (hand-written, not a library)
 
@@ -126,6 +135,21 @@ hand-rolled crypto/auth implementation deserves:
 - Does every admin-only, veterinarian-only, or customer-only route
   actually check the caller's role, with no route reachable by an
   unauthorized role through a missing or misordered check?
+- Is any authentication or authorization decision based on *where* the
+  request came from (peer address, loopback, Host or Origin header) rather
+  than on a verified token? Network location is not identity. (Added
+  2026-10-05, from calibration.)
+- Does the CORS policy match RT-006 exactly: an allowlisted origin, never a
+  reflected arbitrary `Origin`, and never credentials combined with a
+  broad origin? Check this together with the item above, because a
+  location-based trust bypass becomes reachable from any web page through a
+  permissive CORS policy. (Added 2026-10-05, from calibration.)
+- Is any request-supplied value (a decoded path parameter, a query string)
+  interpolated into a downstream URL that is sent with a **service** token,
+  or into a `RegExp`, shell command, or query string? Decoded path params
+  can contain `/` and `..`, which lets a caller re-target the downstream
+  call with service privileges. (Added 2026-10-05, from a real pre-existing
+  shape found while planting calibration defects.)
 
 ### 4. Privacy in telemetry and errors
 
@@ -138,6 +162,9 @@ hand-rolled crypto/auth implementation deserves:
 - Do error responses (4xx/5xx bodies) leak internal details — stack
   traces, other users' data, database/internal identifiers that shouldn't
   be client-visible?
+- Treat logs (stdout/stderr) as a telemetry channel too: no tokens,
+  `Authorization` headers, secrets, or payment method details in any
+  `console.*` call, including on error paths.
 - Is a 404 used consistently to hide the existence of another user's
   resource (not a 403, which would confirm the resource exists)?
 
@@ -166,9 +193,10 @@ Living list — currently six (`docs/eng-02-planning.md`): copied business
 logic across services, a payment reference leaked into a span, a token
 check that skips signature verification, cross-service store access, a
 missing OBS attribute on an untested rule, and an admin-only route missing
-its role check. If a calibration run (planting these on a scratch copy)
-finds one this checklist didn't catch, the fix is to improve this
-checklist, not just note the miss once and move on.
+its role check. Calibration plants more than these six; the full set is
+kept outside the copy you review. If a calibration run (planting these on
+a scratch copy) finds one this checklist didn't catch, the fix is to
+improve this checklist, not just note the miss once and move on.
 
 ## Reporting your findings
 

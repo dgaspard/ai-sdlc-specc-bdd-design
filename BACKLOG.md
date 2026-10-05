@@ -166,6 +166,17 @@ This long-term piece is a design note for the playbook, not built here.
    check that skips signature or uses non-constant-time compare, cross-service
    store access, missing OBS attribute on an untested rule). The review passes
    calibration when it catches every planted defect; record the catch rate.
+   **Round 1 run 2026-10-05.** 13 defects planted (the six above, plus the
+   REV-003 write-only-flag shape, SEC-01's three misses, a removed
+   double-charge guard, a timing-unsafe compare, and a logged bearer token)
+   in a throwaway copy of `main`. Blind fresh reviewer: **13/13**. Frozen
+   tests: 4/13, plus one side effect. Sandbox gates: 1/13. jscpd and Semgrep
+   are pending a local run of
+   `tools/review/project-specific/run-calibration-gates.sh`. See
+   `docs/engineering-reviews/eng-02-calibration-2026-10-05.md`. It also
+   lists 11 real findings on `main` awaiting triage, including **guard red
+   on `main`** (protected files edited by the REV fixes, never re-frozen)
+   and **2 failing OBS-043 tests**.
 
 Apply to: the JavaScript baseline (`impl-02`), r1 Python, r2 JavaScript, r3 Python.
 Record under `docs/engineering-reviews/` with gate output, findings, sign-off, and
