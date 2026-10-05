@@ -106,12 +106,18 @@ entity is known at that point.
 | OBS-043 | `petclinic.customer.register` (Customer) | customer.id on success | `registered`, `validation_error`, `failed` |
 | OBS-044 | `petclinic.reservation.correct_visit` (Reservation) | visit.id, veterinarian.id | `corrected`, `not_assigned_veterinarian`, `invalid_state`, `not_found`, `failed` |
 | OBS-045 | `petclinic.veterinarian_services.update_service` (VeterinarianServices) | veterinarian_service.id, veterinarian.id | `updated`, `not_found`, `failed` |
-| OBS-046 | `petclinic.reservation.add_veterinarian` (Reservation, MVP-02A D-39/D-42) | veterinarian.id when created | `created`, `validation_error`, `failed` |
-| OBS-047 | `petclinic.reservation.update_veterinarian` (Reservation, MVP-02A D-39/D-43) | veterinarian.id, `petclinic.veterinarian.active` (boolean, the new value) | `updated`, `validation_error`, `not_found`, `failed` |
+| OBS-046 | `petclinic.reservation.add_veterinarian` (Reservation, MVP-02A D-39/D-42) | veterinarian.id when created | `created`, `failed` |
+| OBS-047 | `petclinic.reservation.update_veterinarian` (Reservation, MVP-02A D-39/D-43) | veterinarian.id, `petclinic.veterinarian.active` (boolean, the new value) | `updated`, `not_found`, `failed` |
 | OBS-048 | `petclinic.reservation.reassign_veterinarian` (Reservation, MVP-02A D-48/D-49) | reservation.id, veterinarian.id (the new, self-claimed assignment) | `reassigned`, `validation_error` (not a self-claim), `invalid_state` (visit already recorded, or reservation not Accepted), `not_found`, `failed` |
 
 Notes:
 
+- OBS-046/047 list no `validation_error` (decided 2026-10-05): those
+  operations have no route-level business validation, and a schema-invalid
+  body is rejected before the business span opens (see OBS-003's scope
+  note), so the outcome could never be emitted. `validation_error` on a
+  business span means "passed the schema, failed a business rule in the
+  route" (as in OBS-027, OBS-043, OBS-048).
 - MVP-02A adds OBS-046–048 as draft contracts awaiting human review/freeze,
   alongside D-39–D-50. OBS-046/047 are administrator-only operations
   (auth-contract.md); OBS-048 is veterinarian-only. A caller without the right

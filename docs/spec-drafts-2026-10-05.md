@@ -18,8 +18,8 @@ freeze; I implement after that.
 Add to `rules`:
 
 ```js
-  "OBS-046": ["reservation", "add_veterinarian", "created validation_error failed"],
-  "OBS-047": ["reservation", "update_veterinarian", "updated validation_error not_found failed"],
+  "OBS-046": ["reservation", "add_veterinarian", "created failed"],
+  "OBS-047": ["reservation", "update_veterinarian", "updated not_found failed"],
   "OBS-048": ["reservation", "reassign_veterinarian", "reassigned validation_error invalid_state not_found failed"],
 ```
 
@@ -58,7 +58,9 @@ for (const outcome of ["reassigned", "validation_error", "invalid_state", "not_f
 - OBS-047 `updated` fails, because `veterinarian.active` is never set.
 - OBS-048 should already pass, since the real code sets both attributes.
 
-**One question for you on the contract:** OBS-046 and OBS-047 list
+**Decided 2026-10-05:** `validation_error` dropped from OBS-046/047 (the
+`rules` lines above already reflect that). Original question, kept for the
+record: OBS-046 and OBS-047 list
 `validation_error`, but a schema-invalid body is rejected *before* the
 business span opens (the OBS-003 scope note in the observability audit), so
 that outcome can never be emitted. I left those two cases out. Options:
