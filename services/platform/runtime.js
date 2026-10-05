@@ -125,10 +125,16 @@ export class Runtime {
     // crash loudly, not be silently absorbed.
     if (process.env.PETCLINIC_TEST_ENDPOINTS === "enabled") {
       process.on("uncaughtException", (err) => {
-        console.error(`[${name}] uncaught exception (test harness only, service stays up):`, err);
+        console.error(
+          `[${name}] uncaught exception (test harness only, service stays up):`,
+          err,
+        );
       });
       process.on("unhandledRejection", (reason) => {
-        console.error(`[${name}] unhandled rejection (test harness only, service stays up):`, reason);
+        console.error(
+          `[${name}] unhandled rejection (test harness only, service stays up):`,
+          reason,
+        );
       });
     }
     this.provider = new BasicTracerProvider({
@@ -273,6 +279,17 @@ export class Runtime {
           $ref: `${this.name}.openapi.json#/paths/${route.replaceAll("~", "~0").replaceAll("/", "~1")}/${method.toLowerCase()}/requestBody/content/application~1json/schema`,
         })
       : null;
+    // PRE-02 (ENG-02 calibration): validate decoded path parameters against their
+    // declared contract schema (every ID is `format: uuid`). Without this, an encoded
+    // "/" or "?" in an ID decodes into a path that services interpolate into
+    // downstream URLs sent with a *service* token, re-targeting the call.
+    const pathParams = [
+      ...(this.contract.paths[route].parameters ?? []),
+      ...(op.parameters ?? []),
+    ].filter((p) => p.in === "path" && p.schema);
+    const validateParams = Object.fromEntries(
+      pathParams.map((p) => [p.name, this.ajv.compile(p.schema)]),
+    );
     this.routes.push({
       method,
       route,
@@ -282,6 +299,7 @@ export class Runtime {
       keys,
       pattern,
       validate,
+      validateParams,
     });
   }
   attrs(values) {
@@ -508,6 +526,15 @@ export class Runtime {
               !this.validateIdempotencyKey(req.headers["idempotency-key"])
             )
               fail(400, "validation_error");
+            const match = route.pattern.exec(url.pathname),
+              params = Object.fromEntries(
+                route.keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]),
+              );
+            // An ID that can't exist (not a UUID) is reported the same way as an
+            // unknown one, so this adds no new status code to any contract.
+            for (const [k, v] of Object.entries(params))
+              if (route.validateParams[k] && !route.validateParams[k](v))
+                fail(404, "not_found");
             const operation =
               typeof route.operation === "function"
                 ? route.operation(body)
@@ -520,10 +547,6 @@ export class Runtime {
               );
               ctx.active = trace.setSpan(ROOT_CONTEXT, ctx.business);
             }
-            const match = route.pattern.exec(url.pathname),
-              params = Object.fromEntries(
-                route.keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]),
-              );
             const response = await route.action({
               body,
               user,
