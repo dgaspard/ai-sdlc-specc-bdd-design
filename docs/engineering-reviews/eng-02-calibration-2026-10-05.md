@@ -119,7 +119,7 @@ against `main` by reading the code; none were fixed here.
 | # | Finding | Source | Notes |
 | --- | --- | --- | --- |
 | 1 | **Guard is red on `main`:** 11 protected files changed since the last freeze | REV-020; reproduced on the real repo | The REV-001–005 fixes (`51d9115`, `3c12725`) and `f86ac60` edited protected specs/tests without a `guard:freeze`. Needs your review + freeze. |
-| 2 | **2 observability tests fail on `main`:** `[OBS-043] register emits registered/validation_error` return 502 | Calibration baseline run | Customer's REV-004 fix now calls Reservation `/veterinarians` during registration; the observability fixture apparently doesn't provide that dependency. Fixing it touches protected `spec/`. Please confirm locally. |
+| 2 | **2 observability tests fail on `main`:** `[OBS-043] register emits registered/validation_error` return 502 | Calibration baseline run | Customer's REV-004 fix now calls Reservation `/veterinarians` during registration; REV-004 stubbed `/veterinarians` in `customer.steps.js` only, not in the shared `ServiceFixture`. **Resolved 2026-10-05:** Dustin added the stub to `programStubs()`. OBS-043 now passes 2/2 and BDD 267/267. |
 | 3 | PRE-01: OBS-047's `veterinarian.active` attribute is never set; OBS-046's outcome is `added`, but the contract says `created` | Manifest + REV-014 | |
 | 4 | PRE-02: decoded path params flow into service-token downstream URLs | Manifest (reviewer missed) | Impact not yet assessed |
 | 5 | An authorized payment whose credit failed can't be finished by a retry | REV-009 | |
