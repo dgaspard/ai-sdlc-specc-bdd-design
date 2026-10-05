@@ -77,6 +77,14 @@ Feature: Request a reservation
     Then the request is rejected as "not found"
     And no reservation is saved
 
+  # ENG-02 REV-003 / D-43 / D-57: deactivation blocks new assignment going forward.
+  Scenario: A deactivated veterinarian cannot be newly booked
+    Given the Customer service reports Jordan is eligible
+    And Dr Morgan Reed is deactivated
+    When Jordan requests an appointment for Milo with Dr Morgan Reed on "2026-10-12" at "09:00"
+    Then the request is rejected as "not found"
+    And no reservation is saved
+
   Scenario: At least one service must be requested, each only once
     Given the Customer service reports Jordan is eligible
     When Jordan requests an appointment for Milo with no services

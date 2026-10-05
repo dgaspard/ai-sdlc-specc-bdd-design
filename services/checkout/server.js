@@ -293,9 +293,13 @@ app.route(
         appliedAmount: Math.min(amount, c.remainingBalance),
         appliedAt: app.now(),
       };
+      // ENG-02 REV-002: same fix as REV-001 -- confirm the discount with Customer before
+      // marking it applied locally. Before this, a failed account() call still left
+      // c.promotion set, so a retry read as "already_applied" even though Customer never
+      // recorded the discount, with no way to tell the two states apart.
+      await account(c, "discount", promotion.appliedAmount);
       c.promotion = promotion;
       remaining(c);
-      await account(c, "discount", promotion.appliedAmount);
       if (c.remainingBalance === 0) await complete(c);
       app.attrs({
         "promotion.id": promotion.id,

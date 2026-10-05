@@ -110,8 +110,11 @@ app.route("GET", "/availability", ({ query }) => {
   const date = query.get("date") ?? app.date(),
     slots = [];
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ok({ date: app.date(), slots });
+  // ENG-02 REV-003 / D-43 / D-57: a deactivated veterinarian offers no new slots.
   for (const v of vets.filter(
-    (v) => !query.has("veterinarianId") || query.get("veterinarianId") === v.id,
+    (v) =>
+      v.active &&
+      (!query.has("veterinarianId") || query.get("veterinarianId") === v.id),
   ))
     for (const hour of hours) {
       const start = startFor(date, hour),
@@ -142,7 +145,9 @@ app.route(
         "veterinarian.id": body.veterinarianId,
       });
       owner(user, { customerId: body.customerId });
-      if (!vets.some((v) => v.id === body.veterinarianId))
+      // ENG-02 REV-003 / D-43 / D-57: a deactivated veterinarian is treated the same as
+      // an unknown one for new bookings -- deactivation blocks new assignment only.
+      if (!vets.some((v) => v.id === body.veterinarianId && v.active))
         fail(404, "not_found");
       validateSlot(body);
       const own = await app.dependency(
@@ -365,6 +370,9 @@ app.route(
       // D-48 (revised): self-claim only, never a third party.
       if (body.veterinarianId !== user.veterinarianId)
         fail(400, "validation_error");
+      // ENG-02 REV-003 / D-43 / D-57: a deactivated veterinarian cannot self-claim either
+      // -- "blocks new assignment going forward" applies to a fill-in reassignment too.
+      if (!vetById(user.veterinarianId).active) fail(400, "validation_error");
       if (
         !["Accepted", "CompletedSettled", "CompletedOutstanding"].includes(
           r.reservationState,
@@ -418,5 +426,9 @@ await app.serve(() => {
   visits = new Map();
   locks = new Locks();
   vets = app.seed("veterinarians").map((v) => ({ ...v, active: true }));
+  // ENG-02 REV-005: safe only because VeterinarianServices has no "create a service"
+  // endpoint, so this ID set can't drift at runtime the way the veterinarian roster
+  // used to (see REV-004's fix above). If that ever changes, this must become a live
+  // call to VeterinarianServices instead of a seed-time snapshot, same as REV-004.
   serviceIds = new Set(app.seed("services").map((s) => s.id));
 });

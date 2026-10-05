@@ -61,17 +61,7 @@ Before({ tags: "@service:checkout" }, function () {
   this.memo.completeFailure = { type: "about:blank", title: "Completion failed", status: 409, code: "invalid_state" };
 
   // Customer: a small ledger so answers stay consistent with what Checkout sent.
-  this.stubs.customer.respond("POST", "/internal/customers/{customerId}/account-changes", 200, (req) => {
-    const b = req.body;
-    const e = world.memo.ledger[b.visitId] ??= {
-      id: crypto.randomUUID(), customerId: req.path.split("/")[3], visitId: b.visitId,
-      amountOwed: 0, amountCredited: 0, amountDiscounted: 0, currency: "USD", paymentIds: [],
-    };
-    if (b.type === "charge") e.amountOwed = b.amount;
-    if (b.type === "credit") { e.amountCredited += b.amount; e.paymentIds.push(b.paymentId); }
-    if (b.type === "discount") e.amountDiscounted += b.amount;
-    return { ...e, paymentIds: [...e.paymentIds] };
-  });
+  this.stubs.customer.respond("POST", "/internal/customers/{customerId}/account-changes", 200, (req) => accountChange(world, req));
 
   // VeterinarianServices: fees from this.memo.prices; optionally reports an unknown id.
   const fees = (ids) => ids.map((id) => {
@@ -89,16 +79,34 @@ Before({ tags: "@service:checkout" }, function () {
 function failComplete(world) {
   world.stubs.reservation.respond("POST", "/internal/reservations/{reservationId}/complete", 409, world.memo.completeFailure);
 }
-// ENG-02 REV-001: Customer refuses to record the credit/discount. Used to prove Checkout's
-// own bill record does not optimistically reflect a payment/promotion the system of record
-// never actually confirmed.
+/** The normal Customer account-changes ledger handler (factored out so failAccountChanges
+ * can fall back to it after its one simulated failure). */
+function accountChange(world, req) {
+  const b = req.body;
+  const e = world.memo.ledger[b.visitId] ??= {
+    id: crypto.randomUUID(), customerId: req.path.split("/")[3], visitId: b.visitId,
+    amountOwed: 0, amountCredited: 0, amountDiscounted: 0, currency: "USD", paymentIds: [],
+  };
+  if (b.type === "charge") e.amountOwed = b.amount;
+  if (b.type === "credit") { e.amountCredited += b.amount; e.paymentIds.push(b.paymentId); }
+  if (b.type === "discount") e.amountDiscounted += b.amount;
+  return { ...e, paymentIds: [...e.paymentIds] };
+}
+// ENG-02 REV-001/REV-002: Customer refuses to record the credit/discount. Used to prove
+// Checkout's own bill record does not optimistically reflect a payment/promotion the
+// system of record never actually confirmed. restoreAccountChanges() re-arms the normal
+// ledger handler afterward, so a scenario can prove a retry succeeds cleanly.
 function failAccountChanges(world) {
   // 409/invalid_state is a status this internal contract actually documents (unlike 502,
   // which the stub harness would reject as undeclared); pay()'s catch block reports any
-  // failure here as authorized_completion_failed regardless of the underlying status/code.
+  // failure here as authorized_completion_failed regardless of the underlying status/code,
+  // and apply_promotion's generic error handling does the same.
   world.stubs.customer.respond("POST", "/internal/customers/{customerId}/account-changes", 409, {
     type: "about:blank", title: "Account change failed", status: 409, code: "invalid_state",
   });
+}
+function restoreAccountChanges(world) {
+  world.stubs.customer.respond("POST", "/internal/customers/{customerId}/account-changes", 200, (req) => accountChange(world, req));
 }
 function unknownFees(world) {
   world.stubs["veterinarian-services"].respond("GET", "/fees", 422, (req) => {
@@ -532,6 +540,9 @@ Given("Reservation will fail to complete the reservation", function () {
 });
 Given("Customer will fail to record the account credit", function () {
   failAccountChanges(this);
+});
+Given("Customer now records account changes normally", function () {
+  restoreAccountChanges(this);
 });
 Then("the payment attempt is recorded as {string}", async function (outcome) {
   const attemptId = this.response.body.paymentAttemptId;

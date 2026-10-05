@@ -51,3 +51,10 @@ Feature: Calendar availability
     Given the clinic clock reads "2026-10-12 10:30" Central Time
     When Dr Avery Taylor's availability for "2026-10-12" is viewed
     Then the first available start time is "11:00"
+
+  # ENG-02 REV-003 / D-43 / D-57: deactivation blocks new assignment going forward.
+  Scenario: A deactivated veterinarian offers no availability
+    Given Dr Morgan Reed is deactivated
+    When availability for "2026-10-12" is viewed
+    Then "09:00" is not available for Dr Morgan Reed
+    And "09:00" is available for Dr Avery Taylor

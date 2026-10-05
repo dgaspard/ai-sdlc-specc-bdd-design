@@ -463,19 +463,54 @@ visibly during an actual demo walkthrough of the admin roster feature.
   ("A veterinarian added after startup can be chosen as preferred", "A
   deactivated veterinarian can no longer be chosen as preferred"), both
   confirmed red against the pre-fix code and green after.
-- **REV-002, REV-003, REV-005 — not fixed in this pass.** Deferred, not
-  forgotten; REV-003 in particular (the admin roster's `active` flag never
-  read in the booking path) was explicitly left open to fix separately.
+- **REV-002 — fixed (2026-10-05, second pass).** Same shape as REV-001:
+  `apply_promotion` now calls `account()` before setting `c.promotion`/
+  `remaining(c)`. Regression test added: "A promotion that fails to record
+  with Customer is not left applied"
+  (`spec/features/checkout/promotion.feature`), confirmed red pre-fix,
+  green post-fix.
+- **REV-003 — fixed (2026-10-05, second pass).** `services/reservation/server.js`
+  now checks `.active` in `POST /reservations` (treats an inactive ID as
+  `not_found`), `GET /availability` (filters inactive veterinarians out of
+  every date's slots), and `reassign_veterinarian` (rejects a self-claim
+  from a now-inactive veterinarian as `validation_error`). Recorded as D-57.
+  Three regression tests added across `request-reservation.feature`,
+  `calendar-availability.feature`, and `reassign-veterinarian.feature`, all
+  confirmed red pre-fix, green post-fix.
+- **REV-005 — addressed per its own recommendation (2026-10-05, second
+  pass).** The review's suggested fix was explicitly "none needed now,"
+  just a comment flagging the assumption for whoever adds a "create
+  service" endpoint later. Added that comment at
+  `services/reservation/server.js`'s `serviceIds` seed line. No behavior
+  change, since no code change was actually recommended.
 
-Verification run after both fixes: `@service:checkout` BDD (47/47),
-`@service:customer` BDD (74/74), `test:schema` (169/169),
-`test:runtime` (52/52), `test:harness` (44/45 — one pre-existing,
-unrelated failure confirmed present before these fixes too: a stale
-OBS-027 outcome-list assertion predating MVP-02A's `validation_error`
-addition), and a partial `test:observability` run (78/78 before hitting
-this sandbox's time budget, none in the affected code paths). Full
+Verification run after all five fixes: full `test:bdd` across every
+service (267/267, up from 260 before this round's 7 new regression
+scenarios), `test:schema` (169/169), workflows/backend journeys (9/9),
+`test:runtime` (52/52), `test:harness` (44/45 — one pre-existing, unrelated
+failure, see below), and a partial `test:observability` run (78/78 before
+hitting this sandbox's time budget, none in the affected code paths). Full
 `test:auth` (242 cases) was not completed in this sandbox — each case
 takes ~1.6s and the suite's total runtime exceeds this environment's
-per-command time budget; this suite is unrelated to either fix (pure JWT
-validation, untouched by this change) and should be run as part of the
-next full local `npm test`.
+per-command time budget; this suite is unrelated to any of these fixes
+(pure JWT validation, untouched by this change) and should be run as part
+of the next full local `npm test`.
+
+**Pre-existing, unrelated test-harness gap (not fixed, flagged for your own
+review per your request):** `spec/tests/harness/assertion-slices.test.js:44`
+("`[TEST-01] business span names and outcome registries match the
+observability document`") fails because its expected-outcomes source,
+`spec/tests/support/business-traces.js:12` (the `OBS-027` entry in the
+`rules` table), lists `recorded already_recorded not_assigned_veterinarian
+invalid_state unknown_service not_found failed` — missing `validation_error`,
+which MVP-02A's D-47 added to `docs/observability.md`'s actual OBS-027 row
+(an administrator bypass supplying clinical content). Confirmed via `git
+stash` that this already failed before any of this session's REV-fixes —
+not a regression from this work. This is not really a "stale test to
+delete": the test itself is doing its job (catching a real registry gap);
+the thing that's stale is the one line in `business-traces.js`. Three
+options, your call: (1) add `validation_error` to that line so the test
+passes and the registry is accurate again, (2) delete the whole
+`rules["OBS-027"]` entry and this test's coverage of it if you've decided
+this cross-check isn't worth maintaining, or (3) leave it red as a known,
+tracked gap. I have not touched either file.

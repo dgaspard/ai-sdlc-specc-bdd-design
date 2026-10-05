@@ -68,3 +68,11 @@ Feature: A veterinarian fills in for a reservation or an unfinished visit
   Scenario: An unknown reservation cannot be reassigned
     When Dr Morgan Reed attempts to reassign an unknown reservation to themselves
     Then the reassignment is refused as "not found"
+
+  # ENG-02 REV-003 / D-43 / D-57: deactivation blocks new assignment going forward,
+  # including a fill-in self-claim.
+  Scenario: A deactivated veterinarian cannot self-claim a reservation
+    Given Dr Morgan Reed is deactivated
+    When Dr Morgan Reed attempts to reassign Milo's reservation to themselves
+    Then the reassignment is refused as invalid
+    And Milo's reservation is still assigned to Dr Avery Taylor

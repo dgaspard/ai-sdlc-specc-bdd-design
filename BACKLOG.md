@@ -152,14 +152,11 @@ This long-term piece is a design note for the playbook, not built here.
    Every finding cites file and line. A human signs off security and boundary findings.
    **Built and run 2026-10-05** — see `tools/review/review-prompt.md` and the
    first real review,
-   `docs/engineering-reviews/eng-02-review-impl-02-2026-10-05.md`. Four
-   findings (REV-001–004); **REV-001 and REV-004 fixed and verified same
-   day** (see that doc's "Disposition" section). REV-002 (same
-   mutate-before-confirm pattern in `apply_promotion`) and REV-003 (a
-   deactivated veterinarian can still be newly booked or self-reassign,
-   contradicting D-43) remain open, awaiting a decision on when to fix.
-   Note: `isolation: "worktree"` (the confirmed fresh-agent mechanism)
-   isn't available in this Cowork environment — see the amendment in
+   `docs/engineering-reviews/eng-02-review-impl-02-2026-10-05.md`. Five
+   findings (REV-001–005), **all fixed and verified same day** (see that
+   doc's "Disposition" section; D-57 records REV-003's fix). Note:
+   `isolation: "worktree"` (the confirmed fresh-agent mechanism) isn't
+   available in this Cowork environment — see the amendment in
    `docs/eng-02-planning.md`.
 4. **Threat-model note:** record known architectural risks, starting with the single
    shared HS256 secret (any compromised service can forge user tokens); disclose

@@ -34,6 +34,17 @@ Feature: Apply a promotion
     Then the promotion is refused as "already applied"
     And the remaining balance is "$50.00"
 
+  # ENG-02 REV-002: a failure recording the discount with Customer must not leave the
+  # promotion attached locally -- otherwise a retry reads as "already applied" even though
+  # Customer never recorded the discount, with no way to tell the two states apart.
+  Scenario: A promotion that fails to record with Customer is not left applied
+    Given Customer will fail to record the account credit
+    When Dr Avery Taylor applies a "$15.00" promotion
+    Then the remaining balance is "$50.00"
+    Given Customer now records account changes normally
+    When Dr Avery Taylor applies a "$15.00" promotion
+    Then the promotion is saved with amount "$15.00" and applied amount "$15.00"
+
   Scenario: An applied promotion cannot be changed or removed
     Given Dr Avery Taylor has applied a "$15.00" promotion
     When an attempt is made to change the promotion to "$25.00"
