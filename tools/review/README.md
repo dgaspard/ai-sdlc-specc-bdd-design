@@ -69,4 +69,11 @@ alongside `tools/review/project-specific/threat-model.md` — see
   `bash tools/review/portable/run-dupe-check.sh <path> <output-dir>`.
 - **Security/dependency scans** — reuse `tools/security/portable/` directly,
   not re-implemented here.
-- **Connected-trace capture** — not yet built.
+- **Connected-trace capture** — already existed as `npm run trace:payment`
+  (`tools/capture-payment-trace.mjs`); now exercised against every build.
+  PASS on `main` and the `r2` JS rebuild in-sandbox. The `r1`/`r3` Python
+  rebuilds can't run here (host-built `.venv` pointing at a macOS Python
+  framework path this sandbox doesn't have — same category of limitation as
+  Playwright/Chromium). See
+  `docs/engineering-reviews/eng-02-connected-trace.md` for the full record
+  and the two commands to run locally to close that out.
