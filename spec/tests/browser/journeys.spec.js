@@ -232,14 +232,17 @@ test('[FE-007] administrator reads the visits-missing-notes report', async ({ pa
 });
 
 test('[FE-008] administrator bypass actions require no separate login', async ({ page }) => {
+  // Stays within 2026-10-12, the same clinic day as beforeEach's clock and
+  // Avery's login below: her token is issued then and expires 8 hours later,
+  // so a clock jump to a later calendar day would expire her session mid-test.
   const morgan = vetSeed('Morgan Reed');
-  await api.request({ veterinarianId: morgan.id, scheduledStart: '2026-10-13T09:00:00-05:00', scheduledEnd: '2026-10-13T10:00:00-05:00' });
+  await api.request({ veterinarianId: morgan.id, scheduledStart: '2026-10-12T10:00:00-05:00', scheduledEnd: '2026-10-12T11:00:00-05:00' });
   await login(page, 'avery.taylor');
   await page.goto(`/appointments/${api.reservation.id}`);
   await page.getByLabel('Booking payment method', { exact: true }).selectOption('fake-card-approve');
   await page.getByRole('button', { name: 'Accept on behalf of Dr Morgan Reed', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Appointment accepted. Booking fee paid.');
-  await api.clock('2026-10-13T09:05:00-05:00');
+  await api.clock('2026-10-12T10:05:00-05:00');
   await page.getByRole('link', { name: 'Record visit', exact: true }).click();
   await expect(page.getByLabel('Clinical notes', { exact: true })).toHaveCount(0);
   await page.getByRole('group', { name: 'Performed services', exact: true }).getByLabel('Wellness', { exact: true }).check();
@@ -247,9 +250,9 @@ test('[FE-008] administrator bypass actions require no separate login', async ({
   await expect(page.getByRole('status')).toContainText('Visit recorded.');
   await expect(page.getByText('Missing clinical notes', { exact: true })).toBeVisible();
   // Same signed-in session, her own assigned appointment still records normally (no toggle needed, D-53).
-  await api.request({ scheduledStart: '2026-10-13T10:00:00-05:00', scheduledEnd: '2026-10-13T11:00:00-05:00' });
+  await api.request({ scheduledStart: '2026-10-12T13:00:00-05:00', scheduledEnd: '2026-10-12T14:00:00-05:00' });
   await api.accept();
-  await api.clock('2026-10-13T10:05:00-05:00');
+  await api.clock('2026-10-12T13:05:00-05:00');
   await page.goto(`/appointments/${api.reservation.id}/visit`);
   await expect(page.getByLabel('Clinical notes', { exact: true })).toBeVisible();
   await page.getByRole('group', { name: 'Performed services', exact: true }).getByLabel('Wellness', { exact: true }).check();
@@ -259,8 +262,11 @@ test('[FE-008] administrator bypass actions require no separate login', async ({
 });
 
 test("[FE-009] reassigning an appointment's veterinarian", async ({ page }) => {
+  // Stays within 2026-10-12 for the same reason as FE-008: logins below are
+  // issued at whatever the clinic clock reads at that moment, and expire 8
+  // hours later, so jumping to a later calendar day would expire a session.
   const morgan = vetSeed('Morgan Reed');
-  await api.request({ veterinarianId: morgan.id, scheduledStart: '2026-10-14T09:00:00-05:00', scheduledEnd: '2026-10-14T10:00:00-05:00' });
+  await api.request({ veterinarianId: morgan.id, scheduledStart: '2026-10-12T11:00:00-05:00', scheduledEnd: '2026-10-12T12:00:00-05:00' });
   await api.call('POST', `/reservations/${api.reservation.id}/accept`, { service: 'reservation', actor: 'morgan.reed',
     body: { bookingFee: { method: 'card', mockMethodReference: 'fake-card-approve' } }, expected: 200 });
   await login(page, 'morgan.reed');
@@ -277,7 +283,7 @@ test("[FE-009] reassigning an appointment's veterinarian", async ({ page }) => {
   await page.getByRole('button', { name: 'Reassign to me', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Appointment reassigned to you.');
   await expect(page.getByText('Dr Avery Taylor', { exact: true })).toBeVisible();
-  await api.clock('2026-10-14T09:05:00-05:00');
+  await api.clock('2026-10-12T11:05:00-05:00');
   await page.getByRole('link', { name: 'Record visit', exact: true }).click();
   await page.getByRole('group', { name: 'Performed services', exact: true }).getByLabel('Wellness', { exact: true }).check();
   await page.getByLabel('Clinical notes', { exact: true }).fill('Routine examination');

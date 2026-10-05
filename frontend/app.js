@@ -160,7 +160,22 @@ async function render(message) {
           "div",
           { class: "identity" },
           h("p", {}, user.displayName),
-          h("p", {}, user.role === "customer" ? "Customer" : "Veterinarian"),
+          h(
+            "p",
+            {},
+            (user.role === "customer"
+              ? "Customer"
+              : user.role === "veterinarian"
+                ? "Veterinarian"
+                : "Administrator") +
+              // MVP-02A (D-53): the dual-role owner's second role shows too, since
+              // she holds both at once rather than switching between them.
+              (user.role !== "customer" &&
+              administrator &&
+              user.role !== "administrator"
+                ? " · Administrator"
+                : ""),
+          ),
           h("a", { href: "/", "data-signout": "true" }, "Sign out"),
         ),
       ),
