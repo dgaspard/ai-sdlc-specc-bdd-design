@@ -260,9 +260,9 @@ uncovered rules.
 | OBS-043 | Customer registration | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-043] register emits <outcome>` | Tests cover registration and relationship validation rejection; unexpected-failure/privacy payload branches remain gaps |
 | OBS-044 | Completed clinical correction | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-044] correct_visit emits <outcome>` | Tests cover correction, assignment, state, and missing visit; unexpected failure remains a gap |
 | OBS-045 | Catalog update | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-045] update_service emits <outcome>` | Tests cover update and missing service; unexpected failure remains a gap |
-| OBS-046 | Veterinarian added | Proposed | Not yet written — see [manage-veterinarians.feature](../spec/features/reservation/manage-veterinarians.feature) | MVP-02A; red tests pending (task tracked in docs/eng-02-planning.md's sibling, docs/mvp-02a-planning.md) |
-| OBS-047 | Veterinarian deactivated/reactivated/edited | Proposed | Not yet written — see [manage-veterinarians.feature](../spec/features/reservation/manage-veterinarians.feature) | MVP-02A; red tests pending |
-| OBS-048 | Veterinarian reassignment (fill-in) | Proposed | Not yet written — see [reassign-veterinarian.feature](../spec/features/reservation/reassign-veterinarian.feature) | MVP-02A; red tests pending |
+| OBS-046 | Veterinarian added | Implemented | `[OBS-046]` cases in `spec/tests/observability/business-traces.test.js` | Added 2026-10-05 (ENG-02 calibration triage) |
+| OBS-047 | Veterinarian deactivated/reactivated/edited | Implemented | `[OBS-047]` cases in `spec/tests/observability/business-traces.test.js` | Added 2026-10-05 (ENG-02 calibration triage) |
+| OBS-048 | Veterinarian reassignment (fill-in) | Implemented | `[OBS-048]` cases in `spec/tests/observability/business-traces.test.js` | Added 2026-10-05 (ENG-02 calibration triage) |
 
 Slice 6 was frozen at checkpoint `test-01-s5-s6`. The supplied working-tree
 manifest now passes the guard for the GAP-01–07 revisions and was not changed
