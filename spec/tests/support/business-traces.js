@@ -9,7 +9,7 @@ export const rules = {
   "OBS-024": ["reservation", "accept", "accepted past_start booking_payment_declined slot_unavailable pet_conflict not_assigned_veterinarian invalid_state not_found failed"],
   "OBS-025": ["reservation", "deny", "denied not_assigned_veterinarian invalid_state not_found failed"],
   "OBS-026": ["reservation", "cancel", "canceled already_started not_assigned_veterinarian invalid_state not_found failed"],
-  "OBS-027": ["reservation", "record_visit", "recorded already_recorded not_assigned_veterinarian invalid_state unknown_service not_found failed"],
+  "OBS-027": ["reservation", "record_visit", "recorded already_recorded not_assigned_veterinarian invalid_state unknown_service not_found failed validation_error"],
   "OBS-028": ["veterinarian-services", "get_fees", "found unknown_service failed"],
   "OBS-029": ["checkout", "finalize_bill", "finalized already_finalized not_assigned_veterinarian unknown_service invalid_state not_found failed"],
   "OBS-030": ["checkout", "apply_promotion", "applied already_applied nothing_owed not_found failed"],
