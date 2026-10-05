@@ -60,3 +60,20 @@ Feature: Backend clinic journeys across real services
   Scenario: Self-registration enables a customer's first appointment request
     When Casey self-registers with all information and requests an appointment
     Then the request belongs to Casey and their registered pet
+
+  # D-48 + ENG-02 REV-016: billing actions follow the visit's current veterinarian.
+  # A fill-in veterinarian who claims a closed, unnoted visit can bill it; the
+  # original veterinarian can't. (Dr Avery Taylor also holds administrator, so
+  # the "loses access" direction uses Dr Morgan Reed as the original.)
+  Scenario: A fill-in veterinarian can bill a visit they claimed after it was closed
+    Given Jordan has a finalized Wellness bill for a visit Dr Avery Taylor closed without clinical notes
+    When Dr Morgan Reed reassigns the visit to themselves
+    And Dr Morgan Reed applies a 1000 cent promotion
+    Then the visit and customer account show 4000 cents due and "Accepted"
+
+  Scenario: The original veterinarian loses billing actions after a fill-in claims the visit
+    Given Jordan has a finalized Wellness bill for a visit Dr Morgan Reed closed without clinical notes
+    When Dr Avery Taylor reassigns the visit to themselves
+    And Dr Morgan Reed attempts to record 5000 cents in cash
+    Then the cash payment is refused as "not_assigned_veterinarian"
+    And the visit and customer account show 5000 cents due and "Accepted"

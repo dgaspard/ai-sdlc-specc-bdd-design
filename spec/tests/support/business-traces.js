@@ -21,8 +21,11 @@ export const rules = {
   "OBS-043": ["customer", "register", "registered validation_error failed"],
   "OBS-044": ["reservation", "correct_visit", "corrected not_assigned_veterinarian invalid_state not_found failed"],
   "OBS-045": ["veterinarian-services", "update_service", "updated not_found failed"],
+  "OBS-046": ["reservation", "add_veterinarian", "created failed"],
+  "OBS-047": ["reservation", "update_veterinarian", "updated not_found failed"],
+  "OBS-048": ["reservation", "reassign_veterinarian", "reassigned validation_error invalid_state not_found failed"],
 };
-const success = new Set(["requested", "accepted", "canceled", "recorded", "found", "finalized", "applied", "settled", "partially_paid", "registered", "corrected", "updated", "authorized", "completed_settled", "completed_outstanding"]);
+const success = new Set(["requested", "accepted", "canceled", "recorded", "found", "finalized", "applied", "settled", "partially_paid", "registered", "corrected", "updated", "authorized", "completed_settled", "completed_outstanding", "created", "reassigned"]);
 export const spanName = (id) => id === "OBS-032" ? "petclinic.payment.authorize"
   : `petclinic.${rules[id][0].replaceAll("-", "_")}.${rules[id][1]}`;
 export function context() {

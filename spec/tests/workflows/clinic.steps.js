@@ -155,3 +155,34 @@ Then("the request belongs to Casey and their registered pet", function () {
   assert.equal(this.newRequest.reservationState, "Requested"); assert.equal(this.newRequest.customerId, this.customer.id);
   assert.equal(this.newRequest.petId, this.customer.pets[0].id);
 });
+
+// D-48 + ENG-02 REV-016: billing actions follow reassignment.
+const vetUser = (first, last) => ({ vet: seed.vet(`${first} ${last}`), username: `${first}.${last}`.toLowerCase() });
+Given("Jordan has a finalized Wellness bill for a visit Dr {word} {word} closed without clinical notes", async function (first, last) {
+  const { vet, username } = vetUser(first, last);
+  await this.request({ veterinarianId: vet.id });
+  await this.accept();
+  await this.clock("2026-10-12T09:05:00-05:00");
+  this.visit = (await this.call("POST", `/reservations/${this.reservation.id}/visit`, { service: "reservation", actor: username,
+    body: { performedServices: [seed.service("Wellness").id], diagnoses: [], medications: [] }, expected: 201 })).body;
+  assert.equal(this.visit.notesMissing, true);
+  this.checkout = (await this.call("POST", `/visits/${this.visit.id}/checkout`, { actor: username, expected: 201 })).body;
+  assert.equal(this.checkout.remainingBalance, 5000);
+});
+When("Dr {word} {word} reassigns the visit to themselves", async function (first, last) {
+  const { vet, username } = vetUser(first, last);
+  await this.call("PATCH", `/reservations/${this.reservation.id}/veterinarian`, { service: "reservation", actor: username,
+    body: { veterinarianId: vet.id }, expected: 200 });
+});
+When("Dr {word} {word} applies a {int} cent promotion", async function (first, last, amount) {
+  const { username } = vetUser(first, last);
+  await this.call("POST", `/checkouts/${this.checkout.id}/promotion`, { actor: username, body: { amount }, expected: 201 });
+});
+When("Dr {word} {word} attempts to record {int} cents in cash", async function (first, last, amount) {
+  const { username } = vetUser(first, last);
+  this.cashAttempt = await this.call("POST", `/checkouts/${this.checkout.id}/cash-payments`, { actor: username, body: { amount } });
+});
+Then("the cash payment is refused as {string}", function (code) {
+  assert.equal(this.cashAttempt.status, 403);
+  assert.equal(this.cashAttempt.body.code, code);
+});

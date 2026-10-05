@@ -8,6 +8,7 @@ import { context, readTrace, assertBusiness, spanName, rules, assertPropagation 
 import { decodeJwt } from "../../harness/auth.js";
 import * as seed from "../../harness/seed.js";
 import { registration } from "../support/registration.js";
+const morgan = seed.vet("Morgan Reed").id;
 
 const cases = [];
 const add = (id, outcome, arrange) => cases.push({ id, outcome, arrange });
@@ -252,6 +253,26 @@ for (const outcome of ["updated", "not_found"]) add("OBS-045", outcome, async ()
   const id = outcome === "updated" ? wellness : unknownId;
   return { method: "PATCH", path: `/services/${id}`, options: { body: { feeAmount: 6500 }, expected: outcome === "updated" ? 200 : 404 },
     attributes: () => ({ "veterinarian_service.id": id, "veterinarian.id": avery }) };
+});
+add("OBS-046", "created", async () => ({
+  method: "POST", path: "/veterinarians",
+  options: { actor: "riley.chen", body: { firstName: "Casey", lastName: "Nguyen", officeId: "office-1" }, expected: 201 },
+  attributes: (r) => ({ "veterinarian.id": r.body.id }) }));
+for (const outcome of ["updated", "not_found"]) add("OBS-047", outcome, async () => {
+  const id = outcome === "updated" ? morgan : unknownId;
+  return { method: "PATCH", path: `/veterinarians/${id}`,
+    options: { actor: "riley.chen", body: { active: false }, expected: outcome === "updated" ? 200 : 404 },
+    attributes: () => (outcome === "updated" ? { "veterinarian.id": id, "veterinarian.active": false } : { "veterinarian.id": id }) };
+});
+for (const outcome of ["reassigned", "validation_error", "invalid_state", "not_found"]) add("OBS-048", outcome, async (f) => {
+  await f.request();
+  if (outcome !== "invalid_state") await f.accept();
+  const id = outcome === "not_found" ? unknownId : f.reservation.id;
+  const target = outcome === "validation_error" ? avery : morgan;
+  const status = { reassigned: 200, validation_error: 400, invalid_state: 409, not_found: 404 }[outcome];
+  return { method: "PATCH", path: `/reservations/${id}/veterinarian`,
+    options: { actor: "morgan.reed", body: { veterinarianId: target }, expected: status },
+    attributes: () => ({ "reservation.id": id, "veterinarian.id": morgan }) };
 });
 for (const outcome of ["corrected", "not_assigned_veterinarian", "invalid_state", "not_found"]) add("OBS-044", outcome, async (f) => {
   await f.recordedVisit();
