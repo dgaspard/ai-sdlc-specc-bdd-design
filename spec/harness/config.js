@@ -22,7 +22,10 @@ const url = (port) => `http://localhost:${port}`;
 export const PROJECTS = {
   customer: {
     title: "Customer", kind: "service", folder: "services/customer", port: 4001,
-    otelName: "petclinic-customer", dependsOn: [], contract: "customer.openapi.json",
+    // ENG-02 REV-004: Customer validates preferredVeterinarianId against Reservation's
+    // live roster (the single source of truth, mutable since MVP-02A) instead of its own
+    // seed-time-only copy.
+    otelName: "petclinic-customer", dependsOn: ["reservation"], contract: "customer.openapi.json",
   },
   reservation: {
     title: "Reservation", kind: "service", folder: "services/reservation", port: 4002,

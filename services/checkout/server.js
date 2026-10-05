@@ -350,9 +350,13 @@ async function pay({ params, user, body, key }, cash) {
       }
       c.paymentAttempts.push(a);
       if (paid) {
+        // ENG-02 REV-001: call account() (the downstream credit that is the
+        // actual system of record) before touching c's own balance fields, so
+        // a failure here leaves c exactly as it was — never optimistically
+        // "paid" when Customer never recorded the credit.
+        await account(c, "credit", a.amount, a.attemptId);
         c.previouslyPaidAmount += a.amount;
         remaining(c);
-        await account(c, "credit", a.amount, a.attemptId);
       }
       await complete(c);
       record.outcome = cash

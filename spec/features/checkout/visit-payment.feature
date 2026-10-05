@@ -123,3 +123,14 @@ Feature: Pay the remaining visit balance
     And the result is reported as authorized but completion failed, needing manual recovery
     And the result is not reported as settled or declined
     And no new payment is attempted automatically
+
+  # ENG-02 REV-001: a failure recording the credit with Customer must not leave Checkout's
+  # own bill optimistically showing the payment as applied — the two services must agree,
+  # or neither must claim the payment happened.
+  Scenario: Payment succeeds but the account credit fails
+    Given the fake payment provider will authorize the card
+    And Customer will fail to record the account credit
+    When Jordan pays the visit balance by card with a new attempt key
+    Then the payment attempt is recorded as "authorized"
+    And the result is reported as authorized but completion failed, needing manual recovery
+    And the remaining balance is "$50.00"

@@ -24,6 +24,21 @@ Feature: Customer profile
     Then the profile is rejected as invalid
     And no customer is saved
 
+  # ENG-02 REV-004: proves Customer checks Reservation's live roster, not a frozen
+  # seed-time copy that could never see a veterinarian added after startup.
+  Scenario: A veterinarian added after startup can be chosen as preferred
+    Given a veterinarian has since been added to the roster who was not in the original seed data
+    When a customer profile is created for "Jordan Rivera" with the newly added veterinarian as preferred
+    Then the profile is saved
+
+  # ENG-02 REV-004: proves a deactivated veterinarian is no longer accepted, instead of
+  # remaining valid forever against the old seed-time copy.
+  Scenario: A deactivated veterinarian can no longer be chosen as preferred
+    Given Dr Morgan Reed has since been deactivated
+    When a customer profile is created for "Jordan Rivera" with the deactivated Dr Morgan Reed as preferred
+    Then the profile is rejected as invalid
+    And no customer is saved
+
   Scenario Outline: Required profile fields
     When a customer profile is created without "<field>"
     Then the profile is rejected as invalid

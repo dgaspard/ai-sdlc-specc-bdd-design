@@ -89,6 +89,17 @@ Before({ tags: "@service:checkout" }, function () {
 function failComplete(world) {
   world.stubs.reservation.respond("POST", "/internal/reservations/{reservationId}/complete", 409, world.memo.completeFailure);
 }
+// ENG-02 REV-001: Customer refuses to record the credit/discount. Used to prove Checkout's
+// own bill record does not optimistically reflect a payment/promotion the system of record
+// never actually confirmed.
+function failAccountChanges(world) {
+  // 409/invalid_state is a status this internal contract actually documents (unlike 502,
+  // which the stub harness would reject as undeclared); pay()'s catch block reports any
+  // failure here as authorized_completion_failed regardless of the underlying status/code.
+  world.stubs.customer.respond("POST", "/internal/customers/{customerId}/account-changes", 409, {
+    type: "about:blank", title: "Account change failed", status: 409, code: "invalid_state",
+  });
+}
 function unknownFees(world) {
   world.stubs["veterinarian-services"].respond("GET", "/fees", 422, (req) => {
     const ids = new URL(req.url, "http://x").searchParams.get("serviceIds").split(",");
@@ -518,6 +529,9 @@ Then("the payment is reported as already settled", function () {
 });
 Given("Reservation will fail to complete the reservation", function () {
   failComplete(this);
+});
+Given("Customer will fail to record the account credit", function () {
+  failAccountChanges(this);
 });
 Then("the payment attempt is recorded as {string}", async function (outcome) {
   const attemptId = this.response.body.paymentAttemptId;

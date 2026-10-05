@@ -1,7 +1,7 @@
 // Steps for spec/features/customer. Black-box over HTTP against the Customer service.
 // Internal operations are called with a service-role token, as another service would.
 // Protected test.
-import { Given, When, Then } from "@cucumber/cucumber";
+import { Before, Given, When, Then } from "@cucumber/cucumber";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import * as seed from "../../harness/seed.js";
@@ -13,6 +13,29 @@ import { asDefaultCaller, expectProblem } from "./common.steps.js";
 const UNKNOWN_ID = "10000000-0000-4000-8000-999999999999";
 const JORDAN = () => seed.customer("Jordan Rivera");
 const isUuid = (s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+// ENG-02 REV-004: Customer now calls Reservation (the live roster) instead of using its
+// own seeded copy. Default the stub to the same two seeded vets, all active, so every
+// scenario that doesn't care about the roster itself keeps behaving exactly as before.
+function respondVets(world, vets) {
+  world.stubs.reservation.respond("GET", "/veterinarians", 200, vets);
+}
+Before({ tags: "@service:customer" }, function () {
+  if (!this.stubs.reservation) return;
+  respondVets(this, seed.veterinarians.map((v) => ({ ...v, active: true })));
+});
+const NEW_VET_ID = "10000000-0000-4000-8000-000000000099";
+Given("a veterinarian has since been added to the roster who was not in the original seed data", function () {
+  respondVets(this, [
+    ...seed.veterinarians.map((v) => ({ ...v, active: true })),
+    { id: NEW_VET_ID, firstName: "Jamie", lastName: "Lee", officeId: "office-1", active: true },
+  ]);
+});
+Given("Dr Morgan Reed has since been deactivated", function () {
+  respondVets(this, seed.veterinarians.map((v) => ({
+    ...v, active: !(v.firstName === "Morgan" && v.lastName === "Reed"),
+  })));
+});
 
 function validProfile(first = "Casey", last = "Park") {
   return {
@@ -75,6 +98,12 @@ When("a customer profile is created for {string} without a preferred veterinaria
 });
 When("a customer profile is created for {string} with an unknown veterinarian ID", async function (full) {
   await createProfile(this, { ...validProfile(...splitName(full)), preferredVeterinarianId: UNKNOWN_ID });
+});
+When("a customer profile is created for {string} with the newly added veterinarian as preferred", async function (full) {
+  await createProfile(this, { ...validProfile(...splitName(full)), preferredVeterinarianId: NEW_VET_ID });
+});
+When("a customer profile is created for {string} with the deactivated Dr Morgan Reed as preferred", async function (full) {
+  await createProfile(this, { ...validProfile(...splitName(full)), preferredVeterinarianId: seed.vet("Dr Morgan Reed").id });
 });
 When("a customer profile is created without {string}", async function (field) {
   const body = validProfile();

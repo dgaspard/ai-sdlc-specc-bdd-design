@@ -446,3 +446,36 @@ human sign-off before this build is called demo-ready, per ENG-02's
 governance model (security/boundary findings require sign-off). REV-003 in
 particular should be prioritized — it's the one most likely to surface
 visibly during an actual demo walkthrough of the admin roster feature.
+
+## Disposition (2026-10-05, after sign-off)
+
+- **REV-001 — fixed.** `services/checkout/server.js`'s `pay()` now calls
+  `account()` before mutating `c.previouslyPaidAmount`/`remaining(c)`.
+  Regression test added: "Payment succeeds but the account credit fails"
+  (`spec/features/checkout/visit-payment.feature`), confirmed red against
+  the pre-fix code and green after.
+- **REV-004 — fixed.** `services/customer/server.js`'s `validateVet` now
+  calls Reservation's `GET /veterinarians` (already `x-roles: ["service"]`
+  accessible, no contract change needed) instead of its own seed-time
+  snapshot, and only accepts an `active` veterinarian. `spec/harness/config.js`
+  gained `reservation` as a declared dependency of `customer`. Two
+  regression tests added to `spec/features/customer/customer-profile.feature`
+  ("A veterinarian added after startup can be chosen as preferred", "A
+  deactivated veterinarian can no longer be chosen as preferred"), both
+  confirmed red against the pre-fix code and green after.
+- **REV-002, REV-003, REV-005 — not fixed in this pass.** Deferred, not
+  forgotten; REV-003 in particular (the admin roster's `active` flag never
+  read in the booking path) was explicitly left open to fix separately.
+
+Verification run after both fixes: `@service:checkout` BDD (47/47),
+`@service:customer` BDD (74/74), `test:schema` (169/169),
+`test:runtime` (52/52), `test:harness` (44/45 — one pre-existing,
+unrelated failure confirmed present before these fixes too: a stale
+OBS-027 outcome-list assertion predating MVP-02A's `validation_error`
+addition), and a partial `test:observability` run (78/78 before hitting
+this sandbox's time budget, none in the affected code paths). Full
+`test:auth` (242 cases) was not completed in this sandbox — each case
+takes ~1.6s and the suite's total runtime exceeds this environment's
+per-command time budget; this suite is unrelated to either fix (pure JWT
+validation, untouched by this change) and should be run as part of the
+next full local `npm test`.

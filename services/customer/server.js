@@ -7,8 +7,9 @@ import {
   requireValue,
   owner,
 } from "../platform/runtime.js";
-const app = new Runtime("customer", 4001);
-let customers, users, vets, discounts;
+const app = new Runtime("customer", 4001, ["RESERVATION_URL"]);
+const urls = { reservation: process.env.RESERVATION_URL };
+let customers, users, discounts;
 const balance = (c) =>
   c.accountEntries.reduce(
     (sum, e) => sum + e.amountOwed - e.amountCredited - e.amountDiscounted,
@@ -16,9 +17,14 @@ const balance = (c) =>
   );
 const view = (c) => ({ ...c, outstandingBalance: balance(c) });
 const customer = (user, customerId) => owner(user, customers.get(customerId));
-const validateVet = (v) => {
-  if (!vets.some((x) => x.id === v)) fail(400, "validation_error");
-};
+// ENG-02 REV-004: validate against Reservation's live roster (the mutable system of
+// record since MVP-02A added/deactivated veterinarians), not a seed-time-only copy that
+// can never see a veterinarian added after startup and never stops accepting one that's
+// since been deactivated.
+async function validateVet(v) {
+  const vets = await app.dependency(`${urls.reservation}/veterinarians`);
+  if (!vets.some((x) => x.id === v && x.active)) fail(400, "validation_error");
+}
 const validatePet = (p) => {
   if (
     !p.name.trim() ||
@@ -28,8 +34,8 @@ const validatePet = (p) => {
   )
     fail(400, "validation_error");
 };
-function newProfile(body, pets = []) {
-  validateVet(body.preferredVeterinarianId);
+async function newProfile(body, pets = []) {
+  await validateVet(body.preferredVeterinarianId);
   const c = {
     ...body,
     id: id(),
@@ -52,7 +58,7 @@ app.route("POST", "/auth/login", ({ body }) => {
 app.route(
   "POST",
   "/auth/register",
-  ({ body }) => {
+  async ({ body }) => {
     if (users.some((u) => u.username === body.username))
       fail(400, "validation_error");
     const petIds = new Set(body.pets.map((p) => p.id));
@@ -68,7 +74,7 @@ app.route(
       )
     )
       fail(400, "validation_error");
-    const c = newProfile(body.profile, body.pets);
+    const c = await newProfile(body.profile, body.pets);
     users.push({
       id: id(),
       username: body.username,
@@ -84,8 +90,8 @@ app.route(
   },
   "register",
 );
-app.route("POST", "/customers", ({ body }) => {
-  const c = newProfile(body);
+app.route("POST", "/customers", async ({ body }) => {
+  const c = await newProfile(body);
   customers.set(c.id, c);
   return created(view(c));
 });
@@ -93,9 +99,9 @@ app.route("GET", "/customers", () => ok([...customers.values()].map(view)));
 app.route("GET", "/customers/{customerId}", ({ user, params }) =>
   ok(view(customer(user, params.customerId))),
 );
-app.route("PATCH", "/customers/{customerId}", ({ user, params, body }) => {
+app.route("PATCH", "/customers/{customerId}", async ({ user, params, body }) => {
   const c = customer(user, params.customerId);
-  if (body.preferredVeterinarianId) validateVet(body.preferredVeterinarianId);
+  if (body.preferredVeterinarianId) await validateVet(body.preferredVeterinarianId);
   if (
     body.insurance?.some((p) =>
       p.coveredPetIds.some((pid) => !c.pets.some((pet) => pet.id === pid)),
@@ -207,7 +213,6 @@ app.route(
   "apply_account_change",
 );
 await app.serve(() => {
-  vets = app.seed("veterinarians");
   users = app.seed("users");
   discounts = new Set();
   customers = new Map(
