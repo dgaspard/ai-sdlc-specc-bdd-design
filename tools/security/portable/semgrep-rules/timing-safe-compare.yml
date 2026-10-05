@@ -1,32 +1,150 @@
 rules:
+  # Name heuristic: either operand's name suggests a secret. Hardened
+  # 2026-10-05 after ENG-02 calibration (CAL-04): now covers != and !==,
+  # checks both operands, and skips comparisons against literals, null,
+  # undefined, typeof, and .length.
   - id: timing-unsafe-secret-compare-js
     languages: [javascript, typescript]
     severity: WARNING
     message: >-
-      Comparing a secret/token/signature with == or === is not constant-time
-      and can leak information via a timing side channel. Use a
-      constant-time comparison instead (e.g. Node's crypto.timingSafeEqual).
+      Comparing a secret/token/signature with ==, ===, != or !== is not
+      constant-time and can leak information via a timing side channel. Use
+      a constant-time comparison instead (e.g. Node's crypto.timingSafeEqual).
     metadata:
       defect-class: "SEC-01 #1"
     patterns:
       - pattern-either:
-          - pattern: $A === $B
-          - pattern: $A == $B
-      - metavariable-regex:
-          metavariable: $A
-          regex: (?i).*(secret|token|signature|hmac|password).*
+          - patterns:
+              - pattern-either:
+                    - pattern: $A === $B
+                    - pattern: $A == $B
+                    - pattern: $A !== $B
+                    - pattern: $A != $B
+              - metavariable-regex:
+                  metavariable: $A
+                  regex: (?i).*(secret|token|signature|hmac|password|passwd|apikey|api_key|digest).*
+          - patterns:
+              - pattern-either:
+                    - pattern: $A === $B
+                    - pattern: $A == $B
+                    - pattern: $A !== $B
+                    - pattern: $A != $B
+              - metavariable-regex:
+                  metavariable: $B
+                  regex: (?i).*(secret|token|signature|hmac|password|passwd|apikey|api_key|digest).*
+      - pattern-not: $A === "..."
+      - pattern-not: $A !== "..."
+      - pattern-not: $A == "..."
+      - pattern-not: $A != "..."
+      - pattern-not: $A === null
+      - pattern-not: $A !== null
+      - pattern-not: $A == null
+      - pattern-not: $A != null
+      - pattern-not: $A === undefined
+      - pattern-not: $A !== undefined
+      - pattern-not: typeof $X === $B
+      - pattern-not: typeof $X !== $B
+      - pattern-not: $X.length === $B
+      - pattern-not: $X.length !== $B
+      - pattern-not: $A === $Y.length
+      - pattern-not: $A !== $Y.length
+
+  # Structural: a value produced by .digest(...) (HMAC or hash) compared with
+  # an equality operator, whatever the variables are called. Added 2026-10-05
+  # (CAL-04 was `s !== expected`, where expected = createHmac(...).digest()).
+  - id: timing-unsafe-digest-compare-js
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      A digest (HMAC or hash) is compared with an equality operator, which is
+      not constant-time. Compare Buffers of equal length with
+      crypto.timingSafeEqual instead.
+    metadata:
+      defect-class: "SEC-01 #1"
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  const $E = <... $H.digest(...) ...>;
+                  ...
+              - pattern-inside: |
+                  let $E = <... $H.digest(...) ...>;
+                  ...
+              - pattern-inside: |
+                  var $E = <... $H.digest(...) ...>;
+                  ...
+              - pattern-inside: |
+                  $E = <... $H.digest(...) ...>;
+                  ...
+          - pattern-either:
+              - pattern: $E === $O
+              - pattern: $O === $E
+              - pattern: $E !== $O
+              - pattern: $O !== $E
+              - pattern: $E == $O
+              - pattern: $O == $E
+              - pattern: $E != $O
+              - pattern: $O != $E
+      - pattern: $O === $H.digest(...)
+      - pattern: $H.digest(...) === $O
+      - pattern: $O !== $H.digest(...)
+      - pattern: $H.digest(...) !== $O
 
   - id: timing-unsafe-secret-compare-py
     languages: [python]
     severity: WARNING
     message: >-
-      Comparing a secret/token/signature with == is not constant-time and
-      can leak information via a timing side channel. Use
+      Comparing a secret/token/signature with == or != is not constant-time
+      and can leak information via a timing side channel. Use
       hmac.compare_digest instead.
     metadata:
       defect-class: "SEC-01 #1"
     patterns:
-      - pattern: $A == $B
-      - metavariable-regex:
-          metavariable: $A
-          regex: (?i).*(secret|token|signature|hmac|password).*
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                    - pattern: $A == $B
+                    - pattern: $A != $B
+              - metavariable-regex:
+                  metavariable: $A
+                  regex: (?i).*(secret|token|signature|hmac|password|passwd|apikey|api_key|digest).*
+          - patterns:
+              - pattern-either:
+                    - pattern: $A == $B
+                    - pattern: $A != $B
+              - metavariable-regex:
+                  metavariable: $B
+                  regex: (?i).*(secret|token|signature|hmac|password|passwd|apikey|api_key|digest).*
+      - pattern-not: $A == "..."
+      - pattern-not: $A != "..."
+      - pattern-not: $A == None
+      - pattern-not: $A != None
+      - pattern-not: len($X) == $B
+      - pattern-not: len($X) != $B
+
+  - id: timing-unsafe-digest-compare-py
+    languages: [python]
+    severity: ERROR
+    message: >-
+      A digest (HMAC or hash) is compared with == or !=, which is not
+      constant-time. Use hmac.compare_digest instead.
+    metadata:
+      defect-class: "SEC-01 #1"
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $E = <... $H.digest(...) ...>
+                  ...
+              - pattern-inside: |
+                  $E = <... $H.hexdigest(...) ...>
+                  ...
+          - pattern-either:
+              - pattern: $E == $O
+              - pattern: $O == $E
+              - pattern: $E != $O
+              - pattern: $O != $E
+      - pattern: $O == $H.digest(...)
+      - pattern: $O == $H.hexdigest(...)
+      - pattern: $H.hexdigest(...) == $O
+      - pattern: $O != $H.hexdigest(...)

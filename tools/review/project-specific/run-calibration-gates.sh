@@ -24,6 +24,12 @@ USER_BIN="$(python3 -m site --user-base 2>/dev/null)/bin"
 [ -d "$USER_BIN" ] && export PATH="$USER_BIN:$PATH"
 { semgrep --version; detect-secrets --version; npx --yes jscpd --version; node --version; } > "$OUT/versions.txt" 2>&1
 
+# Custom-rule unit tests first: a rule that fails its own annotated cases
+# makes the scans below meaningless.
+semgrep --test --config "$ROOT/tools/security/portable/semgrep-rules" \
+  "$ROOT/tools/security/portable/semgrep-rules-tests" > "$OUT/semgrep-rule-tests.txt" 2>&1 \
+  || echo "WARNING: custom Semgrep rule tests failed — see $OUT/semgrep-rule-tests.txt"
+
 for variant in clean planted; do
   mkdir -p "$WORK/$variant"
   # Only services/ is scanned; tools/ (and this answer key) never enter the copy.
