@@ -5,7 +5,9 @@ import { validateSchema } from "../../harness/schema.js";
 import { ServiceFixture, tokenFor, jordan } from "../support/service-fixture.js";
 import { operations, inputFor, ownership, collections, publicCatalog } from "../support/access-cases.js";
 
-const actors = { customer: "jordan.rivera", veterinarian: "avery.taylor", service: "service" };
+// morgan.reed, not avery.taylor: Avery is the dual-role administrator (D-44), so she would
+// correctly pass administrator-only routes and mask a missing veterinarian check.
+const actors = { customer: "jordan.rivera", veterinarian: "morgan.reed", service: "service" };
 const badTokens = {
   missing: () => null,
   malformed: () => "not-a-jwt",

@@ -133,7 +133,7 @@ against `main` by reading the code; none were fixed here.
 | 9 | The `roles` claim accepts `"service"` | REV-017 | Backlog (low). Defense in depth only. |
 | 10 | `dependency()` passes downstream 4xx codes through to callers | REV-018 | Backlog (low). |
 | 11 | Booking fee hardcoded in 4 places | REV-019 | Leave as is. The fixed $20 fee is a business decision. Revisit only if the fee becomes configurable. |
-| 12 | **2 auth tests fail on clean `main` since MVP-02A (`04d383f`):** `[AUTH-006] reservation.add/updateVeterinarian: veterinarian role returns 403` | Found 2026-10-05 while verifying REV-016; reproduced on `f86ac60` | `access-control.test.js` uses `avery.taylor` as its "veterinarian" actor, but Avery is the dual-role administrator, so the admin-only routes correctly return 201. A test bug, not a code bug. Fix (protected `spec/`, your call): use `morgan.reed` as the veterinarian actor. These went unseen because the auth suite takes about 10 minutes and wasn't being run in full. |
+| 12 | **2 auth tests fail on clean `main` since MVP-02A (`04d383f`):** `[AUTH-006] reservation.add/updateVeterinarian: veterinarian role returns 403` | Found 2026-10-05 while verifying REV-016; reproduced on `f86ac60` | `access-control.test.js` uses `avery.taylor` as its "veterinarian" actor, but Avery is the dual-role administrator, so the admin-only routes correctly return 201. A test bug, not a code bug. **Resolved 2026-10-05:** at Dustin's request, the actor is now `morgan.reed`, and all 6 AUTH-006 veterinarian-role tests pass. With a non-admin actor, these tests should now also catch CAL-06 at L0. These went unseen because the auth suite takes about 10 minutes and wasn't being run in full. |
 
 ## Follow-ups
 
