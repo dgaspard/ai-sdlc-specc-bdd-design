@@ -46,6 +46,9 @@
           },
           "401": {
             "$ref": "common.openapi.json#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "common.openapi.json#/components/responses/InternalServerError"
           }
         }
       }
@@ -65,7 +68,10 @@
           "400": { "$ref": "common.openapi.json#/components/responses/BadRequest" },
           "401": { "$ref": "common.openapi.json#/components/responses/Unauthorized" },
           "403": { "$ref": "common.openapi.json#/components/responses/Forbidden" },
-          "404": { "$ref": "common.openapi.json#/components/responses/NotFound" }
+          "404": { "$ref": "common.openapi.json#/components/responses/NotFound" },
+          "500": {
+            "$ref": "common.openapi.json#/components/responses/InternalServerError"
+          }
         }
       },
       "get": {
@@ -112,6 +118,9 @@
           },
           "404": {
             "$ref": "common.openapi.json#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "common.openapi.json#/components/responses/InternalServerError"
           }
         }
       }
@@ -162,6 +171,9 @@
           },
           "422": {
             "$ref": "common.openapi.json#/components/responses/Unprocessable"
+          },
+          "500": {
+            "$ref": "common.openapi.json#/components/responses/InternalServerError"
           }
         }
       }

@@ -306,7 +306,7 @@ finalized checkout to reduce its remaining balance (D-26).
 | id | Stable promotion identifier |
 | checkoutId, visitId | The checkout and visit it reduces |
 | appliedByVeterinarianId | Veterinarian who applied it |
-| amount | Discount entered by the veterinarian, in cents; defaults to 0 |
+| amount | Required discount entered by the veterinarian, in cents; minimum 1 (D-65) |
 | appliedAmount | min(amount, remaining balance at application); the portion actually deducted |
 | appliedAt | When it was applied |
 

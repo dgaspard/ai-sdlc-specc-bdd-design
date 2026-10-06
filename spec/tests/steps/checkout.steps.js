@@ -634,3 +634,108 @@ Then("the same result is returned", function () {
 Then("Customer received one credit", function () {
   assert.equal(accountChanges(this, "credit").filter((c) => c.body.paymentId !== bookingCredit(this)).length, 1);
 });
+
+// SPEC-06: accepted D-58–D-65. Assertions observe HTTP state and dependency calls.
+Then('no promotion or discount is recorded', async function () {
+  assert.equal((await checkout(this)).promotion, null);
+  assert.equal(accountChanges(this, 'discount').length, 0);
+});
+Then('the stored promotion has amount {string}', async function (amount) {
+  assert.equal((await checkout(this)).promotion.amount, cents(amount));
+});
+Then('Checkout reports a {string} problem with status {int}', function (code, status) {
+  expectProblem(this, code, status);
+});
+Then('the checkout has no visit payment attempts', async function () {
+  assert.deepEqual((await checkout(this)).paymentAttempts, []);
+});
+Given('Reservation reports the identical completion already completed', function () {
+  this.stubs.reservation.respond('POST', '/internal/reservations/{reservationId}/complete', 409,
+    { type: 'about:blank', title: 'Already completed', status: 409, code: 'already_completed' });
+});
+Given('Customer reports the account change already applied', function () {
+  this.stubs.customer.respond('POST', '/internal/customers/{customerId}/account-changes', 409,
+    { type: 'about:blank', title: 'Already applied', status: 409, code: 'already_applied' });
+});
+When('a {string} payment of {string} uses attempt key {string}', async function (method, amount, label) {
+  assert.ok(['card', 'cash'].includes(method));
+  this.memo.beforeReplay = { provider: (await providerCalls()).length,
+    account: accountChanges(this).length, completion: completions(this).length };
+  await (method === 'card' ? pay : payCash)(this, { amount: cents(amount), key: labelId(this, label) });
+});
+Then('the payment response succeeds', function () { expect200(this.response); });
+Then('the payment response is remembered', function () {
+  this.memo.rememberedResponse = structuredClone({ status: this.response.status, body: this.response.body });
+});
+Then('the original payment response snapshot is replayed', function () {
+  assert.equal(this.response.status, 200);
+  assert.equal(this.memo.rememberedResponse.body.checkout.remainingBalance, 3000);
+  assert.deepEqual(this.response.body, { ...this.memo.rememberedResponse.body, replayed: true });
+});
+Then('the original failed payment response is replayed', async function () {
+  assert.equal(this.response.status, 502);
+  assert.deepEqual(this.response.body, this.memo.rememberedResponse.body);
+  const attempts = (await checkout(this)).paymentAttempts;
+  assert.equal(attempts.length, 1);
+  assert.equal(attempts[0].attemptId, this.response.body.paymentAttemptId);
+});
+Then('replay sends no additional payment, credit, or completion', async function () {
+  assert.deepEqual({ provider: (await providerCalls()).length,
+    account: accountChanges(this).length, completion: completions(this).length }, this.memo.beforeReplay);
+});
+Then('the stored bill remains settled with two visit attempts', async function () {
+  const bill = await checkout(this);
+  assert.equal(bill.remainingBalance, 0);
+  assert.equal(bill.paymentAttempts.length, 2);
+});
+Then('the checkout retains only the remembered attempt', async function () {
+  assert.deepEqual((await checkout(this)).paymentAttempts, [this.memo.rememberedResponse.body.attempt]);
+});
+Then('the booking and visit payments are independent', async function () {
+  const calls = await providerCalls();
+  assert.deepEqual(calls.map(c => c.request.purpose), ['booking_fee', 'visit_balance']);
+  assert.notEqual(calls[0].request.attemptId, calls[1].request.attemptId);
+  const bill = await checkout(this);
+  assert.equal(bill.remainingBalance, 0);
+  assert.deepEqual(bill.paymentAttempts, [this.response.body.attempt]);
+});
+Given('another recorded visit has its own finalized bill', async function () {
+  const reservationId = crypto.randomUUID(), visitId = crypto.randomUUID();
+  this.memo.reservation = { ...this.memo.reservation, id: reservationId, visitId,
+    reservationState: 'Accepted', bookingPaymentId: crypto.randomUUID() };
+  this.memo.visit = { ...this.memo.visit, id: visitId, reservationId };
+  const result = await finalize(this);
+  assert.equal(result.status, 201);
+  assert.equal(result.body.remainingBalance, 5000);
+});
+Then('the two bills have independent paid attempts', async function () {
+  const first = this.memo.rememberedResponse.body, second = this.response.body;
+  assert.notEqual(first.checkout.id, second.checkout.id);
+  assert.notEqual(first.attempt.attemptId, second.attempt.attemptId);
+  assert.equal(second.replayed, false);
+  assert.equal(second.checkout.remainingBalance, 0);
+  assert.deepEqual((await checkout(this)).paymentAttempts, [second.attempt]);
+  assert.equal((await providerCalls()).length, 2);
+});
+Then('the booking payment response is remembered', function () {
+  this.memo.firstBookingResponse = structuredClone(this.response.body);
+});
+Given('another Requested reservation needs its booking fee', function () {
+  this.memo.reservation = { ...this.memo.reservation, id: crypto.randomUUID(),
+    reservationState: 'Requested', bookingFeePaid: false, bookingPaymentId: null, acceptedAt: null, visitId: null };
+});
+When('Reservation asks Checkout to collect the booking fee with attempt key {string}', async function (label) {
+  await bookingFee(this, { key: labelId(this, label) });
+});
+Then('the two reservations have independent booking payments', async function () {
+  expect200(this.response);
+  const first = this.memo.firstBookingResponse, second = this.response.body;
+  assert.equal(second.paid, true);
+  assert.equal(second.replayed, false);
+  assert.notEqual(first.reservationId, second.reservationId);
+  assert.equal(second.reservationId, this.memo.reservation.id);
+  assert.notEqual(first.paymentId, second.paymentId);
+  const calls = await providerCalls();
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map(c => c.request.purpose), ['booking_fee', 'booking_fee']);
+});

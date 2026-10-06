@@ -334,3 +334,60 @@ it("[OBS-002] acceptance propagates a client parent to the Checkout stub", async
   const spans = await readTrace(ctx, [spanName("OBS-024")], calls.map((r) => r.headers.traceparent?.split("-")[2]));
   assertPropagation(calls[0], ctx, spans);
 });
+
+for (const [id, route] of [['OBS-030', 'promotion'], ['OBS-033', 'cash-payments']]) {
+  it(`[${id}] SPEC-06 assignment rejection has no financial side effects`, async (t) => {
+    const f = new ServiceFixture('checkout'); t.after(() => f.stop()); await f.start(); await f.finalized();
+    const before = f.stubs.customer.received('POST', '/internal/customers/{customerId}/account-changes').length;
+    const ctx = context();
+    const r = await f.call('POST', `/checkouts/${f.checkout.id}/${route}`, {
+      actor: 'morgan.reed', body: { amount: 1000 }, headers: ctx.headers, expected: 403 });
+    assert.equal(r.body.code, 'not_assigned_veterinarian');
+    const spans = await readTrace(ctx, [spanName(id)]);
+    assertBusiness(spans, id, 'not_assigned_veterinarian', {
+      'checkout.id': f.checkout.id, 'visit.id': f.visit.id, 'veterinarian.id': morgan });
+    assert.equal(f.stubs.customer.received('POST', '/internal/customers/{customerId}/account-changes').length, before);
+    assert.equal(f.stubs.reservation.received('POST', '/internal/reservations/{reservationId}/complete').length, 0);
+    assert.equal((await f.providerCalls()).length, 0);
+    const bill = (await f.call('GET', `/checkouts/${f.checkout.id}`, { expected: 200 })).body;
+    assert.equal(bill.remainingBalance, 5000);
+    assert.equal(bill.promotion, null);
+    assert.deepEqual(bill.paymentAttempts, []);
+  });
+}
+for (const [id, route, outcome, code] of [
+  ['OBS-030', 'promotion', 'failed', 'dependency_failed'],
+  ['OBS-033', 'cash-payments', 'authorized_completion_failed', 'authorized_completion_failed'],
+  ['OBS-031', 'payments', 'authorized_completion_failed', 'authorized_completion_failed'],
+]) {
+  it(`[${id}] SPEC-06 completion failure retains the accepted money step`, async (t) => {
+    const f = new ServiceFixture('checkout'); t.after(() => f.stop()); await f.start(); await f.finalized();
+    f.stubs.reservation.respond('POST', '/internal/reservations/{reservationId}/complete', 409, problem(409, 'invalid_state'));
+    const ctx = context(), key = randomUUID();
+    const r = await f.call('POST', `/checkouts/${f.checkout.id}/${route}`, {
+      body: { amount: 5000, ...(route === 'payments' ? { mockMethodReference: 'fake-card-approve' } : {}) },
+      headers: { ...ctx.headers, 'idempotency-key': key }, expected: 502 });
+    assert.equal(r.body.code, code);
+    const spans = await readTrace(ctx, [spanName(id)]);
+    const bill = (await f.call('GET', `/checkouts/${f.checkout.id}`, { expected: 200 })).body;
+    assertBusiness(spans, id, outcome, { 'checkout.id': f.checkout.id,
+      ...(route === 'promotion' ? { 'promotion.id': bill.promotion.id,
+        'promotion.amount_cents': 5000, 'promotion.applied_amount_cents': 5000 } : {}) });
+    assert.equal((await f.providerCalls()).length, route === 'payments' ? 1 : 0);
+    assert.equal(bill.remainingBalance, 0);
+    if (route === 'promotion') assert.equal(bill.promotion.appliedAmount, 5000);
+    else {
+      assert.equal(bill.paymentAttempts[0].attemptId, r.body.paymentAttemptId);
+      const replayCtx = context();
+      const replay = await f.call('POST', `/checkouts/${f.checkout.id}/${route}`, {
+        body: { amount: 5000, ...(route === 'payments' ? { mockMethodReference: 'fake-card-approve' } : {}) },
+        headers: { ...replayCtx.headers, 'idempotency-key': key }, expected: 502 });
+      assert.deepEqual(replay.body, r.body);
+      assertBusiness(await readTrace(replayCtx, [spanName(id)]), id, outcome, {
+        'checkout.replayed': true, 'payment.attempt.id': r.body.paymentAttemptId });
+      assert.equal(f.stubs.reservation.received('POST', '/internal/reservations/{reservationId}/complete').length, 1);
+      assert.equal((await f.providerCalls()).length, route === 'payments' ? 1 : 0);
+      assert.equal(f.stubs.customer.received('POST', '/internal/customers/{customerId}/account-changes').filter(c => c.body.type === 'credit').length, 2);
+    }
+  });
+}

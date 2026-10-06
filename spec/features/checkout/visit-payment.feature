@@ -2,7 +2,7 @@
 Feature: Pay the remaining visit balance
   Checkout collects part or all of a visit balance by card or records cash, then tells
   Customer and Reservation the result.
-  Decisions: D-05, D-08, D-09, D-10, D-19, D-36, SCH-011. Telemetry: OBS-031, OBS-032, OBS-033.
+  Decisions: D-59, D-64, D-05, D-08, D-09, D-10, D-19, D-36, SCH-011. Telemetry: OBS-031, OBS-032, OBS-033.
 
   Background:
     Given Milo's finalized Wellness checkout has a remaining balance of "$50.00"
@@ -134,3 +134,28 @@ Feature: Pay the remaining visit balance
     Then the payment attempt is recorded as "authorized"
     And the result is reported as authorized but completion failed, needing manual recovery
     And the remaining balance is "$50.00"
+
+  Scenario: GAP-09 cash succeeds but completion fails
+    Given Reservation will fail to complete the reservation
+    When Dr Avery Taylor records a "$50.00" cash payment for the visit
+    Then the payment attempt is recorded as "cash_recorded"
+    And the result is reported as authorized but completion failed, needing manual recovery
+    And the remaining balance is "$0.00"
+    And Customer received one credit
+    And the fake payment provider is not called
+
+  Scenario: GAP-14 an already completed reservation is successful completion
+    Given Reservation reports the identical completion already completed
+    When Jordan pays the visit balance by card with a new attempt key
+    Then the payment response succeeds
+    And the remaining balance is "$0.00"
+    And Customer received one credit
+    And Checkout asks Reservation to complete the reservation as settled
+
+  Scenario: GAP-14 an already applied account change is not proof of success
+    Given Customer reports the account change already applied
+    When Jordan pays the visit balance by card with a new attempt key
+    Then the payment attempt is recorded as "authorized"
+    And the result is reported as authorized but completion failed, needing manual recovery
+    And the remaining balance is "$50.00"
+    And Reservation is not asked to complete the reservation

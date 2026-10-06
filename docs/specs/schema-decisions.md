@@ -154,3 +154,11 @@ the domain model; these rows retain the question IDs for traceability.
 - Keep legacy baseline contracts separate until intentional migration is designed.
 
 No workflow implementation, runtime schemas, or test coverage is created by this log.
+
+## SPEC-06 — Accepted Checkout clarifications (D-58–D-65)
+
+PromotionCreate and PromotionRequest require amount >= 1 cent; PromotionRead records
+a positive entered amount. D-65 supersedes the previous zero default. Booking fees
+contribute to previouslyPaidAmount but are excluded from paymentAttempts. Payment
+replay returns the original serialized response snapshot (except replayed=true),
+not the current CheckoutRead. Card and cash share a checkout/key scope.

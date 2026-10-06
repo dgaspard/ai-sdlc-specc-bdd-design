@@ -3,7 +3,7 @@ Feature: Finalize the visit bill
   After a visit is recorded, the veterinarian who performed it finalizes the bill.
   Checkout prices the performed services using VeterinarianServices, credits the
   booking fee once, and records the charge on the customer's account.
-  Decisions: D-02, D-07, D-36, D-37, Q-05, SCH-011. Schema: CheckoutCreate, BilledLine. Telemetry: OBS-028, OBS-029.
+  Decisions: D-61, D-02, D-07, D-36, D-37, Q-05, SCH-011. Schema: CheckoutCreate, BilledLine. Telemetry: OBS-028, OBS-029.
 
   Background:
     Given Jordan's reservation for Milo has booking payment "pay-1" of "$20.00"
@@ -16,6 +16,7 @@ Feature: Finalize the visit bill
     Then Checkout asks VeterinarianServices for the fee of "Wellness"
     And a checkout is saved with one billed line "Wellness" at "$50.00"
     And the total is "$70.00", previously paid is "$20.00", and remaining is "$50.00"
+    And the checkout has no visit payment attempts
     And Checkout sends Customer a charge of "$70.00" for Milo's visit
     And Checkout sends Customer a credit of "$20.00" from payment "pay-1" for Milo's visit
 
@@ -66,3 +67,12 @@ Feature: Finalize the visit bill
       | condition                   |
       | not Accepted                |
       | linked to a different visit |
+
+  Scenario: GAP-11 a bill with no remaining balance completes settled
+    Given VeterinarianServices later prices "Wellness" at "$0.00"
+    And Milo's visit performed "Wellness"
+    When Dr Avery Taylor finalizes the bill for Milo's visit
+    Then the total is "$20.00", previously paid is "$20.00", and remaining is "$0.00"
+    And the checkout has no visit payment attempts
+    And Checkout asks Reservation to complete the reservation as settled
+    And the fake payment provider is not called

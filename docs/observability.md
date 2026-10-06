@@ -97,10 +97,10 @@ entity is known at that point.
 | OBS-027 | `petclinic.reservation.record_visit` (Reservation) | reservation.id, visit.id when created, veterinarian.id, `petclinic.visit.notes_missing` (boolean, MVP-02A D-46) | `recorded`, `already_recorded`, `not_assigned_veterinarian`, `invalid_state`, `unknown_service`, `not_found`, `failed`, `validation_error` (MVP-02A D-47: an administrator caller supplied clinical content) |
 | OBS-028 | `petclinic.veterinarian_services.get_fees` (VeterinarianServices) | `petclinic.veterinarian_service.count` (integer) | `found`, `unknown_service`, `failed` |
 | OBS-029 | `petclinic.checkout.finalize_bill` (Checkout) | checkout.id when created, visit.id, reservation.id, veterinarian.id, `petclinic.checkout.remaining_amount_cents` | `finalized`, `already_finalized`, `not_assigned_veterinarian`, `unknown_service`, `invalid_state`, `not_found`, `failed` |
-| OBS-030 | `petclinic.checkout.apply_promotion` (Checkout) | checkout.id, visit.id, promotion.id when created, veterinarian.id, `petclinic.promotion.amount_cents`, `petclinic.promotion.applied_amount_cents` | `applied`, `already_applied`, `nothing_owed`, `not_found`, `failed` |
+| OBS-030 | `petclinic.checkout.apply_promotion` (Checkout) | checkout.id, visit.id, promotion.id when created, veterinarian.id, `petclinic.promotion.amount_cents`, `petclinic.promotion.applied_amount_cents` | `applied`, `already_applied`, `nothing_owed`, `not_assigned_veterinarian`, `not_found`, `failed` |
 | OBS-031 | `petclinic.checkout.pay` (Checkout) | checkout.id, visit.id, reservation.id, payment.attempt.id, `petclinic.checkout.replayed` (boolean) | `settled`, `partially_paid`, `declined`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `authorized_completion_failed`, `not_found`, `failed` |
 | OBS-032 | `petclinic.payment.authorize` (client span in calling service) | payment.attempt.id, `petclinic.payment.purpose` (`booking_fee` or `visit_balance`), `petclinic.payment.provider` = `fake`, `petclinic.payment.amount_cents` | `authorized`, `declined`, `failed` |
-| OBS-033 | `petclinic.checkout.record_cash` (Checkout, D-32) | payment.attempt.id, veterinarian.id, reservation.id, visit.id when present, `petclinic.payment.purpose`, `petclinic.checkout.replayed` (boolean) | `recorded`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `not_found`, `failed` |
+| OBS-033 | `petclinic.checkout.record_cash` (Checkout, D-32) | payment.attempt.id, veterinarian.id, reservation.id, visit.id when present, `petclinic.payment.purpose`, `petclinic.checkout.replayed` (boolean) | `recorded`, `already_settled`, `invalid_amount`, `idempotency_conflict`, `not_assigned_veterinarian`, `authorized_completion_failed`, `not_found`, `failed` |
 | OBS-034 | `petclinic.customer.apply_account_change` (Customer) | customer.id, visit.id, `petclinic.account.change_type` (`charge`, `credit`, `discount`) | `applied`, `already_applied`, `invalid_amount`, `not_found`, `failed` |
 | OBS-035 | `petclinic.reservation.complete` (Reservation) | reservation.id, visit.id | `completed_settled`, `completed_outstanding`, `already_completed`, `invalid_state`, `not_found`, `failed` |
 | OBS-043 | `petclinic.customer.register` (Customer) | customer.id on success | `registered`, `validation_error`, `failed` |
@@ -244,10 +244,10 @@ uncovered rules.
 | OBS-027 | Visit record | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-027] record_visit emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
 | OBS-028 | Fee lookup | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-028] get_fees emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
 | OBS-029 | Bill finalization | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-029] finalize_bill emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
-| OBS-030 | Promotion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-030] apply_promotion emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
-| OBS-031 | Checkout pay | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-031] pay emits <outcome>` | Implemented; scoped checks pass |
+| OBS-030 | Promotion | Binding (D-58/D-59/D-63 clarifications); other standards proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-030] apply_promotion emits <outcome>`; `[OBS-030] SPEC-06 assignment rejection has no financial side effects`; `[OBS-030] SPEC-06 completion failure retains the accepted money step` | Partial coverage; SPEC-06 assignment check passes; completion-failure check fails: saved promotion ID missing. See [verification](handoffs/spec-06.md). |
+| OBS-031 | Checkout pay | Binding (D-63 clarification); other standards proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-031] pay emits <outcome>`; `[OBS-031] SPEC-06 completion failure retains the accepted money step` | Partial coverage; SPEC-06 scoped additions pass. See [verification](handoffs/spec-06.md). |
 | OBS-032 | Fake payment authorize | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-032] payment.authorize emits <outcome>`; both purposes | Implemented; scoped checks pass |
-| OBS-033 | Cash recording | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-033] record_cash emits <outcome>`; both purposes | Implemented; scoped checks pass; partial outcomes |
+| OBS-033 | Cash recording | Binding (D-58/D-59/D-63 clarifications); other standards proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-033] record_cash emits <outcome>`; both purposes ; `[OBS-033] SPEC-06 assignment rejection has no financial side effects`; `[OBS-033] SPEC-06 completion failure retains the accepted money step` | Partial coverage; SPEC-06 failure/replay passes, assignment rejection fails: acting veterinarian ID missing. See [verification](handoffs/spec-06.md). |
 | OBS-034 | Account change | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-034] apply_account_change emits <outcome>`; charge/credit/discount | Implemented; scoped checks pass; partial outcomes |
 | OBS-035 | Reservation completion | Proposed | [business-traces.test.js](../spec/tests/observability/business-traces.test.js): `[OBS-035] complete emits <outcome>` | Implemented; scoped checks pass; partial outcomes |
 | OBS-036 | Checkout success evidence | Proposed | [business-workflows.test.js](../spec/tests/observability/business-workflows.test.js): `[OBS-036] checkout success connects real services` | Implemented; scoped checks pass |
@@ -276,3 +276,17 @@ reflects that implementation run. See also [the Slice 5–6 review](history/test
 claim of exhaustive outcome coverage or a passing application. Helpers also check
 span uniqueness, completion, status, and SERVER parenting for the exercised cases;
 this does not close the broader OBS-003–009 test gaps above.
+
+## SPEC-06 clarifications (accepted D-58–D-65; draft checks awaiting freeze)
+
+OBS-030 and OBS-033 include assignment rejection as a business outcome (UNSET).
+OBS-030 completion failure after applying the discount is failed/ERROR, with the
+HTTP response 502 dependency_failed. OBS-033 accepted cash whose follow-up fails
+uses authorized_completion_failed/ERROR, including on replay; replayed=true and
+payment.attempt.id identify that original attempt. The original money step remains
+recorded; neither outcome claims successful completion. These clarifications are
+binding under D-58/D-59/D-63; unrelated proposed standards retain their authority.
+D-65 rejects zero/missing promotion amounts during request validation, before a
+promotion is created. No promotion ID or applied-amount success is emitted. This
+adds no requirement for a business span before schema validation (OBS-003 remains
+separately scoped).

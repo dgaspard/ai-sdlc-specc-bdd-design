@@ -160,3 +160,10 @@ presenter's machine.
 ## Not in this contract
 
 API endpoints, error formats, and authentication details (SPEC-04, AUTH-01).
+
+## Unexpected server failures (D-60)
+
+Every service operation returns 500 internal_error for an unexpected internal
+exception, using common.openapi.json InternalServerError. The response contains
+only the generic problem fields; never stack traces, exception messages, or other
+internal details. Dependency failures remain 502 dependency_failed.

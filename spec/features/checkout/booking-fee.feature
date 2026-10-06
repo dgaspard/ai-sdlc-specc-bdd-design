@@ -45,3 +45,10 @@ Feature: Collect the booking fee
     And the fake payment provider will authorize a different card
     When Reservation asks Checkout to collect the booking fee with a different card and attempt key "key-2"
     Then the reservation has two booking fee attempts: "declined" then "authorized"
+
+  Scenario: GAP-12 separate reservations may reuse a booking-payment key
+    Given the booking fee was collected with attempt key "shared"
+    And the booking payment response is remembered
+    And another Requested reservation needs its booking fee
+    When Reservation asks Checkout to collect the booking fee with attempt key "shared"
+    Then the two reservations have independent booking payments

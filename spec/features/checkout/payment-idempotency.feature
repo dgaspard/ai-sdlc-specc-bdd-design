@@ -2,7 +2,7 @@
 Feature: Duplicate payment protection
   Repeating a payment request with the same attempt key returns the original result
   without repeating its effects.
-  Decisions: D-12. Telemetry: OBS-031, OBS-038.
+  Decisions: D-61, D-62, D-63, D-12. Telemetry: OBS-031, OBS-038.
 
   Background:
     Given Milo's finalized Wellness checkout has a remaining balance of "$50.00"
@@ -55,3 +55,63 @@ Feature: Duplicate payment protection
     When Dr Avery Taylor records "$40.00" cash with attempt key "cash-1"
     Then the request is refused as an idempotency conflict
     And Customer received one credit
+
+  Scenario Outline: GAP-11 replay preserves the original bill after later settlement
+    When a "<method>" payment of "$20.00" uses attempt key "first"
+    Then the payment response succeeds
+    And the payment response is remembered
+    When Dr Avery Taylor records "$30.00" cash with attempt key "later"
+    Then the payment response succeeds
+    And the remaining balance is "$0.00"
+    When a "<method>" payment of "$20.00" uses attempt key "first"
+    Then the original payment response snapshot is replayed
+    And the stored bill remains settled with two visit attempts
+    And replay sends no additional payment, credit, or completion
+    Examples:
+      | method |
+      | card   |
+      | cash   |
+
+  Scenario: GAP-12 booking and visit payments use independent key scopes
+    Given the booking fee was collected with attempt key "shared"
+    When a "card" payment of "$50.00" uses attempt key "shared"
+    Then the payment response succeeds
+    And the booking and visit payments are independent
+
+  Scenario Outline: GAP-12 card and cash share the bill key scope
+    When a "<first>" payment of "$20.00" uses attempt key "shared"
+    Then the payment response succeeds
+    And the payment response is remembered
+    When a "<second>" payment of "$20.00" uses attempt key "shared"
+    Then the request is refused as an idempotency conflict
+    And the remaining balance is "$30.00"
+    And the checkout retains only the remembered attempt
+    And replay sends no additional payment, credit, or completion
+    Examples:
+      | first | second |
+      | card  | cash   |
+      | cash  | card   |
+
+  Scenario Outline: GAP-13 failed follow-up replay never retries side effects
+    Given <dependency> will fail to <failure>
+    When a "<method>" payment of "$50.00" uses attempt key "failed"
+    Then the result is reported as authorized but completion failed, needing manual recovery
+    And the payment response is remembered
+    When a "<method>" payment of "$50.00" uses attempt key "failed"
+    Then the original failed payment response is replayed
+    And replay sends no additional payment, credit, or completion
+    Examples:
+      | method | dependency  | failure                     |
+      | card   | Reservation | complete the reservation    |
+      | cash   | Reservation | complete the reservation    |
+      | card   | Customer    | record the account credit   |
+      | cash   | Customer    | record the account credit   |
+
+  Scenario: GAP-12 separate bills may reuse the same visit-payment key
+    When a "card" payment of "$50.00" uses attempt key "shared"
+    Then the payment response succeeds
+    And the payment response is remembered
+    Given another recorded visit has its own finalized bill
+    When a "card" payment of "$50.00" uses attempt key "shared"
+    Then the payment response succeeds
+    And the two bills have independent paid attempts

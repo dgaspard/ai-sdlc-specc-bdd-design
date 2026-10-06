@@ -1240,7 +1240,8 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "appliedByVeterinarianId"
+          "appliedByVeterinarianId",
+          "amount"
         ],
         "description": "Veterinarian applies one promotion to a visit's finalized checkout (D-26).",
         "properties": {
@@ -1249,8 +1250,8 @@
           },
           "amount": {
             "$ref": "#/components/schemas/UsdCents",
-            "default": 0,
-            "description": "Discount the veterinarian enters; defaults to $0."
+            "description": "Required discount in cents; at least 1 (D-65).",
+            "minimum": 1
           }
         }
       },
@@ -1287,7 +1288,8 @@
           },
           "amount": {
             "$ref": "#/components/schemas/UsdCents",
-            "description": "Amount entered."
+            "description": "Amount entered.",
+            "minimum": 1
           },
           "appliedAmount": {
             "$ref": "#/components/schemas/UsdCents",

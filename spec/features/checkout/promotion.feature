@@ -2,7 +2,7 @@
 Feature: Apply a promotion
   The veterinarian may apply one final promotion to a visit to reduce what is still owed.
   The amount owed never goes below $0.
-  Decisions: D-26, D-34, D-36. Schema: PromotionCreate, PromotionRead. Telemetry: OBS-030, OBS-040.
+  Decisions: D-26, D-34, D-36, D-59, D-65. Schema: PromotionCreate, PromotionRead. Telemetry: OBS-030, OBS-040.
 
   Background:
     Given Milo's finalized Wellness checkout has a remaining balance of "$50.00"
@@ -23,16 +23,17 @@ Feature: Apply a promotion
     And Checkout asks Reservation to complete the reservation as settled
     And the fake payment provider is not called
 
-  Scenario: The promotion amount defaults to $0
+  Scenario: GAP-15 rejects a missing promotion amount
     When Dr Avery Taylor applies a promotion without entering an amount
-    Then the promotion is saved with amount "$0.00" and applied amount "$0.00"
+    Then the promotion is refused as invalid
+    And no promotion or discount is recorded
     And the remaining balance is "$50.00"
 
   Scenario: Only one promotion per visit
-    Given Dr Avery Taylor has applied a "$0.00" promotion
+    Given Dr Avery Taylor has applied a "$1.00" promotion
     When Dr Avery Taylor applies a "$10.00" promotion
     Then the promotion is refused as "already applied"
-    And the remaining balance is "$50.00"
+    And the remaining balance is "$49.00"
 
   # ENG-02 REV-002: a failure recording the discount with Customer must not leave the
   # promotion attached locally -- otherwise a retry reads as "already applied" even though
@@ -91,3 +92,21 @@ Feature: Apply a promotion
     When the administrator applies a "$15.00" promotion
     Then the promotion is saved with amount "$15.00" and applied amount "$15.00"
     And the remaining balance is "$35.00"
+
+  Scenario: GAP-15 rejects a zero promotion without consuming the one promotion
+    When Dr Avery Taylor applies a "$0.00" promotion
+    Then the promotion is refused as invalid
+    And no promotion or discount is recorded
+    And the remaining balance is "$50.00"
+    When Dr Avery Taylor applies a "$0.01" promotion
+    Then the promotion is saved with amount "$0.01" and applied amount "$0.01"
+
+  Scenario: GAP-09 promotion succeeds but completion fails
+    Given Reservation will fail to complete the reservation
+    When Dr Avery Taylor applies a "$50.00" promotion
+    Then Checkout reports a "dependency_failed" problem with status 502
+    And the remaining balance is "$0.00"
+    And the stored promotion has amount "$50.00"
+    And Checkout sends Customer a discount of "$50.00" for Milo's visit
+    And Checkout asks Reservation to complete the reservation as settled
+    And the fake payment provider is not called
