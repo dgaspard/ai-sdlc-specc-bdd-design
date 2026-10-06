@@ -1,6 +1,6 @@
 # SPEC-06 — Checkout specification gap closure
 
-Stage: tests red; specifications frozen and guard verified before commit.
+Stage: JavaScript fixes verified; all ten frozen test suites pass. Broader SPEC-06 closure still requires independent review and a fresh Python reconstruction.
 
 ## Scope and decisions
 
@@ -70,9 +70,39 @@ introduced to force a red result.
 
 ## Next action
 
-The updated manifest now matches all protected files: `npm --prefix spec run
-guard:check` passes. The build phase fixes the three demonstrated gaps against these frozen checks,
-runs the entire suite and engineering review, and records a fresh Python
-reconstruction against the resulting specifications. The specification checkpoint includes the updated frozen manifest. The earlier
-full-run guard failure above predates that freeze; the three implementation
-failures remain the intentional red baseline.
+The three demonstrated implementation gaps are fixed and `npm test` is green.
+Independent fresh-session engineering review and a fresh Python reconstruction
+remain for the broader SPEC-06 milestone. The frozen specification checkpoint is
+`93f6761`; the implementation follow-up is recorded in the accompanying fix commit. The earlier red verification
+above is retained as historical evidence, not the current test result.
+
+## JavaScript implementation follow-up
+
+The requested fixes are confined to `services/checkout/server.js`:
+
+- A finalized bill with zero remaining balance calls Reservation completion after
+  account writes and local bill persistence, before reporting finalization success.
+  Completion errors still propagate as dependency failures; a repeat finalization
+  cannot repeat the account charge because the saved bill already exists.
+- Payment trace attributes are recorded before the cash assignment check so a
+  rejected action retains the caller's veterinarian ID without accepting payment.
+- Saved promotion attributes are recorded after Customer confirms the discount
+  and before Reservation completion, preserving their evidence on completion error.
+
+Focused verification: all 65 Checkout BDD scenarios and five SPEC-06 trace checks
+pass with the frozen specifications unchanged. Lint passes and Checkout formatting
+passes. Repository-wide formatting reports pre-existing issues in six unchanged
+files (`services/customer/server.js`, `frontend/appointments.js`, `frontend/ui.js`,
+`frontend/veterinarians.js`, `tools/review/portable/check-import-boundaries.mjs`,
+`tools/review/project-specific/import-boundaries.test.mjs`).
+
+Full `npm test`: all ten suites pass. Harness 45, schema 173, runtime 52,
+authentication 274, observability 125, service BDD 284, backend journeys 11,
+browser journeys 9, and performance 4 checks/scenarios pass; guard also passes.
+No protected file or test changed. `npm run test:engineering`: all 10 supplemental checks pass. This implementation review
+is not the independent fresh-session ENG-02 review. That review and the fresh
+Python reconstruction remain follow-ups for closing the broader SPEC-06 item.
+
+Final implementation logs: `test-results/spec-06/implementation-full.log`,
+`implementation-engineering.log`, `implementation-focused.log`, and
+`implementation-check.log`. `git diff --check` passes.

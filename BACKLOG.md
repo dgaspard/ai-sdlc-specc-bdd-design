@@ -54,7 +54,7 @@ talks. Watch for r1's unreproduced startup hang if/when r3 runs. On stage use
 
 ### SPEC-06 — Close Checkout specification gaps found in rehearsal
 
-Status: **tests red (2026-10-05): D-58–D-65 accepted; contract, OBS, BDD and tests frozen; guard passes.** D-66 was already decided and frozen separately. Phase: spec. See [SPEC-06 handoff](docs/handoffs/spec-06.md) for gap-to-test coverage, verification and remaining implementation work. Next: build against the frozen checks. Sources: [rehearsal r1](docs/rehearsals/r1.md),
+Status: **JavaScript fixes verified: D-58–D-65 accepted; specifications frozen; all ten `npm test` suites pass.** D-66 was already decided and frozen separately. Phase: build verification. See [SPEC-06 handoff](docs/handoffs/spec-06.md) for gap-to-test coverage, verification and remaining implementation work. Next: independent engineering review and a fresh Python reconstruction against the updated specs. Sources: [rehearsal r1](docs/rehearsals/r1.md),
 [rehearsal r2](docs/rehearsals/r2.md). MVP-02A shipped first, so SPEC-06 now
 runs its own review-and-freeze cycle. r3 (DEMO-01) should run against the
 specs it produces.

@@ -251,6 +251,7 @@ app.route(
         "checkout.id": c.id,
         "checkout.remaining_amount_cents": c.remainingBalance,
       });
+      if (c.remainingBalance === 0) await complete(c);
       app.outcome("finalized");
       return created(c);
     }),
@@ -300,12 +301,12 @@ app.route(
       await account(c, "discount", promotion.appliedAmount);
       c.promotion = promotion;
       remaining(c);
-      if (c.remainingBalance === 0) await complete(c);
       app.attrs({
         "promotion.id": promotion.id,
         "promotion.amount_cents": amount,
         "promotion.applied_amount_cents": promotion.appliedAmount,
       });
+      if (c.remainingBalance === 0) await complete(c);
       app.outcome("applied");
       return created(c);
     }),
@@ -316,8 +317,8 @@ async function pay({ params, user, body, key }, cash) {
     const c = checkout(user, params.checkoutId);
     // Cash recording is vet/admin-only (D-41 bypass); card payment is customer-only and
     // has no assigned-veterinarian concept to check.
-    if (cash) assignedOrAdmin(user, await currentVet(c.visitId));
     paymentAttrs(c, null, false, cash, user.veterinarianId);
+    if (cash) assignedOrAdmin(user, await currentVet(c.visitId));
     const scopedKey = `visit:${c.id}:${key}`,
       fingerprint = canonical({ ...body, method: cash ? "cash" : "card" });
     if (attempts.has(scopedKey))
