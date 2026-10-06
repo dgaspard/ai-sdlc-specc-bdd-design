@@ -542,3 +542,229 @@ Do not modify frozen tests merely to pass this gate.
 Next action: retain this JavaScript review as the baseline for reconstruction.
 Reuse this gate at every DEMO-01/DEMO-03/EXP-01 checkpoint, with equivalent Python
 code checks and payment/service-boundary review.
+
+### ENG-02 — Independent, calibrated engineering review
+
+**Final status (2026-10-05): complete.** All five components built and applied to the JavaScript build. Calibration round 1: blind reviewer 13/13, automated gates 5/13 after Semgrep hardening, frozen tests 4/13 ([record](../engineering-reviews/eng-02-calibration-2026-10-05.md)). Every real finding is triaged there: fixed, disclosed as THREAT-03/04/05, or carried to the backlog. Remaining: connected-trace capture and an ENG-02 review on the next Python rehearsal (r3).
+
+Status: planned (2026-09-29). Build in parallel with DEMO-01; run before MVP-02A.
+Phase: review tooling (unprotected `tools/review/`), then apply. Supersedes
+[ENG-01](#eng-01--review-implementation-quality-across-the-language-swap)'s
+self-review as the demo-readiness and playbook gate, reusing its checklist.
+
+Why: ENG-01 was written by the same agent that built the code, largely as a
+narrative checklist, and was never tested. The Python rebuild (r1) has no review.
+Passing tests say nothing about behavior the tests don't cover.
+
+**Target architecture (2026-10-03 design decision, physically implemented for
+security checks per A-15 — `tools/review/` should adopt the same
+`portable/`/`project-specific/` folder split once it's built):** build the
+reference implementation in this repo now (there is no Excella platform team
+yet to own a shared version), but author it as a liftable, versioned unit from
+day one, split by portability — the same split that cut the auth-suite
+redundancy, applied to *review* instead of tests:
+
+- **Portable (candidate for a future org-level, centrally curated GitHub Actions
+  check, run from every repo's CI, not forked and maintained per repo):**
+  duplicate-code detection, security scanning (Semgrep/Bandit/secret scan),
+  dependency audit, the import-boundary check's *engine*, the independent-reviewer
+  *process* (fresh session, checklist-driven, cite file/line, human sign-off), and
+  the calibration *methodology* (plant defects, measure catch rate). A generic
+  defect like "non-constant-time secret comparison" is reusable across any
+  project's auth check; it doesn't belong reinvented, or worse not invented, per repo.
+- **Project-specific (stays in this repo, frozen like everything else):** the
+  import-boundary *rules* (which folders map to which service), the observability
+  rule audit (petclinic's own OBS registry), service-boundary/payment-safety
+  checklist content, the threat-model note, and which defects get planted for
+  calibration (though the defect *types* can seed a shared library).
+
+**Long term:** `/harness` (and `tools/review/`) in each repo narrows to (a) the
+project's own frozen contract/business checks, (b) a declared "already covered
+here" manifest so the central service doesn't re-check what a repo already proves,
+and (c) a feed of new recurring findings upward. A platform/security team curates
+the central library and promotes a repo-level finding into it once it recurs
+across multiple projects and has its own calibration case — the same reification
+discipline this project already uses for specs (a gap an agent surfaces doesn't
+matter until it's written into a frozen, re-checkable artifact). A shared,
+mandatory check also needs its own versioning/rollout discipline (semantic
+versions, staged rollout, a pin-and-upgrade path) and clear ownership, since a bad
+update now breaks every consuming repo's CI at once — a GUARD-01 for the org.
+This long-term piece is a design note for the playbook, not built here.
+
+1. **Automated gates (tool-judged, same for every language):**
+   - Duplicate-code detection across services (e.g. jscpd, which reads JS and Python).
+   - Import-boundary check: no service imports another service's code or a store;
+     shared infrastructure (`services/platform/`) is allowed and listed. **Built
+     2026-10-04** — `tools/review/portable/check-import-boundaries.mjs` +
+     `tools/review/project-specific/import-boundaries.json`, wired into
+     `npm run test:engineering`; zero violations on the current baseline, and
+     verified to catch a planted cross-service import. Note
+     `tools/review/project-specific/ownership.test.mjs` (moved 2026-10-04 from
+     `tools/ownership.test.mjs`) is a resource-ownership access-control test
+     despite its name, not this check. See `tools/review/README.md`.
+   - Security scanning: Semgrep (both languages) plus Bandit for Python; secret scan.
+   - Dependency audit: `npm audit` and `pip-audit`.
+   - Connected-trace capture (`npm run trace:payment`) against every build,
+     including Python. **Run 2026-10-05**: PASS on `main` and the `r2` JS
+     rebuild; `r1`/`r3` Python rebuilds need a local run (sandbox can't run
+     their `.venv`) — see `docs/engineering-reviews/eng-02-connected-trace.md`.
+2. **Observability rule audit:** list every OBS rule without a test and have the
+   reviewer check each against the code, recording followed / not followed / N/A.
+   **Done 2026-10-05** — see `docs/engineering-reviews/eng-02-observability-audit.md`
+   and the updated status column in `docs/observability.md`'s traceability table.
+   Two concrete follow-ups found: OBS-008 (exporter failure can crash a service
+   in production — the mitigation is test-harness-only) needs its own BACKLOG
+   item, and OBS-046/047/048 still have no dedicated observability test.
+3. **Independent reviewer agent:** a fresh session that never saw the build,
+   driven by a written checklist prompt (`tools/review/review-prompt.md`) covering
+   service boundaries, payment safety, inter-service auth (including hand-written
+   token signing/verification), privacy in telemetry and errors, and structure.
+   Every finding cites file and line. A human signs off security and boundary findings.
+   **Built and run 2026-10-05** — see `tools/review/review-prompt.md` and the
+   first real review,
+   `docs/engineering-reviews/eng-02-review-impl-02-2026-10-05.md`. Five
+   findings (REV-001–005), **all fixed and verified same day** (see that
+   doc's "Disposition" section; D-57 records REV-003's fix). Note:
+   `isolation: "worktree"` (the confirmed fresh-agent mechanism) isn't
+   available in this Cowork environment — see the amendment in
+   `docs/eng-02-planning.md`.
+4. **Threat-model note:** record known architectural risks, starting with the single
+   shared HS256 secret (any compromised service can forge user tokens); disclose
+   as a demo limitation.
+5. **Calibration:** a set of planted defects applied to a scratch copy (copied
+   business logic across services, payment reference leaked into a span, token
+   check that skips signature or uses non-constant-time compare, cross-service
+   store access, missing OBS attribute on an untested rule). The review passes
+   calibration when it catches every planted defect; record the catch rate.
+   **Round 1 run 2026-10-05.** 13 defects planted (the six above, plus the
+   REV-003 write-only-flag shape, SEC-01's three misses, a removed
+   double-charge guard, a timing-unsafe compare, and a logged bearer token)
+   in a throwaway copy of `main`. Blind fresh reviewer: **13/13**. Frozen
+   tests: 4/13, plus one side effect. Automated gates: 3/13 (jscpd, Semgrep
+   regexp, engineering test). Both custom SEC-01 Semgrep rules missed their
+   own defect class because they matched only on variable names. Hardened
+   with structural rules (`52252a6`), they now catch both, raising the
+   automated gates to 5/13. See
+   `docs/engineering-reviews/eng-02-calibration-2026-10-05.md`. It also
+   lists 11 real findings on `main` awaiting triage, including **guard red
+   on `main`** (protected files edited by the REV fixes, never re-frozen)
+   and **2 failing OBS-043 tests**.
+
+Apply to: the JavaScript baseline (`impl-02`), r1 Python, r2 JavaScript, r3 Python.
+Record under `docs/engineering-reviews/` with gate output, findings, sign-off, and
+calibration score. Feeds PLAY-01.
+
+### SEC-01 — Security spike: calibrate automated gates against AI-generated code
+
+**Final status (2026-10-05):** the 5/8 headline was later shown to be inflated. Two of its catches came from name-matching custom rules that missed ENG-02's realistic plants; both rules were hardened (`52252a6`). See the ENG-02 calibration record.
+
+Status: **complete (2026-10-04).** Run locally (network access the dev
+sandbox doesn't have) via `tools/security/run-sec01-spike.sh` plus standalone
+reruns of the calibration snippets with realistic variable names. Full
+write-up: [`docs/engineering-reviews/sec-01-spike.md`](../engineering-reviews/sec-01-spike.md).
+
+Headline result: **5 of 8 planted defects caught (62.5%)** by Semgrep
+(default registry + two custom rules) + Bandit (Python) + dependency audit
+(`npm audit`/`pip-audit`). Real remaining gaps: the JS injection shape (#3),
+overly broad CORS (#4) — both need new custom Semgrep rules — and the route
+skipping the auth hook (#5), which needs a route-vs-contract cross-check, not
+a scanner. One methodology finding not yet fixed: Bandit's default recursive
+scan includes `.venv`/vendored deps and needs an exclude pattern before its
+real-world output is usable without manual filtering. Feeds ENG-02 item 1
+(automated gates, now has a measured floor) and item 4 (threat-model note,
+via the misses). Recommendation section is written to be lifted directly
+into PLAY-01's playbook.
+
+<details>
+<summary>Original scope (time-boxed spike, prepared 2026-10-03)</summary>
+
+Time-boxed spike (target: 2 days), run in parallel with DEMO-01/ENG-02, before MVP-02A
+build. Not a shipped feature — a research exploration whose output is a
+written recommendation, feeding ENG-02's security gate and PLAY-01's playbook.
+
+Tooling is ready in `tools/security/`, split per A-15 into `portable/`
+(generic checks: `run-sast.sh`, `run-dependency-audit.sh`,
+`run-secret-scan.sh`, two custom Semgrep rules — CODEOWNERS-protected) and
+`project-specific/` (this app's real CORS policy, auth-coverage notes), plus
+`run-sec01-spike.sh` (orchestrates the portable scripts against both real
+builds and a calibration copy), `calibration-defects.md` (now cross-
+referencing each defect's classification), and a fill-in template at
+`docs/engineering-reviews/sec-01-spike.md`. It has not been executed yet:
+Semgrep/Bandit/pip-audit/detect-secrets/`npm audit` all need real network
+access to install and query vulnerability databases, which the environment
+this was prepared in doesn't have (same restriction as the earlier GitHub
+push issue). Run it via Claude Code locally or a normal terminal — see
+`tools/security/README.md` for the exact command.
+
+Why now: published benchmarks put LLM-generated code's vulnerability rate at
+roughly 9.8–42.1%, and AI-introduced issues surviving in public repos passed
+100,000 by February 2026 (see chat log 2026-10-03 for sources). Spec-first reduces
+*wrong* behavior; it does not by itself reduce *insecure* behavior — the contracts
+and BDD scenarios in this project assert business outcomes, not security
+properties, so a correct-and-insecure implementation can pass every frozen test.
+ENG-02 currently lists "Semgrep + Bandit + secret scan + dependency audit" as one
+line item; this spike finds out whether that's actually sufficient, before it's
+load-bearing.
+
+Questions this spike answers:
+- Run Semgrep/Bandit/secret-scan/`npm audit`/`pip-audit` against the existing
+  JavaScript Checkout (`impl-02`) and the Python rebuild (r1). What do they
+  actually flag? Any true positives already present (e.g. the known single shared
+  HS256 secret)?
+- Calibrate: plant 5–8 realistic AI-introduced vulnerabilities in a scratch copy
+  (non-constant-time secret comparison, a secret logged at error level, an
+  injection-shaped string concatenation, a dependency with a known CVE, overly
+  broad CORS, a path that skips the auth hook). What fraction do the chosen tools
+  actually catch? This is the same calibration discipline already used for TEST-01
+  and planned for ENG-02, applied specifically to the security tier.
+- Where tools miss, decide: add a tool, add a targeted scenario-level check
+  (business-observable security properties, e.g. "a declined payment's card
+  reference never appears in telemetry," already partly covered), or accept and
+  disclose the residual gap.
+- Recommendation: a short written practice — which scanners, at what gate, with
+  what measured catch rate — specific enough to go in the Excella playbook as
+  "the minimum automated security floor for AI-generated service code," distinct
+  from ENG-02's broader review (which also covers boundaries, payment safety, and
+  structure, not just security-tool output). Classify each finding/tool as
+  portable (candidate for ENG-02's future central service) or project-specific,
+  per ENG-02's target architecture.
+
+Record under `docs/engineering-reviews/sec-01-spike.md`: tools run, versions,
+findings against both real builds, the calibration table (planted defect → caught
+y/n → by which tool), and the resulting recommendation. Feeds directly into
+ENG-02 item 1 (automated gates) and item 4 (threat-model note).
+
+</details>
+
+### MVP-02A — Administrator role and veterinarian roster
+
+**Final status (2026-10-05): built and frozen.** Built in `04d383f`, frontend frozen in `162e29d`; ENG-02 review and calibration ran against it. GAP-08a was resolved by D-41 (administrator bypass). GAP-08 (`not_assigned_veterinarian` missing from the OBS-030/033 outcome lists) remains open and moved to SPEC-06. A pre-existing AUTH-006 test bug from this item (the dual-role actor masked the admin-only check) was fixed in `e199212`.
+
+Status: planned (re-prioritized 2026-09-29). Starts after DEMO-01. Phase: spec,
+then build. Target: verified by 2026-10-13 for PLAY-01. Purpose: prove the method on
+*adding* functionality to a tested system, the common enterprise case.
+
+Scope:
+
+- Administrator role distinct from veterinarian (auth contract, users seed, tokens).
+- Admin can add and deactivate veterinarians (new API, domain contract changes).
+- Admin can view all appointments; veterinarian privileges narrow to their own work.
+- Frontend admin screen with accessible labels and a browser check.
+- Fold in [SPEC-06](../../BACKLOG.md#spec-06--close-checkout-specification-gaps-found-in-rehearsal)
+  (GAP-09–15) in the same spec review and freeze cycle.
+
+Veterinarian and administrator test scenarios to add (found in rehearsals):
+
+| Gap | Question to decide | Likely artifacts |
+| --- | --- | --- |
+| GAP-08 | A veterinarian who did not perform the visit applies a promotion or records cash and gets 403 `not_assigned_veterinarian`, but that outcome is missing from the OBS-030 / OBS-033 closed outcome lists. Found independently by r1 (Python) and r2 (JavaScript); no test covers it. | OBS-030/OBS-033 outcome lists; observability test; Checkout scenarios |
+| GAP-08a | After the role split, may an administrator apply a promotion or record cash on any visit, or only the assigned veterinarian? What outcome is recorded when an admin is refused? | auth contract; Checkout scenarios; OBS outcomes |
+
+Sequence: business decisions (human answers) → contracts, features, OBS rules →
+protected tests red → human freeze → JavaScript build → `npm test` green → ENG-02.
+Record spec effort, agent time, interventions, and gaps found for PLAY-01.
+After it lands, rerun one fresh Python Checkout rehearsal before 2026-11-07.
+
+Out of scope (remain in MVP-02): office capacity, reassigning other veterinarians'
+appointments, departure policies for future appointments and history, multi-visit
+payments.
