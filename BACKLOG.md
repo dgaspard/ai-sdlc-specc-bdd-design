@@ -54,7 +54,7 @@ talks. Watch for r1's unreproduced startup hang if/when r3 runs. On stage use
 
 ### SPEC-06 — Close Checkout specification gaps found in rehearsal
 
-Status: **decisions in progress (2026-10-05)**. Phase: spec (human review and
+Status: **decisions proposed (2026-10-05): D-58–D-65 (GAP-08–15) and D-66 (REV-016) in `docs/specs/business-decisions.md`, awaiting Dustin's review and freeze.** Next: draft contract, OBS and scenario changes, red, freeze, build. Phase: spec (human review and
 freeze). Sources: [rehearsal r1](docs/rehearsals/r1.md),
 [rehearsal r2](docs/rehearsals/r2.md). MVP-02A shipped first, so SPEC-06 now
 runs its own review-and-freeze cycle. r3 (DEMO-01) should run against the
