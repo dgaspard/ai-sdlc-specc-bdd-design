@@ -170,8 +170,8 @@ function counts(text) {
   if (nodeTests !== undefined) return { tests: nodeTests, passed: last(/^(?:ℹ|#) pass (\d+)/gm), failed: last(/^(?:ℹ|#) fail (\d+)/gm), skipped: last(/^(?:ℹ|#) skipped (\d+)/gm) };
   const scen = t.match(/(\d+) scenarios? \(([^)]*)\)/);
   if (scen) return { tests: Number(scen[1]), passed: Number(scen[2].match(/(\d+) passed/)?.[1] ?? 0), failed: Number(scen[2].match(/(\d+) failed/)?.[1] ?? 0) };
-  const pw = last(/^\s*(\d+) passed/gm);
-  if (pw !== undefined) return { tests: pw + (last(/^\s*(\d+) failed/gm) ?? 0), passed: pw, failed: last(/^\s*(\d+) failed/gm) ?? 0 };
+  const pw = last(/^\s*(\d+) passed/gm), pwFail = last(/^\s*(\d+) failed/gm);
+  if (pw !== undefined || pwFail !== undefined) return { tests: (pw ?? 0) + (pwFail ?? 0), passed: pw ?? 0, failed: pwFail ?? 0 };
   return null;
 }
 
