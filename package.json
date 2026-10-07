@@ -5,6 +5,11 @@
   "description": "Specification-first PetClinic demo: an AI agent builds four services from protected BDD, API, schema, and observability tests.",
   "scripts": {
     "test": "npm --prefix spec test",
+    "test:fast": "node spec/run-all.js --tier fast",
+    "test:gate": "node spec/run-all.js --tier full --cache",
+    "test:suite": "node spec/run-all.js --suite",
+    "test:plan": "node spec/run-all.js --tier fast --dry-run",
+    "test:verify": "node spec/run-all.js --verify",
     "test:engineering": "node --test --test-concurrency=1 tools/review/project-specific/*.test.mjs",
     "trace:payment": "node tools/capture-payment-trace.mjs",
     "demo:journey": "spec/node_modules/.bin/playwright test --config tools/demo/playwright.demo.config.mjs",
