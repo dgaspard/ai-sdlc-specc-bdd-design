@@ -46,5 +46,30 @@ Backlog tasks state which phase they run in.
 - Do not hardcode values solely to satisfy the current examples.
 - Treat `spec/contracts/` and every validator under `spec/tests/` as externally agreed expectations.
 - Do not weaken, skip, or delete a failing BDD, contract, or observability test.
-- Run `npm test` before declaring work complete. All suites must pass.
+- Follow the test loop below. Work is complete only when `npm run test:verify` passes.
+
+## Test loop
+
+`spec/test-policy.json` (protected) defines the suites, the tiers, and which changed paths
+select which suites. `spec/run-all.js` runs them and writes a run record to
+`test-results/runs/<runId>.json` for every run: the exact working-tree hash, why each
+suite ran, its command, counts, duration, and log.
+
+1. **While building:** `npm run test:fast`. It runs the always-set plus the suites
+   selected by files changed since the last verified tree. Run it after each meaningful
+   change, not after every edit. `npm run test:plan` shows what it would run, without running.
+2. **To debug one failure:** `npm run test:suite -- <id>` (ids are in the policy), or run
+   that suite's command from its run record with a test-name pattern. Do not rerun the
+   whole tier to check one fix.
+3. **Before declaring work complete:** `npm run test:gate`. It reuses suites that already
+   passed on this exact tree and runs only the rest. If a shell call has a time limit, run
+   the missing suites in chunks with `test:suite`; results on the same tree add up.
+4. **Prove it:** `npm run test:verify` exits 0 only when every full-tier suite has passed on
+   the current tree. Report the run record paths with the result.
+5. **Reviewers** run `npm run test:verify` and read the run records. Rerun a suite only if
+   the record is missing, failed, or does not match the tree under review.
+
+Any edit changes the tree hash, so earlier passes no longer count. Fix, then gate once.
+CI runs `npm test` (full tier, no cache) on every pull request; local records never
+replace CI.
 - Explain any requirement ambiguity before implementing a guess that changes behavior.
