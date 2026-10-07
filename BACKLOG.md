@@ -219,6 +219,14 @@ Scope (sketch, to be specced properly when picked up):
   write-up) is fixed, so CI doesn't choke on noise.
 - Configure the branch ruleset: PR required, the guard check (`guard:check`)
   required, code-owner review required (closes "GUARD-01 remote").
+- Pre-push git hook running `npm run test:verify` (PERF-03): blocks a push
+  unless every full-tier suite passed on the exact tree being pushed. Pre-push,
+  not pre-commit, so red checkpoint commits stay allowed. Decide how the hook
+  is installed (`core.hooksPath` vs a setup script) and whether `--no-verify`
+  is acceptable when CI is the backstop.
+- Promote the "Full test suite (informational)" job in `guard.yml` to a
+  required check running `npm test` (full tier, no cache); upload
+  `test-results/runs/` as the run-record artifact.
 - Decide fail-vs-warn per check to start (SEC-01's 62.5% catch rate argues
   for treating these as a floor, not a perfect gate, at least initially).
 - `.github/` is CODEOWNERS-protected — any workflow file change here needs
