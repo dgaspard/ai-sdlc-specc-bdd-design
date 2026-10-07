@@ -1,5 +1,9 @@
 // OBS-036..040 explicitly require real service processes. Only payment is fake.
-import { it } from "node:test";
+import { it, after } from "node:test";
+import { stopAll } from "../../harness/processes.js";
+
+// PERF-02: tests reuse running services (ServiceFixture.release); stop them once per file.
+after(stopAll);
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { ServiceFixture, jordan, avery } from "../support/service-fixture.js";
@@ -7,7 +11,7 @@ import { context, readTrace, assertBusiness, spanName, assertCrossProcessParents
 
 async function fixture(t) {
   const f = new ServiceFixture("checkout", { real: true });
-  t.after(() => f.stop()); await f.start(); return f;
+  t.after(() => f.release()); await f.start(); return f;
 }
 const pay = (f, ctx, card = "fake-card-approve", key = randomUUID()) => f.call("POST", `/checkouts/${f.checkout.id}/payments`, {
   actor: "jordan.rivera", body: { amount: 5000, mockMethodReference: card },

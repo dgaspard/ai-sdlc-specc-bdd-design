@@ -1,4 +1,8 @@
-import { it } from "node:test";
+import { it, after } from "node:test";
+import { stopAll } from "../../harness/processes.js";
+
+// PERF-02: tests reuse running services (ServiceFixture.release); stop them once per file.
+after(stopAll);
 import assert from "node:assert/strict";
 import { signJwt, decodeJwt, clinicSeconds } from "../../harness/auth.js";
 import { validateSchema } from "../../harness/schema.js";
@@ -25,7 +29,7 @@ function expectProblem(r, status, code) {
 for (const op of operations) {
   for (const [name, makeToken] of Object.entries(badTokens)) {
     it(`[AUTH-005] ${op.service}.${op.operationId}: ${name} token returns 401`, async (t) => {
-      const f = new ServiceFixture(op.service); t.after(() => f.stop()); await f.start();
+      const f = new ServiceFixture(op.service); t.after(() => f.release()); await f.start();
       const { path, body } = inputFor(op, f);
       for (const stub of Object.values(f.stubs)) stub.requests = [];
       const r = await f.call(op.method, path, { body, token: makeToken(), expected: 401 });
@@ -35,7 +39,7 @@ for (const op of operations) {
   }
   for (const [role, actor] of Object.entries(actors).filter(([r]) => !op["x-roles"].includes(r))) {
     it(`[AUTH-006] ${op.service}.${op.operationId}: ${role} role returns 403`, async (t) => {
-      const f = new ServiceFixture(op.service); t.after(() => f.stop()); await f.start();
+      const f = new ServiceFixture(op.service); t.after(() => f.release()); await f.start();
       const { path, body } = inputFor(op, f);
       for (const stub of Object.values(f.stubs)) stub.requests = [];
       const r = await f.call(op.method, path, { body, actor, expected: 403 });
@@ -45,7 +49,7 @@ for (const op of operations) {
   }
   if (ownership.has(op.operationId)) {
     it(`[AUTH-007] ${op.service}.${op.operationId}: another customer's existing record returns 404`, async (t) => {
-      const f = new ServiceFixture(op.service); t.after(() => f.stop()); await f.start();
+      const f = new ServiceFixture(op.service); t.after(() => f.release()); await f.start();
       if (op.service === "reservation") {
         if (op.operationId === "getVisit") await f.recordedVisit();
         else { await f.request(); if (op.operationId === "cancelReservation") await f.accept(); }
@@ -64,7 +68,7 @@ for (const op of operations) {
   }
   if (collections.has(op.operationId)) {
     it(`[AUTH-007] ${op.service}.${op.operationId}: lists never expose another customer's records`, async (t) => {
-      const f = new ServiceFixture(op.service); t.after(() => f.stop()); await f.start();
+      const f = new ServiceFixture(op.service); t.after(() => f.release()); await f.start();
       if (op.service === "checkout") await f.finalized();
       else if (op.operationId === "listVisits") await f.recordedVisit();
       else await f.request();

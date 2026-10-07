@@ -1,6 +1,10 @@
 // Per-service business spans: real subject, contract-checked dependencies, real
 // payment fake. Cross-process evidence is in business-workflows.test.js.
-import { it } from "node:test";
+import { it, after } from "node:test";
+import { stopAll } from "../../harness/processes.js";
+
+// PERF-02: tests reuse running services (ServiceFixture.release); stop them once per file.
+after(stopAll);
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { ServiceFixture, jordan, milo, avery, wellness, unknownId, reservationBody, visitBody, problem } from "../support/service-fixture.js";
@@ -286,7 +290,7 @@ for (const outcome of ["corrected", "not_assigned_veterinarian", "invalid_state"
 });
 
 for (const [index, c] of cases.entries()) it(`[${c.id}] ${rules[c.id][1]} emits ${c.outcome} (case ${index + 1})`, async (t) => {
-  const f = new ServiceFixture(rules[c.id][0]); t.after(() => f.stop()); await f.start();
+  const f = new ServiceFixture(rules[c.id][0]); t.after(() => f.release()); await f.start();
   const q = await c.arrange(f), ctx = context();
   const r = await send(f, q, ctx.headers);
   if (r.status >= 400) assert.equal(r.body.code, c.outcome === "failed" ? "dependency_failed" : c.outcome);
@@ -295,7 +299,7 @@ for (const [index, c] of cases.entries()) it(`[${c.id}] ${rules[c.id][1]} emits 
 });
 
 for (const service of ["reservation", "checkout"]) it(`[OBS-002] ${service} injects client trace parents${service === "reservation" ? " and isolates concurrent requests" : " on finalization"}`, async (t) => {
-  const f = new ServiceFixture(service); t.after(() => f.stop()); await f.start();
+  const f = new ServiceFixture(service); t.after(() => f.release()); await f.start();
   const contexts = service === "reservation" ? [context(), context()] : [context()];
   const bodies = [reservationBody(), { ...reservationBody(), petId: seed.pet("Luna").id }];
   const calls = service === "reservation"
@@ -325,7 +329,7 @@ for (const service of ["reservation", "checkout"]) it(`[OBS-002] ${service} inje
 });
 
 it("[OBS-002] acceptance propagates a client parent to the Checkout stub", async (t) => {
-  const f = new ServiceFixture("reservation"); t.after(() => f.stop()); await f.start(); await f.request();
+  const f = new ServiceFixture("reservation"); t.after(() => f.release()); await f.start(); await f.request();
   const ctx = context();
   await f.call("POST", `/reservations/${f.reservation.id}/accept`, { headers: ctx.headers,
     body: { bookingFee: { method: "card", mockMethodReference: "fake-card-approve" } }, expected: 200 });
@@ -337,7 +341,7 @@ it("[OBS-002] acceptance propagates a client parent to the Checkout stub", async
 
 for (const [id, route] of [['OBS-030', 'promotion'], ['OBS-033', 'cash-payments']]) {
   it(`[${id}] SPEC-06 assignment rejection has no financial side effects`, async (t) => {
-    const f = new ServiceFixture('checkout'); t.after(() => f.stop()); await f.start(); await f.finalized();
+    const f = new ServiceFixture('checkout'); t.after(() => f.release()); await f.start(); await f.finalized();
     const before = f.stubs.customer.received('POST', '/internal/customers/{customerId}/account-changes').length;
     const ctx = context();
     const r = await f.call('POST', `/checkouts/${f.checkout.id}/${route}`, {
@@ -361,7 +365,7 @@ for (const [id, route, outcome, code] of [
   ['OBS-031', 'payments', 'authorized_completion_failed', 'authorized_completion_failed'],
 ]) {
   it(`[${id}] SPEC-06 completion failure retains the accepted money step`, async (t) => {
-    const f = new ServiceFixture('checkout'); t.after(() => f.stop()); await f.start(); await f.finalized();
+    const f = new ServiceFixture('checkout'); t.after(() => f.release()); await f.start(); await f.finalized();
     f.stubs.reservation.respond('POST', '/internal/reservations/{reservationId}/complete', 409, problem(409, 'invalid_state'));
     const ctx = context(), key = randomUUID();
     const r = await f.call('POST', `/checkouts/${f.checkout.id}/${route}`, {

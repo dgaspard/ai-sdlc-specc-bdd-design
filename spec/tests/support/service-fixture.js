@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PROJECTS, DEFAULT_CLINIC_NOW, projectUrl } from "../../harness/config.js";
-import { assertImplemented, ensureRunning, resetProject, setClinicClock, stopAll } from "../../harness/processes.js";
+import { assertImplemented, ensureRunning, resetProject, setClinicClock, stopAll, stopProject } from "../../harness/processes.js";
 import { StubServer } from "../../harness/stub-server.js";
 import { validateRequest, validateResponse } from "../../harness/schema.js";
 import { signJwt, serviceToken, clinicSeconds, USER_TOKEN_SECONDS } from "../../harness/auth.js";
@@ -48,6 +48,13 @@ export class ServiceFixture {
       await ensureRunning("payment");
       await resetProject("payment");
     }
+    // PERF-02: services may still be running from an earlier test that called release().
+    // In stub mode, only the service under test may stay up; every other real service is
+    // stopped so it cannot hold a stub's port or send telemetry to the collector.
+    if (!this.real) {
+      const others = Object.keys(PROJECTS).filter((n) => PROJECTS[n].kind === "service" && n !== this.service);
+      await Promise.all(others.map(stopProject));
+    }
     if (!this.real) for (const dep of PROJECTS[this.service].dependsOn.filter((n) => n !== "payment")) {
       this.stubs[dep] = new StubServer(dep);
       await this.stubs[dep].start();
@@ -60,6 +67,15 @@ export class ServiceFixture {
   }
   async stop() {
     await stopAll();
+    await this.release();
+  }
+  /**
+   * PERF-02: ends this test's stubs but leaves real services running so the next test in
+   * the file can reuse them. Isolation comes from start(), which resets every project it
+   * uses (POST /test/reset clears all state and restores CLINIC_NOW, RT-004/RT-009).
+   * A file that uses release() must call stopAll() once in a file-level after() hook.
+   */
+  async release() {
     await Promise.all(Object.values(this.stubs).map((s) => s.stop()));
   }
   async clock(now) {
