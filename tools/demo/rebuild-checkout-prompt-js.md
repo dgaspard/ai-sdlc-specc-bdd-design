@@ -18,7 +18,9 @@ Requirements:
   export. Keep other dependencies minimal and standard.
 - Keep storage in memory.
 
-Work in small steps: run the Checkout service scenarios and fix failures, then the
-workflow and browser journeys, then `npm test`. Done means `npm test` passes all
-suites with no changes to protected files. If a specification looks wrong, stop
+Follow the test loop in `AGENTS.md`. Work in small steps: use `npm run test:fast`
+(or `npm run test:suite -- <id>` for one failing suite) while building, starting with
+the Checkout service scenarios, then the workflow and browser journeys. Then run
+`npm run test:gate`. Done means `npm run test:verify` passes, with no changes to
+protected files; report the run record paths. If a specification looks wrong, stop
 and explain instead of working around it.
