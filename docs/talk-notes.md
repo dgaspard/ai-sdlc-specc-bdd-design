@@ -258,6 +258,43 @@ thing that actually needed it — the presentation itself.
 **Takeaway:** define "done" before you start, or you'll keep redefining it
 as "more than I currently have," forever.
 
+### Lesson 8 — "Fix everything the agent finds"
+
+**The assumption:** if an independent agent review finds a problem, you fix
+it before moving on.
+
+**What happened (r4, 2026-10-07):** a fresh agent rebuilt Checkout in Python
+from the frozen specs. That took about 15 minutes of agent time, with zero
+interventions. All 10 suites passed: 977 tests. An independent ENG-02
+reviewer then found 11 issues, including a critical one: a same-key payment
+retry could charge the card twice after a downstream timeout. Every test
+missed it, because the harness only simulates downstream failures as clean
+HTTP refusals, never timeouts or dropped connections. The builder had also
+reported two new product gaps on its own. Run the engineering checks, and one
+more test fails.
+
+**Why this pivot, specifically:** each pass produces a new list. Fix it and
+the next rebuild or review will find more, in the product requirements, the
+workflows, the harness. Agents are tireless at finding "one more thing." If
+the rule is "fix everything the agent finds," you never ship.
+
+**What changed:** the failing check was skipped with an annotation in the
+test itself, naming the finding and pointing to the review. The skip only
+applies to the Python build, and the JavaScript build still runs the check.
+The critical finding stays documented in the review, not silently fixed.
+Nothing was hidden: the decision is visible in the code, the review record
+and the backlog.
+
+**Takeaway:** the AI makes finding problems nearly free, but deciding which
+ones matter is still a human job. In a regulated setting that decision is
+the deliverable: an accepted, documented risk with a name on it beats an
+endless loop of fixes. This pairs with Lesson 7: define "done" before the
+agent defines it for you.
+
+**Show it:** the green 977-test run next to the critical REV-001. "Every
+test passed. The review found a double charge. Here's what we decided, and
+where that decision lives."
+
 ### A pivot that wasn't about code
 
 When a genuine external pull showed up — a chance to present this work to

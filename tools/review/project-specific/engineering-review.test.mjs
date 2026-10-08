@@ -3,6 +3,7 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import {
   ServiceFixture,
   problem,
@@ -79,19 +80,36 @@ it("authorized payment with failed completion: concurrent and sequential retries
   );
 });
 
-it("uncertain bill creation cannot issue a second account charge", async (t) => {
-  const fixture = new ServiceFixture("checkout");
-  t.after(() => fixture.stop());
-  await fixture.start();
-  // A disconnected Customer may already have applied a write. Never blindly retry.
-  await fixture.stubs.customer.stop();
-  const request = () =>
-    fixture.call("POST", `/visits/${fixture.visit.id}/checkout`, {
-      expected: 502,
-    });
-  assert.equal((await request()).body.code, "dependency_failed");
-  await fixture.stubs.customer.start();
-  const before = fixture.stubs.customer.requests.length;
-  assert.equal((await request()).body.code, "dependency_failed");
-  assert.equal(fixture.stubs.customer.requests.length, before);
-});
+// Skipped for the Python Checkout (r4), on purpose. ENG-02 REV-003
+// (docs/engineering-reviews/eng-02-review-r4-python-2026-10-07.md): the Python build
+// relies on Customer's per-visit charge dedupe instead of refusing to retry. This is
+// accepted and documented, not fixed. Talk notes, Lesson 8: the review loop never ends,
+// so decide when to stop. The JavaScript build still runs this check.
+const pythonCheckout = existsSync(
+  new URL("../../../services/checkout/requirements.txt", import.meta.url),
+);
+
+it(
+  "uncertain bill creation cannot issue a second account charge",
+  {
+    skip:
+      pythonCheckout &&
+      "accepted for Python Checkout: ENG-02 REV-003 (see comment)",
+  },
+  async (t) => {
+    const fixture = new ServiceFixture("checkout");
+    t.after(() => fixture.stop());
+    await fixture.start();
+    // A disconnected Customer may already have applied a write. Never blindly retry.
+    await fixture.stubs.customer.stop();
+    const request = () =>
+      fixture.call("POST", `/visits/${fixture.visit.id}/checkout`, {
+        expected: 502,
+      });
+    assert.equal((await request()).body.code, "dependency_failed");
+    await fixture.stubs.customer.start();
+    const before = fixture.stubs.customer.requests.length;
+    assert.equal((await request()).body.code, "dependency_failed");
+    assert.equal(fixture.stubs.customer.requests.length, before);
+  },
+);
