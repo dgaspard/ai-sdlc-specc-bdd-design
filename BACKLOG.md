@@ -177,7 +177,10 @@ Decided (Dustin, 2026-10-07):
   example `@accepted-risk(REV-003, owner=dustin, review=2027-01-31)`. The guard
   fails after the review date, so an accepted risk is never permanent by default.
 
-**Drafted in protected files 2026-10-07; awaiting Dustin's review and `guard:freeze`.**
+**Frozen and verified 2026-10-07 (`03b374b`): full gate complete, 11/11 suites on
+tree `650e97bee43a`. REV-001 reports STATE CHANGE failing → passing on JavaScript, as
+expected. Still to confirm: ACCEPTED on a Python Checkout build.** Earlier: drafted in
+protected files and reviewed by Dustin.
 Includes stub transport faults and the REV-001 accepted risk. Seven calibration
 plants were all caught. See [docs/spec-07-design.md](docs/spec-07-design.md),
 "Implementation (as drafted)". Original next step: draft the design. This means the tag grammar, the guard changes (reject

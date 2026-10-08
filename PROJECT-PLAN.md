@@ -71,9 +71,10 @@ not repeat it. As of 2026-10-07 the project is ahead of the revised schedule
 below. Complete: specification, architecture, JavaScript implementation,
 frontend, performance, SEC-01, MVP-02A, ENG-02, and the SPEC-06 freeze (all ten
 suites pass on JavaScript). r1 and r2 are accepted as reconstruction evidence.
-Next: rehearsal r4, a fresh JavaScript → Python Checkout rebuild against the
-SPEC-06 specs (tag `exp-01-spec06-baseline`), then ENG-02 on its output. r4
-closes SPEC-06 and is EXP-01's third reconstruction. PLAY-01 (due 2026-10-13)
+r4, a fresh JavaScript → Python Checkout rebuild against the SPEC-06 specs,
+passed with zero interventions, and ENG-02 has reviewed it. That closes SPEC-06
+and gives EXP-01 its third reconstruction. Next: SPEC-07 (suppressing tests and
+retiring features through the spec), ahead of CI-01. PLAY-01 (due 2026-10-13)
 and DEMO-02 are handled offline.
 
 ## Working agreements and ownership
