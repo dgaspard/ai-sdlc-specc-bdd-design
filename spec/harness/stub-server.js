@@ -23,8 +23,29 @@ export class StubServer {
     this.contract = p.contract;
     this.validate = validate;
     this.routes = [];
+    this.faults = [];
     this.requests = [];
     this.server = null;
+  }
+
+  /**
+   * SPEC-07 / ENG-02 REV-001: injects a transport failure, not an HTTP answer, so
+   * scenarios can cover what a contract can't declare: a dropped connection or a
+   * dependency that never replies. The request is still recorded in `requests`.
+   *   kind "reset": destroys the socket before any response (connection reset)
+   *   kind "hang":  never responds; the connection closes on stop() or reset()
+   * `times` is how many matching requests fail before normal routes answer again.
+   */
+  fault(method, pathTemplate, kind, { times = 1 } = {}) {
+    if (!["reset", "hang"].includes(kind)) throw new Error(`Unknown stub fault "${kind}"`);
+    if (this.validate) {
+      const { doc } = loadContract(this.contract);
+      if (!doc.paths?.[pathTemplate]?.[method.toLowerCase()]) {
+        throw new StubContractError(`${this.title} contract has no ${method.toUpperCase()} ${pathTemplate}`);
+      }
+    }
+    this.faults.push({ method: method.toUpperCase(), pathTemplate, kind, remaining: times });
+    return this;
   }
 
   /**
@@ -59,7 +80,15 @@ export class StubServer {
 
   reset() {
     this.routes = [];
+    this.faults = [];
     this.requests = [];
+    this.#releaseHanging();
+  }
+
+  #hanging = new Set();
+  #releaseHanging() {
+    for (const res of this.#hanging) res.socket?.destroy();
+    this.#hanging.clear();
   }
 
   async start() {
@@ -76,6 +105,7 @@ export class StubServer {
     if (!this.server) return;
     const s = this.server;
     this.server = null;
+    this.#releaseHanging();
     s.closeAllConnections?.();
     await new Promise((r) => s.close(r));
   }
@@ -95,6 +125,16 @@ export class StubServer {
     this.requests.push(entry);
 
     if (path === "/health") return send(res, 200, { status: "ok" });
+    const fault = this.faults.find((f) => f.remaining > 0 && f.method === req.method
+      && (f.pathTemplate === pathTemplate || f.pathTemplate === path));
+    if (fault) {
+      fault.remaining -= 1;
+      entry.fault = fault.kind;
+      if (fault.kind === "reset") return req.socket.destroy();
+      this.#hanging.add(res);
+      res.on("close", () => this.#hanging.delete(res));
+      return undefined; // "hang": never answer
+    }
     const route = this.routes.find((r) => r.method === req.method
       && (r.pathTemplate === pathTemplate || r.pathTemplate === path));
     if (!route) {

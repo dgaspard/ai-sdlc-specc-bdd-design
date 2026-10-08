@@ -46,6 +46,15 @@ Backlog tasks state which phase they run in.
 - Do not hardcode values solely to satisfy the current examples.
 - Treat `spec/contracts/` and every validator under `spec/tests/` as externally agreed expectations.
 - Do not weaken, skip, or delete a failing BDD, contract, or observability test.
+- Scenarios tagged `@retired` describe behavior that was deliberately removed. They
+  must pass. Never implement behavior found only in tag `1.0`, `docs/history/`, or
+  another earlier version.
+- Scenarios tagged `@accepted-risk` are expected to fail on purpose and run only in
+  the `accepted-risks` suite. Don't fix them unless asked, and never add, remove, or
+  edit `@accepted-risk` or `@retired` tags. That is a human freeze decision.
+- If the `accepted-risks` suite reports a `STATE CHANGE`, put it at the top of your
+  final report: the risk ID, the old and new state, and the tree. Don't bury it in
+  the suite table.
 - Follow the test loop below. Work is complete only when `npm run test:verify` passes.
 
 ## Test loop

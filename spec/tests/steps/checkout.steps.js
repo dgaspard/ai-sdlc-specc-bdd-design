@@ -544,6 +544,19 @@ Given("Customer will fail to record the account credit", function () {
 Given("Customer now records account changes normally", function () {
   restoreAccountChanges(this);
 });
+// SPEC-07 / ENG-02 REV-001: a transport failure, not a refusal. Customer receives the
+// request but drops the connection before answering, once; later requests answer normally.
+// A dropped connection leaves it unknown whether Customer applied the change.
+Given("Customer will drop the connection on the next account change", function () {
+  this.stubs.customer.fault("POST", "/internal/customers/{customerId}/account-changes", "reset");
+});
+When("Jordan pays the visit balance with attempt key {string}", async function (label) {
+  await pay(this, { key: labelId(this, label) });
+});
+Then("Customer applied at most one credit", function () {
+  const applied = accountChanges(this, "credit").filter((r) => !r.fault);
+  assert.ok(applied.length <= 1, `expected at most one applied credit, got ${applied.length}`);
+});
 Then("the payment attempt is recorded as {string}", async function (outcome) {
   const attemptId = this.response.body.paymentAttemptId;
   assert.ok(attemptId, "the failure must identify the payment attempt for manual recovery");

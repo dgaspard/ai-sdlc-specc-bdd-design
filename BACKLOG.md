@@ -109,6 +109,83 @@ Status: planned. Decisions A-05, A-12. The on-stage flow:
   `npm test` summary, the elapsed time, and the connected trace.
 - Fallback: the recorded r3 rehearsal. Stretch (recorded): whole backend in Python.
 
+### SPEC-07 — Suppressing tests and retiring features through the spec
+
+Status: **next, before CI-01** (decided 2026-10-07: this could make or break the
+process). Design discussion first; no protected change until Dustin approves the
+approach. Captured 2026-10-07 after r4/ENG-02.
+
+The problem: today there is no sanctioned way to say "this check is knowingly
+suppressed" or "this feature is gone." Both happen informally, and an agent can't
+tell an intentional retirement from a gap to fill.
+
+- **Suppression.** The REV-003 skip in
+  `tools/review/project-specific/engineering-review.test.mjs` is a code comment plus
+  a conditional `skip:`. The guard (`spec/guard/guard.js`, `SKIP_CODE` and
+  `SKIP_TAG`) blocks skips only under `spec/`, and only in literal forms such as
+  `.skip(` or `{ skip: true }`. A conditional `skip: cond && "reason"` would get
+  past it even under `spec/`. The guard works on syntax, not on intent.
+- **Retirement.** IMPL-01 (legacy visit cancellation, retired by D-24) was
+  removed by deleting it. Nothing stops a rebuild from bringing back a
+  decommissioned feature, or building from an old spec, if it finds traces in
+  docs, history or an earlier tag.
+
+Goal: suppressing a check and retiring a feature both go through the protected
+spec layer and human freeze, and the harness catches anything built that
+shouldn't be.
+
+Options to weigh (not decisions):
+
+- **Feature-file tags with a required reason.** For example `@accepted-risk(REV-003)`
+  or `@retired(D-24)`, where the guard requires a reference to a decision or review
+  record and rejects bare `@skip`. A suppression list frozen with the specs, which
+  the runner reads, instead of skips inside test code.
+- **Retired behavior as a negative scenario.** "Given D-24, when a client calls the
+  old cancellation endpoint, then it gets 404 and no trace is emitted." This turns a
+  decommissioned feature into an executable "must not exist" check, so a rebuild
+  that brings it back fails.
+- **Contract-level allowlist.** The harness fails if a service exposes any route or
+  span not in the current OpenAPI or OBS registry, catching old-spec or invented
+  endpoints in general, not just known retirements.
+- **Spec version pinning.** Each run record names the spec freeze it was built
+  against, so a build from a stale spec is detectable (the runner already records
+  the policy sha256).
+- **Expiry.** An accepted risk carries an owner and a review date, so suppression
+  isn't permanent by default. This fits the regulated-audience framing.
+
+Decided (Dustin, 2026-10-07):
+
+- **Detection: negative scenarios.** Each retired feature gets an executable
+  "must not exist" scenario. A contract allowlist and spec pinning are not
+  chosen for now.
+- **Suppression: feature-file tags** (for example `@accepted-risk(REV-003)`), with
+  the guard requiring a reference to a decision or review record.
+- **Scope: `spec/` only.** Engineering checks in `tools/review/` stay advisory and
+  can be skipped with a comment (as REV-003 was).
+- **`@accepted-risk` scenarios still run and are expected to fail.** A failure is
+  reported as "accepted." A pass is flagged so someone removes the tag. The risk
+  stays visible on every run.
+- **Only BDD scenarios can be suppressed.** Contract, OBS, auth, schema and runtime
+  tests (`node:test`) are hard gates with no suppression mechanism. If one is
+  wrong, the contract changes through freeze.
+- **Retirement scenarios live in the owning service's feature folder** (for
+  example `reservation/retired.feature`, tagged `@retired(D-24)`).
+- **Retirement covers only features that once shipped,** meaning they existed in a
+  tagged build or frozen spec and a decision later decommissioned them. Proposals
+  that never shipped are not included.
+- **Accepted risk expires.** The tag carries an owner and a review date, for
+  example `@accepted-risk(REV-003, owner=dustin, review=2027-01-31)`. The guard
+  fails after the review date, so an accepted risk is never permanent by default.
+
+**Drafted in protected files 2026-10-07; awaiting Dustin's review and `guard:freeze`.**
+Includes stub transport faults and the REV-001 accepted risk. Seven calibration
+plants were all caught. See [docs/spec-07-design.md](docs/spec-07-design.md),
+"Implementation (as drafted)". Original next step: draft the design. This means the tag grammar, the guard changes (reject
+bare `@skip`, close the conditional-`skip:` hole, validate references and dates),
+expected-failure handling in the Cucumber runner, and one worked example of each
+(a retired IMPL-01 cancellation under D-24, and one accepted risk). Then Dustin
+reviews it before anything protected changes.
+
 ## Open follow-ups on completed work
 
 - **GUARD-01 remote:** configure and verify the GitHub branch ruleset (PR required,

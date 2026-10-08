@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { manifestFor, compare, scanSkips, listProtected } from "../../guard/guard.js";
+import { manifestFor, compare, scanSkips, scanTags, listProtected } from "../../guard/guard.js";
 
 let root;
 const write = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text); };
@@ -42,5 +42,53 @@ describe("guard", () => {
     write("spec/tests/b.test.js", skipCall);
     write("spec/features/b.feature", "Feature: B\n  @wip\n  Scenario: C\n");
     assert.equal(scanSkips(root).length, 2);
+  });
+
+  // SPEC-07. Markers are assembled at runtime so the real scan of this file finds nothing.
+  it("[SPEC-07] finds conditional skips, escape hatches, and new bare tags, but not comments or prose", () => {
+    const s = (...p) => p.join("");
+    write("spec/tests/c.test.js", [
+      s("it('x', { sk", "ip: process.env.CI && 'later' }, () => {});"),
+      s("Given('x', function () { return 'skip", "ped'; });"),
+      s("test.fix", "me(true, 'flaky');"),
+      s("// it.sk", "ip( in a comment is fine"),
+      "const label = 'Administrator-only: no veterinarian identity';",
+    ].join("\n"));
+    write("spec/harness/h.js", s("t.sk", "ip('harness code is scanned too');\n"));
+    write("spec/features/c.feature", s("Feature: C\n  # @pen", "ding in a comment\n  @pen", "ding\n  Scenario: D\n"));
+    const hits = scanSkips(root).filter((h) => /\/c\.|\/h\.js/.test(h));
+    assert.deepEqual(hits.map((h) => h.split(" ")[0]),
+      ["spec/features/c.feature:3", "spec/harness/h.js:1", "spec/tests/c.test.js:1", "spec/tests/c.test.js:2", "spec/tests/c.test.js:3"]);
+  });
+
+  it("[SPEC-07] validates @accepted-risk and @retired tags, references, and expiry", () => {
+    write("docs/specs/business-decisions.md", "| D-24 | Legacy app replaced. |\n");
+    write("docs/engineering-reviews/rev-file.md", "REV-001 double charge\n");
+    const ok = "@accepted-risk @risk:REV-001 @source:rev-file @owner:dustin @review:2027-01-31";
+    write("spec/features/t.feature", [
+      "Feature: T",
+      `  ${ok}`, "  Scenario: valid risk",
+      "  @retired @decision:D-24", "  Scenario: valid retirement",
+      "  @accepted-risk @risk:REV-001 @source:rev-file @owner:dustin", "  Scenario: no review date",
+      "  @accepted-risk @risk:REV-999 @source:rev-file @owner:dustin @review:2027-01-31", "  Scenario: unknown review id",
+      "  @accepted-risk @risk:D-99 @owner:dustin @review:2027-01-31", "  Scenario: unknown decision",
+      "  @accepted-risk @risk:REV-001 @source:rev-file @owner:dustin @review:2026-01-01", "  Scenario: expired",
+      "  @retired", "  Scenario: retired without decision",
+      "  @risk:REV-001", "  Scenario: metadata without the tag",
+    ].join("\n"));
+    write("spec/features/u.feature", "@retired @decision:D-24\nFeature: whole feature retired\n");
+    const r = scanTags(root, "2026-10-07");
+    assert.deepEqual(r.errors.map((e) => e.split(" ")[0]), [
+      "spec/features/t.feature:7",  // no review date
+      "spec/features/t.feature:9",  // REV-999 not in the review file
+      "spec/features/t.feature:11", // D-99 not a decision
+      "spec/features/t.feature:13", // review date passed
+      "spec/features/t.feature:15", // @retired without @decision
+      "spec/features/t.feature:17", // metadata tag without @accepted-risk
+      "spec/features/u.feature:2",  // feature-level retirement
+    ]);
+    assert.ok(r.register.some((x) => x.scenario === "valid risk" && x.owner === "dustin" && x.review === "2027-01-31"));
+    assert.equal(scanTags(root, "2027-01-20").warnings.filter((w) => w.includes("valid risk")).length, 1, "warns within 14 days");
+    assert.equal(scanTags(root, "2027-02-01").errors.filter((e) => e.includes("valid risk")).length, 1, "fails after the review date");
   });
 });

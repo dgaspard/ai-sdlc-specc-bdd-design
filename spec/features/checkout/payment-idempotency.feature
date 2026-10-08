@@ -7,6 +7,18 @@ Feature: Duplicate payment protection
   Background:
     Given Milo's finalized Wellness checkout has a remaining balance of "$50.00"
 
+  # SPEC-07: accepted risk. Expected to fail on builds that don't record the attempt
+  # key before a dependency's transport failure (ENG-02 REV-001, Python Checkout r4).
+  # It runs only in the accepted-risks suite; a pass is reported as a STATE CHANGE.
+  @accepted-risk @risk:REV-001 @source:eng-02-review-r4-python-2026-10-07 @owner:dustin @review:2027-01-31
+  Scenario: A same-key retry after Customer drops the connection does not charge again
+    Given the fake payment provider will authorize the card
+    And Customer will drop the connection on the next account change
+    When Jordan pays the visit balance with attempt key "key-1"
+    And the identical request is sent again with attempt key "key-1"
+    Then the fake payment provider was called only once
+    And Customer applied at most one credit
+
   Scenario: Replay an authorized payment
     Given the fake payment provider will authorize the card
     And Jordan paid the visit balance with attempt key "key-1"

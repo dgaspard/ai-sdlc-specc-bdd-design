@@ -1,8 +1,9 @@
 // Steps shared by every service feature. Protected test.
-import { Given, Then } from "@cucumber/cucumber";
+import { Given, When, Then } from "@cucumber/cucumber";
 import assert from "node:assert/strict";
 import { central } from "../../harness/clinic-time.js";
 import * as seed from "../../harness/seed.js";
+import { projectUrl } from "../../harness/config.js";
 
 /** Feature wording -> problem `code`, e.g. "invalid slot" -> "invalid_slot". */
 export const codeFor = (reason) => reason.trim().toLowerCase().replace(/\s+/g, "_");
@@ -46,4 +47,26 @@ Given("{string} is logged in", async function (username) {
 
 Then(/^the ([a-z]+) is (?:refused|rejected) as "([^"]+)"$/, function (_subject, reason) {
   expectProblem(this, codeFor(reason));
+});
+
+// SPEC-07: retired behavior (@retired @decision:D-nn). The endpoint is deliberately absent
+// from the current contract, so this call bypasses world.api()'s contract validation and
+// records only status and body. Path parameters come from the scenario's reservation:
+// {petId} is its pet, {visitId}/{reservationId} its id (the legacy app's "visit").
+When("{word} calls the retired endpoint {string} for that reservation", async function (who, endpoint) {
+  const [method, template] = endpoint.split(" ");
+  const r = this.memo.reservation;
+  const ids = { petId: r.petId, visitId: r.id, reservationId: r.id, customerId: r.customerId };
+  const path = template.replace(/\{([^}]+)\}/g, (_, k) => {
+    assert.ok(ids[k], `no value for {${k}} in ${template}`);
+    return ids[k];
+  });
+  await this.actAs(who);
+  const res = await fetch(`${projectUrl(this.service)}${path}`, { method, headers: { authorization: `Bearer ${this.token}` } });
+  const text = await res.text();
+  this.response = { status: res.status, body: text, headers: Object.fromEntries(res.headers) };
+});
+
+Then("the response is {int}", function (status) {
+  assert.equal(this.response.status, status, `expected ${status}, got ${this.response.status} ${this.response.body}`);
 });

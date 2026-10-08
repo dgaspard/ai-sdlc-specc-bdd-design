@@ -181,7 +181,7 @@ function runSuite(s) {
     const log = fs.createWriteStream(logFile);
     let out = "";
     const started = Date.now();
-    const child = spawn(s.cmd, s.args, { cwd: SPEC, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, FORCE_COLOR: process.stdout.isTTY ? "1" : "0" } });
+    const child = spawn(s.cmd, s.args, { cwd: SPEC, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, FORCE_COLOR: process.stdout.isTTY ? "1" : "0", PETCLINIC_TREE: tree } });
     const tee = (stream) => (chunk) => { stream.write(chunk); log.write(chunk); out += chunk; };
     child.stdout.on("data", tee(process.stdout));
     child.stderr.on("data", tee(process.stderr));
@@ -189,7 +189,9 @@ function runSuite(s) {
       log.end();
       resolve({ id: s.id, name: s.name, command: `${s.cmd} ${s.args.join(" ")}`, cwd: "spec", scope: s.scope,
         reasons: s.reasons, status: code === 0 ? "pass" : "fail", exitCode: code, durationMs: Date.now() - started,
-        counts: counts(out), log: path.relative(ROOT, logFile) });
+        counts: counts(out), log: path.relative(ROOT, logFile),
+        // SPEC-07: accepted-risk state, surfaced in the record and the closing banner.
+        stateChanges: strip(out).split("\n").filter((l) => /^(STATE CHANGE|NOT REPRODUCING) /.test(l)).map((l) => l.trim()) });
     });
   });
 }
@@ -217,6 +219,7 @@ const record = {
   notSelected: Object.keys(policy.suites).filter((id) => !chosen.has(id)),
   suites: results,
   result: results.every((r) => r.status === "pass") ? "pass" : "fail",
+  stateChanges: results.flatMap((r) => r.stateChanges ?? []),
 };
 record.gate = gateStatus([...prior, record]);
 fs.writeFileSync(path.join(RUNS, `${runId}.json`), JSON.stringify(record, null, 2) + "\n");
@@ -232,4 +235,10 @@ console.log(`\nRun record: ${path.relative(ROOT, path.join(RUNS, `${runId}.json`
 console.log(record.gate.complete
   ? `Gate: COMPLETE on tree ${tree.slice(0, 12)}. Work may be declared done.`
   : `Gate: incomplete on tree ${tree.slice(0, 12)}. Still needed: ${record.gate.missing.join(", ")}  (npm run test:gate)`);
+if (record.stateChanges.length) {
+  const bar = "!".repeat(78);
+  console.log(`\n${bar}\nACCEPTED-RISK STATE (SPEC-07). Report this to the human:`);
+  for (const c of record.stateChanges) console.log(`  ${c}`);
+  console.log(`Only a human removes an @accepted-risk tag, through guard:freeze.\n${bar}`);
+}
 process.exit(record.result === "pass" ? 0 : 1);
