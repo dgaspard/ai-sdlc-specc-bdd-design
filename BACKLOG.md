@@ -44,7 +44,7 @@ the shared JavaScript runtime is allowed and disclosed).
 | r1 (2026-09-28) | JavaScript → Python | 25m 49s (agent) | 10/10 suites + visible journey; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
 | r2 (2026-09-29) | Python → JavaScript | ≤32m23s | 10/10 suites + visible journey; verification 8m13s | 0 | [r2](docs/rehearsals/r2.md) |
 | r3 | JavaScript → Python (optional recorded fallback) | — | not started | — | — |
-| r4 (2026-10-07) | JavaScript → Python, against SPEC-06 specs (`exp-01-spec06-baseline`) | — | workspace prepared, Checkout deleted; build not started | — | — |
+| r4 (2026-10-07) | JavaScript → Python, against SPEC-06 specs (`exp-01-spec06-baseline`) | 24m03s (agent 14m46s) | 10/10 suites, 977 tests; verification 27m37s total; recorded (DEMO-03 fallback) | 0 | [r4](docs/rehearsals/r4.md) |
 
 Live gate (A-12), revised by A-14 (2026-10-03): r1 and r2 — zero interventions,
 both language directions — are sufficient evidence the reconstruction claim
@@ -55,7 +55,7 @@ talks. Watch for r1's unreproduced startup hang if/when r3 runs. On stage use
 
 ### SPEC-06 — Close Checkout specification gaps found in rehearsal
 
-Status: **JavaScript fixes verified: D-58–D-65 accepted; specifications frozen; all ten `npm test` suites pass.** D-66 was already decided and frozen separately. Phase: build verification. See [SPEC-06 handoff](docs/handoffs/spec-06.md) for gap-to-test coverage, verification and remaining implementation work. Next: independent engineering review and a fresh Python reconstruction against the updated specs. Sources: [rehearsal r1](docs/rehearsals/r1.md),
+Status: **Done criteria met 2026-10-07: fresh Python rebuild [r4](docs/rehearsals/r4.md) passed every suite against the new specs. ENG-02 on r4 still pending. New gaps GAP-16 and GAP-17 are under open follow-ups.** Earlier: JavaScript fixes verified: D-58–D-65 accepted; specifications frozen; all ten `npm test` suites pass. D-66 was already decided and frozen separately. Phase: build verification. See [SPEC-06 handoff](docs/handoffs/spec-06.md) for gap-to-test coverage, verification and remaining implementation work. Next: independent engineering review and a fresh Python reconstruction against the updated specs. Sources: [rehearsal r1](docs/rehearsals/r1.md),
 [rehearsal r2](docs/rehearsals/r2.md). MVP-02A shipped first, so SPEC-06 now
 runs its own review-and-freeze cycle. r3 (DEMO-01) should run against the
 specs it produces.
@@ -138,6 +138,14 @@ Status: planned. Decisions A-05, A-12. The on-stage flow:
   validation, so every rejected attempt gets one (full OBS-003). Deferred
   2026-10-05 in favour of dropping the unreachable `validation_error` from
   OBS-046/047.
+- **From r4 (2026-10-07), spec gaps (protected, Dustin's call):**
+  - GAP-16: if the charge reaches Customer but the booking-fee credit fails, no
+    bill is saved and every retry fails on `already_applied`, so recovery is
+    manual. Untested. Linked to GAP-14: r2 treated `already_applied` as success
+    and r4 treated it as failure; both pass.
+  - GAP-17: Checkout attribution for administrator-only accounts (promotion
+    `appliedByVeterinarianId`, cash `recordedByVeterinarianId`). Already noted as
+    open in `visit-payment.feature`; the demo never reaches it.
 - **Test-run hygiene:** the full auth suite (~10 min) wasn't being run, which
   hid a two-week-old AUTH-006 failure. Run the whole `npm test` before
   declaring any item done.
