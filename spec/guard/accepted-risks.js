@@ -74,8 +74,16 @@ function classify(envelopes) {
   });
 }
 
+// History is kept only for runs through spec/run-all.js, which supplies the tree hash.
+// Direct runs (tree "unknown") neither read nor write it.
+const keepHistory = tree !== "unknown";
 let previous = {};
-try { previous = JSON.parse(fs.readFileSync(LATEST, "utf8")).results ?? {}; } catch { /* no history */ }
+if (keepHistory) {
+  try {
+    const all = JSON.parse(fs.readFileSync(LATEST, "utf8")).results ?? {};
+    previous = Object.fromEntries(Object.entries(all).filter(([, v]) => v.tree !== "unknown"));
+  } catch { /* no history */ }
+}
 
 const results = {};
 const errors = [], changes = [];
@@ -111,8 +119,10 @@ for (const profile of Object.keys((await import("./accepted-risks.cucumber.cjs")
     }
   }
 }
-fs.mkdirSync(OUT, { recursive: true });
-fs.writeFileSync(LATEST, JSON.stringify({ at: now, tree, results }, null, 2) + "\n");
+if (keepHistory) {
+  fs.mkdirSync(OUT, { recursive: true });
+  fs.writeFileSync(LATEST, JSON.stringify({ at: now, tree, results }, null, 2) + "\n");
+}
 
 for (const c of changes) console.log(c);
 if (changes.some((c) => c.includes("→ passing"))) {

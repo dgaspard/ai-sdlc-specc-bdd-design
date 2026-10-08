@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PROJECTS, SPEC_ROOT } from "../../harness/config.js";
 import { loadContract, responseTarget, validateResponse, validateRequest } from "../../harness/schema.js";
+import { taggedElements } from "../../guard/guard.js";
 
 const ROLES = ["veterinarian", "customer", "service", "anonymous", "administrator"]; // MVP-02A (D-39)
 const IDEMPOTENT = ["collectBookingFee", "acceptReservation", "payVisitBalance", "recordCashPayment"];
@@ -66,7 +67,15 @@ describe("per-service API contracts", () => {
       it(`[API] every ${p.title} feature file is covered by an operation`, () => {
         const dir = path.join(SPEC_ROOT, "features", name);
         const covered = new Set(operations(p.contract).flatMap((o) => o.op["x-features"] ?? []));
+        // SPEC-07: a file whose scenarios are all @retired describes behavior that must
+        // NOT exist, so by design no current operation covers it.
+        const allRetired = (f) => {
+          const scenarios = taggedElements(fs.readFileSync(path.join(dir, f), "utf8"))
+            .filter((e) => ["Scenario", "Scenario Outline", "Scenario Template", "Example"].includes(e.keyword));
+          return scenarios.length > 0 && scenarios.every((e) => e.tags.includes("@retired"));
+        };
         for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".feature"))) {
+          if (allRetired(f)) continue;
           assert.ok(covered.has(`spec/features/${name}/${f}`), `${f} has no operation`);
         }
       });
