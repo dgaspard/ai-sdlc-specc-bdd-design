@@ -67,9 +67,14 @@ No new feature beyond the core demonstration is required to prove the hypothesis
 ## Current position
 
 Status is tracked in [BACKLOG.md](BACKLOG.md) (Now / Next / Done); this plan does
-not repeat it. As of 2026-09-29 the specification, architecture, JavaScript
-implementation, frontend, and performance milestones are complete (weeks 1–3),
-and reconstruction rehearsals are under way (week 4), ahead of schedule.
+not repeat it. As of 2026-10-07 the project is ahead of the revised schedule
+below. Complete: specification, architecture, JavaScript implementation,
+frontend, performance, SEC-01, MVP-02A, ENG-02, and the SPEC-06 freeze (all ten
+suites pass on JavaScript). r1 and r2 are accepted as reconstruction evidence.
+Next: rehearsal r4, a fresh JavaScript → Python Checkout rebuild against the
+SPEC-06 specs (tag `exp-01-spec06-baseline`), then ENG-02 on its output. r4
+closes SPEC-06 and is EXP-01's third reconstruction. PLAY-01 (due 2026-10-13)
+and DEMO-02 are handled offline.
 
 ## Working agreements and ownership
 

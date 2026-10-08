@@ -44,6 +44,7 @@ the shared JavaScript runtime is allowed and disclosed).
 | r1 (2026-09-28) | JavaScript → Python | 25m 49s (agent) | 10/10 suites + visible journey; verification 9m28s | 0 | [r1](docs/rehearsals/r1.md) |
 | r2 (2026-09-29) | Python → JavaScript | ≤32m23s | 10/10 suites + visible journey; verification 8m13s | 0 | [r2](docs/rehearsals/r2.md) |
 | r3 | JavaScript → Python (optional recorded fallback) | — | not started | — | — |
+| r4 (2026-10-07) | JavaScript → Python, against SPEC-06 specs (`exp-01-spec06-baseline`) | — | workspace prepared, Checkout deleted; build not started | — | — |
 
 Live gate (A-12), revised by A-14 (2026-10-03): r1 and r2 — zero interventions,
 both language directions — are sufficient evidence the reconstruction claim
