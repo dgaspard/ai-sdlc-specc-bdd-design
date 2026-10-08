@@ -109,6 +109,12 @@ Still open (answer before scoping CI/CD-to-cloud as a real backlog item):
   "small real example first" pattern), or just the frontend/static assets
   as the simplest possible first deploy target.
 
+## Added after the sequence (2026-10-07)
+
+- **The first 15 minutes** ([START-01](../BACKLOG.md#start-01--the-first-15-minutes)):
+  make it easy for a remote, multi-role group in a regulated organization to start a
+  project with this workflow. Comes after CI/CD and data persistence.
+
 ## Carried over from ENG-02 scaffolding (2026-10-04)
 
 Two items deliberately deferred here rather than fixed during ENG-02's

@@ -239,6 +239,49 @@ Status: deferred until explicitly requested. Pet removal, historical-data
 preservation, governance, archival, retrieval, and reporting as a separate learning
 exercise with deeper architecture. Nothing for it belongs in the November demo.
 
+### START-01 — The first 15 minutes
+
+Status: deferred until after CI/CD-to-cloud ([CI-01](#ci-01--wire-sec-01s-security-gates-into-cicd-on-push-to-main))
+and data persistence, which closes the
+[post-November learning sequence](docs/post-november-learning-plan.md).
+Idea captured 2026-10-07; not scoped.
+
+Make the start of a project easy with this workflow. The audience is a remote,
+multi-role group in a large, regulated organization, not a solo developer.
+
+The problem it targets is the enterprise requirements deadlock. Every role waits on
+the role upstream: "I can't make a domain model / API contract / use case /
+workflow until I understand what we're building." This project broke the deadlock
+by making decisions directly, but only for a low-risk POC. START-01 asks how a
+group gets there.
+
+Working ideas from discussion (not decisions):
+
+- Reversibility makes commitment safe. A wrong decision costs a scenario edit and
+  a rebuild (about 27 minutes in this project), not a rewrite. Ask for
+  provisional decisions with an owner and a revisit trigger, in the shape of the
+  existing D-xx decision log, instead of asking for "requirements."
+- Remote calls let the loudest voice win. Collect input in parallel and
+  attributed (everyone writes examples), let the AI merge them and flag
+  conflicts, then spend the call on the conflicts.
+- Concrete examples bridge the technical/functional divide. The AI translates
+  both ways: a functional example becomes a scenario and contract; a technical
+  constraint becomes a readable scenario. Both sides review the same artifact.
+- Regulatory constraints (access control, audit logging, data handling) become
+  executable scenarios from the first session, not a late review gate.
+- Assume restricted tooling: plain text in git plus already-approved tools. Keep
+  enforcement in the pipeline (`guard:check`, CI), so the method doesn't depend
+  on which agent a client has approved (Claude and Codex today).
+
+Open questions:
+
+- What roles are typically in the room, and who is hardest to get to commit?
+- Is the deliverable a facilitation guide, agent prompts/skills, a starter repo
+  template, or a mix?
+- How do participants contribute in parallel when tool approval differs by client?
+- Has the workflow been proven with Codex? A rehearsal build with Codex would test
+  the agent-neutral claim.
+
 ### ARCH-05 — Evaluate Docker Compose isolation
 
 Status: deferred until after the November talks. Evaluate Compose for the services,
