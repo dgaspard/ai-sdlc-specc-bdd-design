@@ -25,6 +25,23 @@ describe("guard", () => {
     assert.deepEqual(listProtected(root), ["AGENTS.md", "docs/specs/decisions.md", "spec/features/a.feature", "spec/tests/a.test.js"]);
   });
 
+  it("[GUARD] A-20 protects the GitHub root of trust but permits delivery workflow changes", () => {
+    write(".github/workflows/guard.yml", "guard\n");
+    write(".github/CODEOWNERS", "owners\n");
+    write(".github/workflows/delivery-prod.yml", "delivery\n");
+    const frozen = manifestFor(root);
+    assert.ok(listProtected(root).includes(".github/workflows/guard.yml"));
+    assert.ok(listProtected(root).includes(".github/CODEOWNERS"));
+    assert.ok(!listProtected(root).includes(".github/workflows/delivery-prod.yml"));
+    write(".github/workflows/delivery-prod.yml", "updated delivery\n");
+    assert.deepEqual(compare(root, frozen), { modified: [], missing: [], added: [] });
+    write(".github/workflows/guard.yml", "changed guard\n");
+    fs.rmSync(path.join(root, ".github/CODEOWNERS"));
+    assert.deepEqual(compare(root, frozen), {
+      modified: [".github/workflows/guard.yml"], missing: [".github/CODEOWNERS"], added: [],
+    });
+  });
+
   it("[GUARD] detects modified, deleted, and added protected files", () => {
     const frozen = manifestFor(root);
     assert.deepEqual(compare(root, frozen), { modified: [], missing: [], added: [] });

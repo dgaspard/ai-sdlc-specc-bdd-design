@@ -189,6 +189,103 @@ expected-failure handling in the Cucumber runner, and one worked example of each
 (a retired IMPL-01 cancellation under D-24, and one accepted risk). Then Dustin
 reviews it before anything protected changes.
 
+## After the talks (2026-11-13) — governed delivery
+
+The first post-November initiative ([learning plan](docs/post-november-learning-plan.md)):
+CI/CD with local, cloud non-prod and cloud prod environments, governed the same way
+as application behavior. Delivery code is an agent-built by-product of a frozen,
+executable spec, and evidence is a by-product of delivery. Decisions A-16..A-20 are in
+`PROJECT-PLAN.md`. Items are in order, and each follows the delivery sequence: spec,
+red checks, build, ENG review, freeze. No AWS spend before SPEC-08 is frozen.
+
+### SPEC-08 — Delivery as an executable specification
+
+Status: **frozen 2026-10-10; follow-up patch awaiting review and freeze.**
+- Design: [docs/spec-08-delivery-design.md](docs/spec-08-delivery-design.md).
+- Spec: [spec/delivery/](spec/delivery/README.md).
+- Human guide (generated): [docs/delivery/environments.md](docs/delivery/environments.md).
+
+29 control scenarios plus 4 catalog checks, calibrated with 27 plants (all caught).
+Since the freeze:
+- **Done:** cfn-guard 3.2.1 policies calibrated (12/12); A-20 boundary; `guard.yml`
+  actions pinned, with the `Delivery spec` job; `delivery` suite in the gate; `main`
+  rulesets and the `prod` environment configured (CTL-024 passes live).
+- **Problem found:** red controls in a required check blocked every merge and
+  `test:verify`.
+- **Decided 2026-10-10:** tag them `@awaiting:<backlog ID>` (information only until a
+  human removes the tag), and rewrite CTL-025 around a separate agent GitHub identity,
+  since a single maintainer is allowed to self-review.
+- **Next:** apply `docs/spec-drafts/spec-08-awaiting-and-agent-identity.patch`, add the
+  `AGENTS.md` rule, and freeze. Expected: required 7/7 green.
+
+### ENV-01 — Local environment as a by-product
+
+Status: planned, after SPEC-08. Done when every `@awaiting:ENV-01` tag is removed at a freeze. An agent builds the Dockerfiles and `compose.yaml`
+until the `local` and `pipeline` static scenarios pass. The existing harness must
+still pass unchanged (the runtime contract is unaffected). Closes ARCH-05 (A-17).
+
+### CI-02 — Delivery pipeline as a by-product
+
+Status: planned. Done when every `@awaiting:CI-02` tag is removed at a freeze. That
+includes CTL-025, which needs the agent's own GitHub identity: a separate account or app
+with write access, not an admin, not a `prod` reviewer, and listed in
+`root-of-trust.json` → `agentIdentities`. Agent sessions use its credentials, never
+the maintainer's. An agent builds `.github/workflows/delivery-*.yml` until the
+`pipeline/` and `agent-governance/` scenarios pass:
+- scans gate with `SECURITY_GATE=fail`
+- SBOM via Syft
+- SLSA and AI provenance attestations
+- OIDC only
+- pinned actions
+
+The CI-01 scope moves here, expressed as scenarios rather than prose. Also: the
+branch ruleset (GUARD-01 remote) and the pre-push `test:verify` hook, both planned
+catalog entries that need live-tier scenarios.
+
+### ENV-02 — AWS organization and non-prod
+
+Status: planned. Done when every `@awaiting:ENV-02` tag is removed at a freeze. An agent builds `infra/` (CDK synthesized to CloudFormation) until
+the `template` tier passes. That covers the organization with SCPs, the budget, the
+non-prod stack, no NAT gateway and TTL tags. Then the first `live` scenarios run in CI
+against an ephemeral non-prod environment. Dustin creates the AWS Organization
+and the management account by hand; that bootstrap can't be a by-product.
+
+### ENV-03 — Prod promotion
+
+Status: planned. Done when every `@awaiting:ENV-03` tag is removed at a freeze. Promote the same image digest after a human approves in the `prod`
+GitHub Environment, verifying both attestations; prod runs with test endpoints off,
+inside a short promotion window, with a rollback runbook. The `promotion/` and
+`operations/` features are drafted with this item. Also fix OBS-008 (an exporter
+crash can take a service down) before prod.
+
+### OBS-P1 — Production observability
+
+Status: planned. Cloud tracing (ADOT to X-Ray) with the OBS rules asserted against the
+deployed environment, structured JSON logs, SLO alarms, and the deployed load smoke
+test. All are planned catalog entries today.
+
+### EVID-01 — Evidence bundle
+
+Status: planned. Generate the control coverage matrix and a per-run evidence bundle
+from the Cucumber JSON output (CTL, NIST and SSDF tags), the run record, the image
+digest, the SBOM, both attestations and the approver. Fail when a binding control has
+no evidence.
+
+### EXP-02 — Rebuild the delivery code from the spec
+
+Status: planned. The DEMO-01 experiment applied to delivery. Delete the Dockerfiles,
+`compose.yaml`, `infra/` and the delivery workflows, then have a fresh agent rebuild
+them from `spec/delivery` until every tier passes. Optionally switch from CDK-JS to
+CDK-Python. Record it with the rehearsal template: time, interventions, and spec gaps
+(GAP-xx → D-xx).
+
+### PLAY-02 — Delivery playbook from the evidence
+
+Status: planned. A short adoption guide for `spec/delivery` in another repository
+(it's a portable package), plus lessons in the `docs/talk-notes.md` format: the AWS
+Organizations and SCP learning, ephemeral environments under a fixed budget, and the
+moved root of trust.
+
 ## Open follow-ups on completed work
 
 - **GUARD-01 remote:** configure and verify the GitHub branch ruleset (PR required,
@@ -278,11 +375,16 @@ and ENG-02. Record time, interventions, failures, and retained scaffolding.
 
 ### CI-01 — Wire SEC-01's security gates into CI/CD on push to main
 
-Status: deferred until after the November talks (2026-11-07, 2026-11-13).
-Confirmed 2026-10-04: no `.github/workflows/` directory exists at all, so
-none of SEC-01's scanners (Semgrep, Bandit, `npm audit`, `pip-audit`,
-detect-secrets) run automatically today — they only run locally via
-`tools/security/run-sec01-spike.sh` / `tools/security/portable/run-*.sh`.
+Status: **superseded 2026-10-10 by [SPEC-08](#spec-08--delivery-as-an-executable-specification)
+and [CI-02](#ci-02--delivery-pipeline-as-a-by-product).** Each scope bullet below is
+now a scenario: scans gate delivery (CTL-013), the root of trust runs guard and the
+delivery suite (CTL-022). The branch ruleset and the pre-push hook are planned catalog
+entries. Kept for history.
+
+Correction (2026-10-10): `.github/workflows/guard.yml` exists. It runs a required
+guard job and an informational full-suite job. Neither runs SEC-01's scanners, which
+still only run locally via `tools/security/run-sec01-spike.sh` and
+`tools/security/portable/run-*.sh`. The original text follows.
 Nothing currently stops an insecure change from reaching `main` through a
 normal push or merge. Related open gap: the "GUARD-01 remote" follow-up
 (branch ruleset: PR required, guard check required, code-owner review) is
@@ -373,7 +475,8 @@ Open questions:
 
 ### ARCH-05 — Evaluate Docker Compose isolation
 
-Status: deferred until after the November talks. Evaluate Compose for the services,
+Status: **decided 2026-10-10 (A-17): containers everywhere, Compose locally.** The work
+moves to [ENV-01](#env-01--local-environment-as-a-by-product). Original note: evaluate Compose for the services,
 collector, and payment fake: startup/shutdown, health checks, isolated networks,
 port ownership, reproducibility, and safer human control over AI-driven process
 management. No Docker files before an explicit review.

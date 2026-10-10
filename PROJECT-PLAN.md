@@ -59,7 +59,8 @@ Fallback: a pre-recorded screen capture of a successful rehearsal rebuild.
 ### Outside the initial scope
 
 Persistent databases, durable idempotency, cloud deployment, Docker/containers
-(decided against: added complexity, little value for an unshared project), Kubernetes, message
+(decided against for the November demo: added complexity, little value for an unshared project;
+revisited for the post-November delivery initiative by A-17), Kubernetes, message
 brokers, real payments, authentication infrastructure, production monitoring, and
 automatic refund/reconciliation systems. Their absence must be explicit in the talk.
 No new feature beyond the core demonstration is required to prove the hypothesis.
@@ -75,7 +76,8 @@ r4, a fresh JavaScript → Python Checkout rebuild against the SPEC-06 specs,
 passed with zero interventions, and ENG-02 has reviewed it. That closes SPEC-06
 and gives EXP-01 its third reconstruction. Next: SPEC-07 (suppressing tests and
 retiring features through the spec), ahead of CI-01. PLAY-01 (due 2026-10-13)
-and DEMO-02 are handled offline.
+and DEMO-02 are handled offline. 2026-10-10: SPEC-08 (delivery as an executable
+specification) drafted for after the talks; decisions A-16..A-20.
 
 ## Working agreements and ownership
 
@@ -127,6 +129,11 @@ inspect its requests and invocation counts.
 | A-13 | CI/CD placement decision framework (2026-10-03, branch `ci/perf-01-required-check`, tag `ci-perf-01-required`): a check belongs in the agent's local loop only if the agent needs the signal while building to converge; it belongs in CI, least-privilege and CI's-copy-authoritative, if it needs infrastructure/credentials/live external data unsuitable for an autonomous local session, or if the agent could make it pass dishonestly without independent detection (needs an independent CI rerun, or a tamper-evident/frozen definition CI can cheaply verify, as GUARD-01 already does). Composed with a second axis — portable (candidate for a future org-owned, centrally curated check, per ENG-02) vs. project-specific (stays local to this repo) — into a 2x2 that any new check is sorted into before it's added anywhere. First applied action: promote PERF-01 from the informational `suite` job to its own required `performance` job in `.github/workflows/guard.yml`, since it is cheap (~15s), tamper-evident, and a final gate rather than something the agent needs mid-build. Full framework: `docs/ci-cd-placement.md`. |
 | A-14 | Demo evidence-sufficiency decision (2026-10-03): r1 and r2 (DEMO-01) each showed zero interventions, in both language directions (JS→Python and Python→JS). Rather than hold to "three consecutive clean runs" as a fixed numeric gate, the live-readiness bar is explicitly relaxed to "two clean rehearsals, covering both directions, are sufficient evidence the reconstruction claim holds." r3's screen recording is reclassified from a blocking rehearsal to an optional fallback-recording task (expected under an hour), completed whenever before the talks rather than gating MVP-02A/SEC-01/ENG-02 work. Freed near-term capacity is reprioritized to DEMO-02 (the presentation speaking outline), on the reasoning that the outline needs to exist and be rehearsed before further rehearsal reps add marginal value. Not separately tagged; recorded here and in `docs/talk-notes.md` so the reasoning is referenceable when discussing the project's own decision-making process. |
 | A-15 | Portable-vs-project-specific physical split for the review/security library (2026-10-03): `tools/security/` is split into `portable/` (generic checks — Semgrep, Bandit, pip-audit/npm audit, detect-secrets, plus two custom Semgrep rules — that take no petclinic-specific knowledge to run) and `project-specific/` (this app's own config and findings, e.g. its real CORS policy, its auth-coverage architecture notes). The sorting test: if running the same mechanism against a different project would need only new parameters, it's portable; if it needs rewritten logic, it's project-specific — the same engine/parameters distinction ENG-02 already uses for the import-boundary check, now confirmed to generalize to security checks too. `.github/CODEOWNERS` requires review on `tools/security/portable/`, mirroring GUARD-01's protection model but lighter: mandatory review, not a hash freeze, since portable checks are meant to evolve. `tools/review/` (ENG-02) should adopt the same physical split once it's built. Intent: `portable/` is written with zero petclinic-specific references, so it doubles as a ready starting security baseline for a brand-new project, and is the literal staging ground for whatever eventually gets lifted out into a shared, centrally-maintained repo once proven on a second real project (ENG-02's graduation criterion). |
+| A-16 | Delivery compliance anchor (2026-10-10, SPEC-08): NIST SP 800-53 Rev 5 (Moderate baseline) plus NIST SP 800-218 (SSDF). Every delivery control is a scenario tagged `@CTL-NNN @nist:<control> @ssdf:<practice>`, so the compliance mapping is executable and queryable rather than a separate document. Cost controls are tagged `@nist:none @ssdf:none` explicitly. |
+| A-17 | Containers in every environment (2026-10-10): one image per runnable project, Docker Compose locally, Amazon ECS on AWS Fargate in non-prod and prod. Resolves ARCH-05 and supersedes the initial-scope "Docker/containers (decided against)" note, which was right for the November demo and is revisited for the delivery initiative. |
+| A-18 | AWS-native infrastructure as a by-product (2026-10-10): AWS CDK synthesized to CloudFormation, with AWS CloudFormation Guard policies, and GitHub Actions with OIDC into AWS. Supersedes "Terraform on AWS" (2026-10-04). The synthesized template plus deployed behavior is the contract, not the CDK code, mirroring A-02: an agent may rebuild `infra/` in CDK-JS, CDK-Python or plain CloudFormation without a spec change. |
+| A-19 | Delivery specs live in `spec/delivery/` (2026-10-10): inside the protected tree, so the guard hash, CODEOWNERS and run-all tiers apply, but with their own `package.json` and lockfile and no imports from `spec/harness`, so the package is portable to another repository. A human-readable catalog (`catalog.yaml`) renders `docs/delivery/environments.md` (Local / Non-prod / Prod), and scenarios keep the two from drifting. |
+| A-20 | Narrower root of trust (2026-10-10, applied at the SPEC-08 freeze): delivery workflows become agent-built by-products, so the protected `.github/` path narrows to `.github/workflows/guard.yml` and `.github/CODEOWNERS`. Delivery workflows are `.github/workflows/delivery-*.yml` (DC-006) and are checked by `spec/delivery` scenarios. CI's own run of the suite is authoritative (A-13). |
 
 These architecture tasks (ARCH-01..04, OTEL-01, AUTH-01, GUARD-01) take priority over designing the
 per-service API contracts (SPEC-04), because the contracts and tests must follow them.
@@ -307,3 +314,13 @@ DEMO-02 speaking outline this week, ahead of SEC-01.
 | 2026-10-10 | MVP-02A JavaScript build green; ENG-02 passes |
 | 2026-10-13 | PLAY-01 package ready |
 | before 2026-11-07 | Fresh Python rehearsal against the new specs; DEMO-02 narrative and final recording |
+
+## Deferred: network hardening (decided 2026-10-10)
+
+Out of scope for the delivery initiative until a real data or exposure need appears.
+This is a test application with no real data, and its non-prod environment
+deliberately exposes test endpoints. The deferred work covers private subnets for tasks,
+AWS WAF on the load balancer, restricted ingress, VPC endpoints instead of public
+egress, and a boundary for non-prod test endpoints. Most of it also needs a NAT gateway
+or interface endpoints, which the $25/month ceiling rules out (SPEC-08 cost
+analysis). Tracked as the `network-hardening` catalog entry with status `deferred`.
