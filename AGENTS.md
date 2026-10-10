@@ -19,7 +19,10 @@ create, modify, or delete anything under:
 
 - `spec/` (features, contracts, seed data, tests, validators, harness, fakes)
 - `docs/specs/` (decisions, domain model, schema decisions)
-- `.github/`, `.claude/`, `AGENTS.md`
+- `.github/workflows/guard.yml`, `.github/CODEOWNERS`, `.claude/`, `AGENTS.md`
+
+Delivery workflows (`.github/workflows/delivery-*.yml`) are agent-built outputs
+checked by `spec/delivery/`, outside the protected root of trust (A-20).
 
 Enforcement is GUARD-01, not this file alone:
 
@@ -52,6 +55,10 @@ Backlog tasks state which phase they run in.
 - Scenarios tagged `@accepted-risk` are expected to fail on purpose and run only in
   the `accepted-risks` suite. Don't fix them unless asked, and never add, remove, or
   edit `@accepted-risk` or `@retired` tags. That is a human freeze decision.
+- Scenarios tagged `@awaiting:<BACKLOG-ID>` describe requirements awaiting the
+  named backlog item. Agents must not add, remove, or edit `@awaiting` tags,
+  including to make a suite pass or activate a requirement. Changing these tags
+  is a human review and freeze decision.
 - If the `accepted-risks` suite reports a `STATE CHANGE`, put it at the top of your
   final report: the risk ID, the old and new state, and the tree. Don't bury it in
   the suite table.

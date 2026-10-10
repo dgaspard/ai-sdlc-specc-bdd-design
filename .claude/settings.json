@@ -4,7 +4,8 @@
       "Edit(./spec/**)",
       "Edit(./docs/specs/**)",
       "Edit(./.claude/**)",
-      "Edit(./.github/**)",
+      "Edit(./.github/workflows/guard.yml)",
+      "Edit(./.github/CODEOWNERS)",
       "Edit(./AGENTS.md)"
     ]
   },

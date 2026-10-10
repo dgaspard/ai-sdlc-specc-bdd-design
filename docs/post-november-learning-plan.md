@@ -115,6 +115,29 @@ Still open (answer before scoping CI/CD-to-cloud as a real backlog item):
   make it easy for a remote, multi-role group in a regulated organization to start a
   project with this workflow. Comes after CI/CD and data persistence.
 
+## Decided (2026-10-10): CI/CD-to-cloud scoped as SPEC-08
+
+The CI/CD deep-dive is now scoped. Design: [SPEC-08](spec-08-delivery-design.md).
+Backlog: [After the talks](../BACKLOG.md#after-the-talks-2026-11-13--governed-delivery).
+
+- **The goal is the developer and agent experience, not deployment speed.** Delivery
+  code is an agent-built by-product of a frozen, executable spec (`spec/delivery/`),
+  and evidence is a by-product of delivery.
+- **Stack: AWS CDK synthesized to CloudFormation, plus CloudFormation Guard (A-18).**
+  This supersedes "Terraform on AWS" above. AWS-native keeps the infrastructure
+  contract as template JSON an agent can be tested against offline.
+- **Compliance:** NIST SP 800-53 Rev 5 Moderate and SSDF (A-16).
+- **Runtime:** ECS on Fargate (A-17).
+- **Accounts:** AWS Organizations with SCPs.
+- **Budget:** $25/month, which makes environments ephemeral.
+- **Answers to the open questions above:**
+  - Work style: specs now, build after the talks.
+  - What deploys first: the whole system, since the services call each other, but
+    only into ephemeral environments.
+  - Persistence questions stay open until DATA-01.
+- **Stale note below:** the ENG-02 carry-over about CODEOWNERS not protecting the
+  `portable/` folders is out of date. `.github/CODEOWNERS` now covers both.
+
 ## Carried over from ENG-02 scaffolding (2026-10-04)
 
 Two items deliberately deferred here rather than fixed during ENG-02's
